@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Декларация на авто</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        td, th { border: 1px solid #ccc; padding: 8px; }
+        input { width: 100%; border: none; font: inherit; background: transparent; }
+        h1 { text-align: center; }
+        .no-border td { border: none; }
+        .print-btn { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Таможенная декларация</h1>
+    <p>Дата: <input type="text" value="07.08.2025"></p>
+    <p>Номер декларации: <input type="text" value="19855a93f23_1_ugtd"></p>
+
+    <table>
+        <tr>
+            <th>Наименование</th>
+            <th>Значение</th>
+        </tr>
+        <tr>
+            <td>ФИО</td>
+            <td><input type="text" value="Иванов Иван Иванович"></td>
+        </tr>
+        <tr>
+            <td>VIN</td>
+            <td><input type="text" value="LVCV2V2B0PD123456"></td>
+        </tr>
+        <tr>
+            <td>Марка</td>
+            <td><input type="text" value="BYD Seal U"></td>
+        </tr>
+        <tr>
+            <td>Год выпуска</td>
+            <td><input type="text" value="2025"></td>
+        </tr>
+        <tr>
+            <td>Объём двигателя</td>
+            <td><input type="text" value="1.5T"></td>
+        </tr>
+        <tr>
+            <td>Цвет</td>
+            <td><input type="text" value="Синий"></td>
+        </tr>
+    </table>
+
+    <button class="print-btn" onclick="window.print()">Печать</button>
+</body>
+</html>

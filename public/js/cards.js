@@ -1,6 +1,6 @@
 // O‘yin kartalari ko‘rinishi: sarlavha, matn va asosiy raqamlar (narx, oylik daromad, yillik daromadlilik)
 
-import { DECKS, STOCKS, DREAMS, ASSET_TYPE_LABELS, CHARITY_TURNS, DOWNSIZE_TURNS, money, signed } from './shared/rules.js';
+import { DECKS, STOCKS, BONDS, DREAMS, ASSET_TYPE_LABELS, CHARITY_TURNS, DOWNSIZE_TURNS, money, signed } from './shared/rules.js';
 import { h } from './dom.js';
 
 const KIND_LABEL = {
@@ -11,7 +11,11 @@ const KIND_LABEL = {
   land: 'Yer',
   startup: 'Kichik biznes',
   gold: 'Oltin',
+  bond: 'Obligatsiya',
   sell: 'Xaridor',
+  sellBond: 'Xaridor',
+  cfChange: 'Bozor yangiligi',
+  bonus: 'Sovg‘a',
   sellUnit: 'Xaridor',
   sellTag: 'Xaridor',
   boost: 'Yangilik',
@@ -94,6 +98,42 @@ function describe(card, ctx) {
       return { icon: '✂️', title: card.title, text: card.text, badge: card.symbol, stats: [stat('Nisbat', card.ratio >= 1 ? '2 : 1' : '1 : 2')] };
     case 'gold':
       return { icon: '🪙', title: card.title, text: card.text, stats: [stat('Tanga narxi', money(card.price), 'big'), stat('Daromad', 'Faqat sotganda')] };
+    case 'bond': {
+      const b = BONDS[card.symbol];
+      const own = me?.assets.find((a) => a.kind === 'bond' && a.symbol === card.symbol);
+      return {
+        icon: b.icon,
+        title: card.title,
+        text: card.text,
+        badge: card.symbol,
+        stats: [
+          stat('Bir dona narxi', money(card.price), 'big'),
+          stat('Har biri oyiga', signed(b.income), 'good'),
+          stat('Yillik daromadlilik', roi(b.income, card.price), 'good'),
+          own ? stat('Sizda', `${own.units} ta`) : null,
+        ],
+      };
+    }
+    case 'sellBond':
+      return {
+        icon: '📜',
+        title: card.title,
+        text: card.text,
+        badge: card.symbol,
+        stats: [stat('Bir dona uchun', money(card.price), 'big'), stat('Kimga kerak', BONDS[card.symbol]?.name || 'Obligatsiyalar')],
+      };
+    case 'cfChange':
+      return {
+        icon: card.amount > 0 ? '📈' : '📉',
+        title: card.title,
+        text: card.text,
+        stats: [
+          stat(card.perUnit ? 'Har bir xonadonga' : 'Har bir mulkka', `${signed(card.amount)} / oy`, card.amount > 0 ? 'good' : 'bad'),
+          stat('Kimga ta’sir qiladi', card.targets.map((t) => ASSET_TYPE_LABELS[t] || t).join(', ')),
+        ],
+      };
+    case 'bonus':
+      return { icon: '🎁', title: card.title, text: card.text, stats: [stat('Sizga', card.salaryMonths ? `${card.salaryMonths} oylik maosh` : signed(card.amount), 'good')] };
     case 'realestate':
     case 'business':
     case 'land':

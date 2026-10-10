@@ -979,6 +979,16 @@ h1, h2, h3 { margin: 0; }
 .tabs button[aria-selected='true'] { color: var(--text); border-bottom-color: var(--accent); background: rgba(255, 255, 255, 0.03); }
 .tab-body { padding: 16px 18px 18px; max-height: calc(100vh - 380px); min-height: 280px; overflow-y: auto; scrollbar-width: thin; }
 .log { display: grid; gap: 6px; align-content: start; }
+.dice-stats { margin-bottom: 14px; padding: 12px 14px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); }
+.ds-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; font-size: 0.88rem; }
+.ds-head span { color: var(--muted); font-size: 0.8rem; font-weight: 700; }
+.ds-bars { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; height: 92px; }
+.ds-col { display: grid; grid-template-rows: auto 1fr auto; justify-items: center; gap: 4px; min-height: 0; }
+.ds-count { font-size: 0.72rem; color: var(--muted); font-weight: 800; font-variant-numeric: tabular-nums; }
+.ds-bar { position: relative; width: 70%; height: 100%; border-radius: 6px; background: rgba(255, 255, 255, 0.05); overflow: hidden; }
+.ds-bar i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 6px; background: linear-gradient(180deg, var(--gold), var(--accent)); transition: height 0.6s var(--ease-out); }
+.ds-face { font-size: 1.25rem; line-height: 1; }
+.ds-note { margin: 10px 0 0; color: var(--muted); font-size: 0.76rem; line-height: 1.4; }
 .log-item { --pc: var(--muted); display: flex; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--surface); border-left: 3px solid var(--pc); font-size: 0.85rem; line-height: 1.35; animation: fade-up 0.4s var(--ease-out) both; }
 .li-ico { flex-shrink: 0; }
 

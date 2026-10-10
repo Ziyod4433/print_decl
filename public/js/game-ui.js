@@ -9,6 +9,7 @@ import { reducedMotion } from './fx.js';
 import {
   PROFESSIONS,
   STOCKS,
+  BONDS,
   RAT_BOARD,
   FAST_BOARD,
   passiveIncome,
@@ -36,7 +37,9 @@ export function createGameUI({ send, toast, confetti, serverNow }) {
   const strip = $('#players-strip');
   const panel = $('#turn-panel');
   const stmtBox = $('#tab-statement');
-  const logBox = $('#tab-log');
+  const logTab = $('#tab-log');
+  const logBox = $('#log-list');
+  const diceBox = $('#dice-stats');
   const spotlight = $('#spotlight');
 
   let st = null;
@@ -71,7 +74,7 @@ export function createGameUI({ send, toast, confetti, serverNow }) {
   function selectTab(name) {
     for (const tab of $$('.tabs [role="tab"]')) tab.setAttribute('aria-selected', String(tab.dataset.tab === name));
     stmtBox.hidden = name !== 'statement';
-    logBox.hidden = name !== 'log';
+    logTab.hidden = name !== 'log';
   }
 
   // ——— asosiy kirish nuqtasi ———
@@ -376,14 +379,14 @@ export function createGameUI({ send, toast, confetti, serverNow }) {
 
     // step: card | end
     if (card && t.step === 'card') {
-      if (card.kind === 'stock' || card.kind === 'gold') {
+      if (card.kind === 'stock' || card.kind === 'gold' || card.kind === 'bond') {
         const maxAfford = Math.max(1, Math.floor((p.cash + loanCapacity(p)) / card.price));
         const total = h('span', { class: 'qty-total' });
         const holder = h('div');
         const trade = h(
           'div',
           { class: 'trade buy' },
-          h('div', { class: 'trade-title' }, `Sotib olish: ${card.kind === 'stock' ? `${card.symbol} aksiyasi` : 'oltin tanga'} ${money(card.price)} dan`),
+          h('div', { class: 'trade-title' }, `Sotib olish: ${card.kind === 'stock' ? `${card.symbol} aksiyasi` : card.kind === 'bond' ? BONDS[card.symbol].name.toLowerCase() : 'oltin tanga'} ${money(card.price)} dan`),
           qtyStepper(`buy:${card.id}`, Math.max(1, Math.floor(p.cash / card.price / 2)), maxAfford, (n) => {
             total.textContent = `Jami: ${money(n * card.price)}`;
             holder.replaceChildren(buyButton(p, n * card.price, `Sotib olish ${n} ta`, { type: 'buy', qty: n }));
@@ -447,7 +450,32 @@ export function createGameUI({ send, toast, confetti, serverNow }) {
     while (logBox.childElementCount > 80) logBox.lastElementChild.remove();
   }
 
+  // Zarlar statistikasi: har bir son necha marta tushgani — halollikni har kim o‘zi ko‘rsin
+  function drawDiceStats() {
+    const counts = st.game.dice || [0, 0, 0, 0, 0, 0];
+    const total = counts.reduce((a, b) => a + b, 0);
+    const max = Math.max(1, ...counts);
+    diceBox.replaceChildren(
+      h('div', { class: 'ds-head' }, h('b', {}, '🎲 Zarlar statistikasi'), h('span', {}, total ? `${total} ta tashlash` : 'hali tashlanmadi')),
+      h(
+        'div',
+        { class: 'ds-bars' },
+        ...counts.map((c, i) =>
+          h(
+            'div',
+            { class: 'ds-col', title: `${i + 1}: ${c} marta${total ? ` (${Math.round((c / total) * 100)}%)` : ''}` },
+            h('span', { class: 'ds-count' }, String(c)),
+            h('span', { class: 'ds-bar' }, h('i', { style: { height: `${(c / max) * 100}%` } })),
+            h('span', { class: 'ds-face' }, ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][i]),
+          ),
+        ),
+      ),
+      h('p', { class: 'ds-note' }, 'Zarlar serverda kriptografik tasodifiy generator bilan tashlanadi: har bir son ehtimoli 1/6, natijani hech kim oldindan bila olmaydi va o‘zgartira olmaydi. Tashlashlar ko‘paygan sari ustunlar tenglashadi.'),
+    );
+  }
+
   function drawLog() {
+    drawDiceStats();
     const fresh = st.game.log.filter((e) => e.id > seenLog);
     if (!fresh.length) return;
     seenLog = fresh.at(-1).id;

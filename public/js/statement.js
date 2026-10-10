@@ -73,6 +73,7 @@ function assetLine(a) {
     return row(h('span', {}, `${a.icon} ${a.symbol} `, h('small', {}, STOCKS[a.symbol]?.name || '')), `${a.shares} ta · o‘rtacha ${money(avg)}`);
   }
   if (a.kind === 'gold') return row(`🪙 Oltin tangalar`, `${a.count} ta · ${money(a.cost)}`);
+  if (a.kind === 'bond') return row(`${a.icon} ${a.title}`, `${a.units} ta · ${money(a.cost)}`);
   if (a.kind === 'fast') return row(`${a.icon} ${a.title}`, `${signed(a.cashflow)} / oy`, 'good');
   return row(h('span', {}, `${a.icon} ${a.title}`, a.units > 1 ? h('small', {}, ` · ${a.units} xonadon`) : null), money(a.cost));
 }

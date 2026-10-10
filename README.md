@@ -15,8 +15,12 @@ o‘yinchi g‘olib bo‘ladi.
 - 🏠 **Onlayn xonalar**: 4 harfli kod yoki havola orqali 1–6 o‘yinchi, Telegram’da ulashish tugmasi
 - 🎲 **Ikki halqali taxta**: 24 katakli kalamush poygasi va 36 katakli tezkor yo‘l; 3D zarlar, sakrab yuradigan fishkalar
 - 💼 **13 ta kasb** — farroshdan shifokorgacha, har birining o‘z daromad-xarajat hisoboti bor
-- 🃏 **110+ karta**: kichik va katta bitimlar, bozor, ortiqcha xarajatlar — somsaxona, choyxona, to‘yxona,
-  Chilonzor va Yunusoboddagi kvartiralar, «to‘yona», Navro‘z dasturxoni…
+- 🃏 **220+ karta**: aksiyalar (9 ta kompaniya), obligatsiya va fondlar, 1–3 xonali kvartiralar, garajlar,
+  do‘konlar, ko‘p xonadonli uylar, 30 dan ortiq biznes turi — somsaxona, choyxona, osh markazi, to‘yxona,
+  Buxorodagi mehmon uyi, pomidor issiqxonasi… Bozor yangiliklari (ijara oshishi, mulk solig‘i, soliq imtiyozlari,
+  yillik mukofot) va mahalliy ortiqcha xarajatlar: «to‘yona», beshik to‘yi, mehmonlar, Navro‘z dasturxoni
+- 🎲 **Halol zarlar**: zarlar va kartalar serverda kriptografik tasodifiy generator (`crypto.randomInt`) bilan
+  aniqlanadi — natijani hech kim oldindan bila olmaydi. «Jurnal» bo‘limida har bir son necha marta tushgani ko‘rinadi
 - 📊 **To‘liq moliyaviy hisobot**: daromadlar, xarajatlar, aktivlar, majburiyatlar, «moliyaviy erkinlik» o‘lchagichi,
   har bir bitim uchun yillik daromadlilik (ROI)
 - 🏦 **Bank**: $1 000 qadamli qarz (oyiga 10%), qarzlarni muddatidan oldin yopish, majburiy to‘lovda avtomatik kredit, bankrotlik
@@ -59,8 +63,9 @@ docker run -p 3000:3000 pul-oqimi
 npm test
 ```
 
-Testlar o‘yin qoidalarini (maosh, bitimlar, bozor, bank, bankrotlik, xayriya, tezkor yo‘l, g‘alaba shartlari)
-va haqiqiy WebSocket ulanishlari orqali ko‘p o‘yinchili seansni tekshiradi.
+Testlar o‘yin qoidalarini (maosh, bitimlar, bozor, bank, bankrotlik, xayriya, tezkor yo‘l, g‘alaba shartlari),
+zarlarning haloligini (χ² mezoni bilan: har bir son, ikki zar yig‘indisi va ketma-ket tashlashlar mustaqilligi),
+kartalar to‘g‘riligini va haqiqiy WebSocket ulanishlari orqali ko‘p o‘yinchili seansni tekshiradi.
 
 ## Tuzilishi
 

@@ -2,12 +2,13 @@
 
 const stock = (symbol, price, title, text) => ({ kind: 'stock', symbol, price, title, text });
 const split = (symbol, ratio, title, text) => ({ kind: 'split', symbol, ratio, title, text });
-const ESTATE_ICON = { flat2: '🏢', house3: '🏡', plex: '🏘️', complex: '🏙️' };
+const ESTATE_ICON = { flat1: '🛏️', flat2: '🏢', house3: '🏡', plex: '🏘️', complex: '🏙️', garage: '🚙', shop: '🏬' };
 const estate = (type, title, cost, down, cashflow, text, units = 1) => ({ kind: 'realestate', type, title, icon: ESTATE_ICON[type], cost, down, cashflow, units, text });
 const business = (tag, title, icon, cost, down, cashflow, text) => ({ kind: 'business', type: 'business', tag, title, icon, cost, down, cashflow, text });
 const land = (title, cost, text) => ({ kind: 'land', type: 'land', title, icon: '🌾', cost, down: cost, cashflow: 0, text });
 const startup = (title, icon, cost, text) => ({ kind: 'startup', type: 'startup', title, icon, cost, down: cost, cashflow: 0, text });
 const gold = (title, price, text) => ({ kind: 'gold', title, icon: '🪙', price, text });
+const bond = (symbol, price, title, text) => ({ kind: 'bond', symbol, price, title, text });
 
 export const SMALL_DEALS = [
   stock('ANOR', 1, 'Anor Tekstil inqirozda', 'Eksport buyurtmalari bekor qilindi, aksiyalar qulab tushdi. Tavakkal qilishga tayyormisiz?'),
@@ -50,6 +51,46 @@ export const SMALL_DEALS = [
   business('note', 'Do‘stingiz biznesiga qarz', '🤝', 5000, 5000, 100, 'Do‘stingiz har oy $100 foiz to‘lab turadi.'),
   gold('Qadimiy oltin tangalar', 500, 'Kolleksioner meros tangalarni sotmoqda. Xohlagancha oling.'),
   gold('Oltin tangalar kim oshdi savdosi', 300, 'Bank tanga kolleksiyasini arzon narxda sotmoqda.'),
+  // ——— Yangi kompaniyalar ———
+  stock('BLUT', 5, 'Bulut Telekom: tarmoq nosozligi', 'Uch kunlik aloqa uzilishi investorlarni cho‘chitib yubordi.'),
+  stock('BLUT', 10, 'Bulut Telekom: yangi tarmoq', 'Kompaniya viloyatlarda tezkor internetni ishga tushirdi.'),
+  stock('BLUT', 25, 'Bulut Telekom: 10 million abonent', 'Abonentlar soni rekordga yetdi, dividend kutilmoqda.'),
+  stock('TOGO', 10, 'Tog‘ Oltin: oltin arzonladi', 'Jahon bozorida oltin narxi tushdi — kon aksiyalari ham.'),
+  stock('TOGO', 25, 'Tog‘ Oltin: yangi kon topildi', 'Geologlar katta zaxira topganini e’lon qildi.'),
+  stock('TOGO', 50, 'Tog‘ Oltin: tarixiy cho‘qqi', 'Oltin narxi rekordda, aksiyalar ham osmonda.'),
+  stock('NVRZ', 5, 'Navro‘z Savdo filiallarini yopmoqda', 'Kompaniya 10 ta do‘konini yopishga majbur bo‘ldi.'),
+  stock('NVRZ', 15, 'Navro‘z Savdo: bayram savdosi', 'Navro‘z arafasida savdo ikki baravar oshdi.'),
+  stock('NVRZ', 35, 'Navro‘z Savdo: onlayn savdo portlashi', 'Kompaniya ilovasi mamlakatda eng ko‘p yuklab olingan.'),
+  stock('ASAL', 5, 'Asal Food: mahsulot qaytarib olindi', 'Sifat tekshiruvidan so‘ng bir partiya sotuvdan olindi.'),
+  stock('ASAL', 12, 'Asal Food: yangi zavod', 'Jizzaxda yangi qadoqlash zavodi ochildi.'),
+  stock('ASAL', 25, 'Asal Food eksportga chiqdi', 'Mahsulotlar endi Yevropa do‘konlarida sotilmoqda.'),
+  split('BLUT', 2, 'Bulut Telekom aksiyalari bo‘lindi (2:1)', 'Egalarida aksiyalar soni ikki barobar ko‘paydi.'),
+  split('NVRZ', 0.5, 'Navro‘z Savdo: teskari bo‘linish (1:2)', 'Egalarida aksiyalar soni ikki barobar kamaydi.'),
+  // ——— Obligatsiya va fondlar ———
+  bond('OBL', 1000, 'Davlat obligatsiyalari', 'Eng ishonchli sarmoya: har bir obligatsiya oyiga $10 foiz beradi.'),
+  bond('OBL', 900, 'Davlat obligatsiyalari — auksionda arzon', 'Bu safar $900 dan: daromad o‘sha-o‘sha, narx past.'),
+  bond('KORP', 500, 'Korporativ obligatsiyalar', 'Yirik kompaniya qarz olmoqda: har bir obligatsiya oyiga $6.'),
+  bond('KORP', 420, 'Korporativ obligatsiyalar — chegirmada', 'Kompaniya tez pul topmoqchi, narx tushirildi.'),
+  bond('FOND', 250, 'Investitsiya fondi ulushlari', 'Birdaniga ko‘plab kompaniyalarga sarmoya: har bir ulush oyiga $2.'),
+  // ——— Arzon ko‘chmas mulk ———
+  estate('flat1', 'Olmazorda 1 xonali kvartira', 30000, 2000, 120, 'Universitet yonida — ijarachi topish oson.'),
+  estate('flat1', 'Qarzdor egadan 1 xonali kvartira', 25000, 1500, 150, 'Egasi zudlik bilan pul topishi kerak.'),
+  estate('flat1', 'Yangi binoda 1 xonali kvartira', 35000, 3000, 90, 'Hali ta’mirsiz, lekin bino yangi va issiq.'),
+  estate('flat1', 'Bektemirda 1 xonali kvartira', 28000, 2500, -20, 'Ijara past, kommunal xarajat ko‘p. Yaxshi o‘ylab ko‘ring!'),
+  estate('garage', 'Yer osti avtoturargohida joy', 8000, 2000, 60, 'Turar-joy majmuasida — doimiy ijarachi bor.'),
+  estate('garage', 'Temir garaj (Chilonzor)', 5000, 5000, 40, 'Arzon, mashina egalari orasida talab yuqori.'),
+  estate('flat2', 'Samarqandda 2 xonali kvartira', 32000, 3000, 160, 'Registon yaqinida — sayyohlarga kunlik ijaraga beriladi.'),
+  estate('house3', 'Namanganda 3 xonali hovli', 38000, 3500, 180, 'Viloyatda narxlar past, ijara barqaror.'),
+  // ——— Kichik biznes va g‘oyalar ———
+  startup('YouTube oshxona kanali', '🎬', 2000, 'Video uchun jihozlar sotib olindi. Hozircha obunachilar kam.'),
+  startup('Uyda manti va chuchvara', '🥟', 2500, 'Muzlatilgan mahsulot — oilaviy biznes. Hozircha foyda yo‘q.'),
+  startup('Mobil ilova g‘oyasi', '📱', 5000, 'Dasturchi do‘stingiz bilan hamkorlik. Daromad — kelajakda.'),
+  startup('Gul issiqxonasi', '🌷', 4000, 'Bahor mavsumida savdo kutilmoqda.'),
+  business('photo', 'Fotokabina (savdo markazida)', '📸', 3500, 3500, 120, 'Dam olish kunlari navbat bo‘ladi.'),
+  business('popcorn', 'Popkorn apparati (kinoteatrda)', '🍿', 2500, 2500, 90, 'Kinoteatr bilan ulushli shartnoma.'),
+  business('washer', 'Talabalar uyida kir yuvish mashinalari', '🧼', 5000, 5000, 160, 'Tangali avtomatlar — o‘zi ishlaydi.'),
+  business('note', 'Qo‘shningiz do‘koniga qarz', '🤝', 3000, 3000, 60, 'Qo‘shningiz har oy $60 foiz to‘lab boradi.'),
+  gold('Bankdan kichik oltin quymalar', 800, 'Har biri $800 — uzoq muddatli jamg‘arma uchun.'),
 ];
 
 export const BIG_DEALS = [
@@ -77,6 +118,27 @@ export const BIG_DEALS = [
   business('hotel', 'Mehmonxona qurilishida ulush', '🏗️', 30000, 30000, 600, 'Hamkorlik ulushi: har oy foydadan ulushingizni olasiz.'),
   land('Toshkent atrofida 1 gektar yer', 30000, 'Quruvchilar bu hududga qiziqmoqda. Hozircha daromad yo‘q.'),
   land('Yo‘l bo‘yidagi tijorat yeri', 25000, 'Yoqilg‘i quyish shoxobchasi uchun qulay joy.'),
+  estate('plex', '4 xonadonli uy (Yashnobod)', 110000, 12000, 500, 'Tinch mahalla, uzoq muddatli ijarachilar.', 4),
+  estate('plex', '6 xonadonli uy', 170000, 25000, 1100, 'Yangi ta’mirlangan, hammasi band.', 6),
+  estate('complex', '12 xonadonli yangi bino', 360000, 50000, 2200, 'Quruvchi oxirgi uylarni ulgurji sotmoqda.', 12),
+  estate('shop', 'Chorsu bozorida savdo rastasi', 60000, 12000, 500, 'Bozor kunlari xaridor ko‘p — ijarachi navbatda.'),
+  estate('shop', 'Ko‘cha bo‘yidagi do‘kon binosi', 90000, 15000, 700, 'Avtobus bekati yonida, ijaraga dorixona kirgan.'),
+  estate('shop', 'Savdo markazida butik joyi', 120000, 25000, 1100, 'Brend kiyim do‘koni 5 yillik ijara imzolagan.'),
+  estate('house3', 'Chimyon yo‘lida dacha', 70000, 10000, 350, 'Yozda kunlik ijaraga beriladi, qishda ham talab bor.'),
+  business('osh', 'Osh markazi', '🍛', 220000, 45000, 3300, 'Har kuni tushgacha ikki qozon osh tugaydi.'),
+  business('autoservice', 'Avtoservis', '🛠️', 130000, 26000, 1900, 'Ustalar tajribali, mijozlar oylab oldindan yoziladi.'),
+  business('beauty', 'Go‘zallik saloni', '💇', 70000, 14000, 1100, 'To‘y mavsumida bo‘sh vaqt bo‘lmaydi.'),
+  business('taxi', 'Taksi parki (5 ta mashina)', '🚕', 100000, 20000, 1600, 'Haydovchilar bilan ulushli shartnoma.'),
+  business('greenhouse', 'Pomidor issiqxonasi (1 gektar)', '🍅', 160000, 30000, 2300, 'Qishki pomidor — eng qimmat paytda sotiladi.'),
+  business('furniture', 'Mebel sexi', '🪑', 180000, 36000, 2600, 'Buyurtmalar uch oyga oldindan to‘la.'),
+  business('edu', 'O‘quv markazi (IT va ingliz tili)', '🎓', 120000, 24000, 1900, 'Abituriyentlar mavsumi — guruhlar to‘la.'),
+  business('gym', 'Sport zali', '🏋️', 160000, 32000, 2100, '600 ta doimiy a’zo, yillik abonementlar.'),
+  business('guesthouse', 'Buxoroda mehmon uyi', '🏮', 140000, 28000, 2200, 'Eski shahar markazida, sayyohlar mavsumi uzoq.'),
+  business('hardware', 'Qurilish mollari do‘koni', '🧱', 260000, 52000, 3500, 'Atrofda yangi massivlar qurilmoqda.'),
+  business('fastfood', 'Lavash va burger kafesi', '🌯', 90000, 20000, 1500, 'Kollej yonida, kechgacha mijoz ko‘p.'),
+  business('bees', 'Asalarichilik xo‘jaligi (50 uya)', '🐝', 30000, 8000, 450, 'Tog‘ asali — bozorda narxi baland.'),
+  land('Chimyon yo‘lida 30 sotix yer', 40000, 'Dam olish maskani qurish uchun ideal joy. Hozircha daromad yo‘q.'),
+  land('Sanoat zonasida yer', 35000, 'Zavodlar kengaymoqda — yer narxi oshishi kutilmoqda.'),
 ];
 
 const sell = (target, price, title, text) => ({ kind: 'sell', target, price, title, text });
@@ -85,6 +147,11 @@ const sellTag = (tag, price, title, text) => ({ kind: 'sellTag', tag, price, tit
 const goldBuyer = (price, title, text) => ({ kind: 'gold', price, title, text });
 const boost = (amount, title, text) => ({ kind: 'boost', amount, title, text });
 const damage = (cost, title, text) => ({ kind: 'damage', cost, title, text });
+const sellBond = (symbol, price, title, text) => ({ kind: 'sellBond', symbol, price, title, text });
+// Barcha egalar uchun mulk daromadini o‘zgartiradi (perUnit — har bir xonadon uchun)
+const cfChange = (targets, amount, title, text, perUnit = false) => ({ kind: 'cfChange', targets, amount, perUnit, title, text });
+const bonus = (title, text, { amount = 0, salaryMonths = 0 } = {}) => ({ kind: 'bonus', amount, salaryMonths, title, text });
+const RENTALS = ['flat1', 'flat2', 'house3', 'plex', 'complex', 'shop', 'garage'];
 
 export const MARKET = [
   sell('house3', 65000, 'Xaridor: 3 xonali hovli', 'Yosh oila 3 xonali hovli uchun $65 000 taklif qilmoqda.'),
@@ -114,6 +181,39 @@ export const MARKET = [
   boost(400, 'Biznesingiz internetda mashhur bo‘ldi', 'Har bir kichik biznesning oylik daromadi $400 ga oshdi.'),
   damage(1000, 'Ijarachi xonadonni buzib ketdi', 'Agar sizda ko‘chmas mulk bo‘lsa, ta’mir uchun $1 000 to‘laysiz.'),
   damage(500, 'Quvur yorildi', 'Agar sizda ko‘chmas mulk bo‘lsa, ta’mir uchun $500 to‘laysiz.'),
+  sell('flat1', 30000, 'Talabaning ota-onasi kvartira izlamoqda', '1 xonali kvartira uchun $30 000.'),
+  sell('flat1', 42000, '1 xonali kvartiralarga talab oshdi', 'Har qanday 1 xonali kvartira uchun $42 000.'),
+  sell('garage', 12000, 'Avtoturargoh joyi uchun xaridor', 'Garaj yoki avtoturargoh joyi uchun $12 000.'),
+  sell('garage', 18000, 'Shaharda garaj tanqisligi', 'Garaj yoki avtoturargoh joyi uchun $18 000.'),
+  sell('shop', 120000, 'Tadbirkor do‘kon izlamoqda', 'Har qanday tijorat binosi uchun $120 000.'),
+  sell('shop', 180000, 'Bank filial uchun bino qidirmoqda', 'Tijorat binosi uchun $180 000!'),
+  sell('house3', 55000, 'Shoshilinch, lekin arzon xaridor', 'Faqat $55 000 — sotish shart emas.'),
+  sellTag('osh', 380000, 'Restoran guruhi osh markazi izlamoqda', 'Osh markazi uchun $380 000.'),
+  sellTag('autoservice', 220000, 'Avtodiler servis markazi izlamoqda', 'Avtoservis uchun $220 000.'),
+  sellTag('beauty', 130000, 'Go‘zallik salonlari tarmog‘i kengaymoqda', 'Salon uchun $130 000.'),
+  sellTag('taxi', 150000, 'Taksi agregatori parklarni sotib olmoqda', 'Taksi parki uchun $150 000.'),
+  sellTag('greenhouse', 260000, 'Eksportchi issiqxona qidirmoqda', 'Pomidor issiqxonasi uchun $260 000.'),
+  sellTag('furniture', 300000, 'Mebel brendi ishlab chiqarish sexi qidirmoqda', 'Mebel sexi uchun $300 000.'),
+  sellTag('edu', 210000, 'Xususiy universitet o‘quv markazi qidirmoqda', 'O‘quv markazi uchun $210 000.'),
+  sellTag('guesthouse', 260000, 'Mehmonxona tarmog‘i Buxoroga kirmoqda', 'Mehmon uyi uchun $260 000.'),
+  sellTag('fastfood', 160000, 'Fastfud tarmog‘i yangi nuqtalar izlamoqda', 'Kafe uchun $160 000.'),
+  sellTag('gym', 250000, 'Fitnes tarmog‘i sport zali izlamoqda', 'Sport zali uchun $250 000.'),
+  sellTag('hardware', 420000, 'Qurilish kompaniyasi do‘kon sotib olmoqda', 'Qurilish mollari do‘koni uchun $420 000.'),
+  sellTag('washer', 9000, 'Kir yuvish avtomatlari xaridori', 'Kir yuvish mashinalari uchun $9 000.'),
+  sellTag('photo', 7000, 'Fotokabina uchun xaridor', 'Fotokabina uchun $7 000.'),
+  sellTag('bees', 55000, 'Asal fabrikasi xo‘jalik sotib olmoqda', 'Asalarichilik xo‘jaligi uchun $55 000.'),
+  sellBond('OBL', 1150, 'Foiz stavkalari tushdi', 'Davlat obligatsiyalari qimmatladi: har biri uchun $1 150.'),
+  sellBond('OBL', 900, 'Foiz stavkalari oshdi', 'Davlat obligatsiyalari arzonladi: har biri $900. Sotish shart emas.'),
+  sellBond('KORP', 600, 'Kompaniya obligatsiyalarini qaytarib olmoqda', 'Korporativ obligatsiya uchun $600.'),
+  sellBond('FOND', 320, 'Fond ulushlari qimmatladi', 'Har bir fond ulushi uchun $320.'),
+  cfChange(['flat1', 'flat2', 'house3'], 50, 'Ijara narxlari oshdi', 'Barcha kvartira va hovlilarning oylik daromadi $50 ga oshdi.'),
+  cfChange(RENTALS, -25, 'Mulk solig‘i oshdi', 'Har bir ko‘chmas mulkning oylik daromadi $25 ga kamaydi.'),
+  cfChange(['plex', 'complex'], 20, 'Kommunal xarajatlar arzonladi', 'Ko‘p xonadonli uylarda har bir xonadon oyiga +$20 keltiradi.', true),
+  cfChange(['business'], 150, 'Tadbirkorlar uchun soliq imtiyozi', 'Har bir biznesning oylik daromadi $150 ga oshdi.'),
+  cfChange(['shop'], 100, 'Savdo ko‘chasi ta’mirlandi', 'Har bir do‘kon binosining ijarasi oyiga $100 ga oshdi.'),
+  bonus('Yillik mukofot!', 'Rahbariyat sizga bir oylik maosh miqdorida mukofot berdi.', { salaryMonths: 1 }),
+  bonus('Soliq qaytarildi', 'Ortiqcha to‘langan soliq hisobingizga qaytarildi: +$1 000.', { amount: 1000 }),
+  damage(1500, 'Tom oqdi', 'Agar sizda ko‘chmas mulk bo‘lsa, tomni ta’mirlash uchun $1 500 to‘laysiz.'),
 ];
 
 export const DOODADS = [
@@ -142,4 +242,20 @@ export const DOODADS = [
   { title: 'Konsertga VIP chiptalar', icon: '🎤', cost: 350, text: 'Sevimli xonandangiz shaharga keldi.' },
   { title: 'Yangi velosiped', icon: '🚴', cost: 300, text: 'Ikki marta minib, garajga qo‘ydingiz.' },
   { title: 'Aqlli soat', icon: '⌚', cost: 250, text: 'Qadamlarni sanaydi — siz esa ko‘p yurmaysiz.' },
+  { title: 'Uyda yevroremont', icon: '🛠️', cost: 1500, text: 'Mehmonlar oldida uyalmaslik uchun.' },
+  { title: 'Qarindoshlar bir hafta mehmon', icon: '🧳', cost: 400, text: 'Dasturxon har kuni to‘la bo‘lishi kerak.' },
+  { title: 'Telefon ekrani sindi', icon: '📵', cost: 180, text: 'G‘ilofsiz yurish qimmatga tushdi.' },
+  { title: 'Avtomobil sug‘urtasi', icon: '🚗', cost: 300, text: 'Majburiy — lekin baribir achinarli.' },
+  { title: 'Radar jarimasi', icon: '📸', cost: 100, text: 'Shoshilib, tezlikni oshirib yubordingiz.' },
+  { title: 'Yangi mebel — muddatli to‘lovga', icon: '🛋️', cost: 300, loan: { liability: 'retail', amount: 2500, payment: 80 }, text: '$300 boshlang‘ich to‘lov: qarz $2 500, oyiga $80.' },
+  { title: 'Chimyonga oilaviy dam olish', icon: '🏔️', cost: 700, text: 'Dam olish ham kerak — lekin hisobni ko‘ring.' },
+  { title: 'Tugatilmagan onlayn kurs', icon: '🎓', cost: 250, text: 'Sertifikat va’da qilingan edi…' },
+  { title: 'Qishki kiyimlar', icon: '🧥', cost: 350, text: 'Sovuq erta keldi.' },
+  { title: 'Beshik to‘yi', icon: '🎊', perChild: 300, text: 'Har bir farzand uchun $300. Farzandingiz bo‘lmasa — to‘lov yo‘q.' },
+  { title: 'Yillik premium mobil tarif', icon: '📶', cost: 240, text: 'Cheksiz internet — ishlatilmasa ham.' },
+  { title: 'Yangi gaz plita', icon: '🔥', cost: 350, text: 'Eskisi hali ishlardi.' },
+  { title: 'Mashina oynasi sindi', icon: '🪟', cost: 220, text: 'Tosh sachradi — omadsiz kun.' },
+  { title: 'Do‘stlarga tug‘ilgan kun sovg‘alari', icon: '🎁', cost: 200, text: 'Bu oy uchta tug‘ilgan kun bor ekan.' },
+  { title: 'Kredit karta jarimasi', icon: '💳', cost: 150, text: 'To‘lov kunini unutib qo‘ydingiz.' },
+  { title: 'Konditsioner — kredit kartaga', icon: '❄️', cost: 200, loan: { liability: 'card', amount: 1500, payment: 50 }, text: '$200 naqd, qolgani kartaga: qarz $1 500, oyiga $50.' },
 ];

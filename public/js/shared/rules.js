@@ -115,6 +115,17 @@ export const STOCKS = {
   TLPR: { name: 'Tulpor Motors', icon: '🐎', range: [5, 30] },
   CHNR: { name: 'Chinor Soft', icon: '🌳', range: [5, 40] },
   SMRQ: { name: 'Samarqand Media', icon: '📺', range: [5, 25] },
+  BLUT: { name: 'Bulut Telekom', icon: '☁️', range: [5, 30] },
+  TOGO: { name: 'Tog‘ Oltin', icon: '⛰️', range: [10, 50] },
+  NVRZ: { name: 'Navro‘z Savdo', icon: '🛍️', range: [5, 35] },
+  ASAL: { name: 'Asal Food', icon: '🍯', range: [5, 25] },
+};
+
+// Obligatsiya va fondlar: har bir dona har oy barqaror daromad beradi
+export const BONDS = {
+  OBL: { name: 'Davlat obligatsiyalari', icon: '📜', income: 10 },
+  KORP: { name: 'Korporativ obligatsiyalar', icon: '🏦', income: 6 },
+  FOND: { name: 'Investitsiya fondi ulushlari', icon: '📊', income: 2 },
 };
 
 const prof = (id, title, icon, salary, [taxes, mortgage, school, car, card, retail, other], perChild, savings, [lMortgage, lSchool, lCar, lCard, lRetail]) => ({
@@ -163,7 +174,10 @@ export const LIABILITY_LABELS = {
   retail: 'Iste’mol krediti',
 };
 export const ASSET_TYPE_LABELS = {
+  flat1: '1 xonali kvartira',
   flat2: '2 xonali kvartira',
+  garage: 'Garaj yoki avtoturargoh joyi',
+  shop: 'Do‘kon (tijorat binosi)',
   house3: '3 xonali hovli',
   plex: 'Ko‘p xonadonli uy',
   complex: 'Turar-joy majmuasi',
@@ -195,13 +209,15 @@ export function marketMatches(card, asset) {
       return asset.tag === card.tag;
     case 'gold':
       return asset.kind === 'gold';
+    case 'sellBond':
+      return asset.kind === 'bond' && (!card.symbol || asset.symbol === card.symbol);
     default:
       return false;
   }
 }
 
 export function saleValue(card, asset) {
-  if (card.kind === 'sellUnit') return card.price * (asset.units || 1);
+  if (card.kind === 'sellUnit' || card.kind === 'sellBond') return card.price * (asset.units || 1);
   return card.price;
 }
 

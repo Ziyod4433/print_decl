@@ -1,11 +1,14 @@
 // «Pul Oqimi» o‘yin dvigateli: barcha qoidalar shu yerda, server hakam vazifasini bajaradi.
 
+import crypto from 'node:crypto';
+
 import {
   RAT_BOARD,
   FAST_BOARD,
   DREAMS,
   PROFESSIONS,
   STOCKS,
+  BONDS,
   LIABILITY_KEYS,
   LIABILITY_LABELS,
   LOAN_STEP,
@@ -64,9 +67,13 @@ const posInt = (v, max = Infinity) => {
 };
 
 export class Game {
-  constructor({ players, mode = 'full', rng = Math.random, now = Date.now, nameOf = (id) => id }) {
+  // rng — faqat testlar uchun (0..1 qaytaruvchi funksiya). O‘yinda zarlar va kartalar
+  // kriptografik tasodifiy generator (crypto.randomInt) bilan aniqlanadi: natijani
+  // oldindan bilib yoki o‘zgartirib bo‘lmaydi, har bir qiymat ehtimoli teng.
+  constructor({ players, mode = 'full', rng = null, now = Date.now, nameOf = (id) => id }) {
     this.mode = mode === 'quick' ? 'quick' : 'full';
     this.rng = rng;
+    this.diceStats = [0, 0, 0, 0, 0, 0];
     this.now = now;
     this.nameOf = nameOf;
     this.players = new Map();
@@ -91,9 +98,15 @@ export class Game {
 
   // ——— yordamchilar ———
 
+  // 0..n-1 oralig‘ida teng ehtimolli butun son
+  _int(n) {
+    return this.rng ? Math.floor(this.rng() * n) : crypto.randomInt(n);
+  }
+
+  // Fisher–Yates: har bir tartib teng ehtimolli
   _shuffle(arr) {
     for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(this.rng() * (i + 1));
+      const j = this._int(i + 1);
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
@@ -119,7 +132,9 @@ export class Game {
   }
 
   _die() {
-    return 1 + Math.floor(this.rng() * 6);
+    const value = 1 + this._int(6);
+    this.diceStats[value - 1]++;
+    return value;
   }
 
   _log(entry) {
@@ -146,7 +161,7 @@ export class Game {
     const p = {
       id,
       profession: prof.id,
-      dream: DREAMS.some((d) => d.id === dream) ? dream : DREAMS[Math.floor(this.rng() * DREAMS.length)].id,
+      dream: DREAMS.some((d) => d.id === dream) ? dream : DREAMS[this._int(DREAMS.length)].id,
       salary: prof.salary,
       expenses: { ...prof.expenses },
       perChild: prof.perChild,
@@ -470,6 +485,28 @@ export class Game {
       this.turn.step = 'end';
       return;
     }
+    if (card.kind === 'cfChange') {
+      this.turn.step = 'end';
+      let touched = 0;
+      for (const pl of this.players.values()) {
+        if (pl.track !== 'rat') continue;
+        for (const a of pl.assets.filter((x) => card.targets.includes(x.type))) {
+          const delta = card.amount * (card.perUnit ? a.units || 1 : 1);
+          a.cashflow += delta;
+          touched++;
+          this._log({ pid: pl.id, kind: delta > 0 ? 'boost' : 'expense', icon: delta > 0 ? '📈' : '📉', text: `${this._name(pl)}: «${a.title}» oylik daromadi ${signed(delta)}` });
+        }
+      }
+      if (!touched) this._log({ kind: 'info', icon: '🤷', text: 'Hech kimda mos mulk yo‘q — o‘zgarish yo‘q' });
+      return;
+    }
+    if (card.kind === 'bonus') {
+      this.turn.step = 'end';
+      const amount = card.amount + card.salaryMonths * p.salary;
+      p.cash += amount;
+      this._log({ pid: p.id, kind: 'payday', icon: '🎁', amount, text: `${this._name(p)}: «${card.title}» — ${signed(amount)}` });
+      return;
+    }
     if (card.kind === 'damage') {
       this.turn.step = 'end';
       if (p.assets.some((a) => a.kind === 'realestate')) {
@@ -524,8 +561,8 @@ export class Game {
     const card = t.card;
     if (!card) fail('BAD_STEP');
     if (p.track === 'fast') return this._buyFast(p, card);
-    const multi = card.kind === 'stock' || card.kind === 'gold';
-    if (!['stock', 'gold', 'realestate', 'business', 'land', 'startup'].includes(card.kind)) fail('BAD_STEP');
+    const multi = card.kind === 'stock' || card.kind === 'gold' || card.kind === 'bond';
+    if (!['stock', 'gold', 'bond', 'realestate', 'business', 'land', 'startup'].includes(card.kind)) fail('BAD_STEP');
     if (!multi && t.bought) fail('BAD_STEP');
     const qty = multi ? posInt(action.qty, 1e6) : 1;
     const cost = multi ? card.price * qty : card.down;
@@ -547,6 +584,19 @@ export class Game {
       a.cost += cost;
       if (!card.eligible.includes(p.id)) card.eligible.push(p.id);
       this._log({ pid: p.id, kind: 'buy', icon: a.icon, amount: -cost, text: `${this._name(p)} ${qty} ta ${card.symbol} aksiyasini ${money(card.price)} dan sotib oldi` });
+      return;
+    }
+    if (card.kind === 'bond') {
+      const meta = BONDS[card.symbol];
+      let a = p.assets.find((x) => x.kind === 'bond' && x.symbol === card.symbol);
+      if (!a) {
+        a = { id: `a${++this.seq.asset}`, kind: 'bond', symbol: card.symbol, title: meta.name, icon: meta.icon, units: 0, cost: 0, cashflow: 0 };
+        p.assets.push(a);
+      }
+      a.units += qty;
+      a.cost += cost;
+      a.cashflow = a.units * meta.income;
+      this._log({ pid: p.id, kind: 'buy', icon: meta.icon, amount: -cost, text: `${this._name(p)} ${qty} ta «${meta.name}» sotib oldi: oyiga ${signed(qty * meta.income)}` });
       return;
     }
     if (card.kind === 'gold') {
@@ -762,7 +812,7 @@ export class Game {
   _bankrupt(p, amount) {
     p.stats.bankrupt++;
     let raised = 0;
-    for (const a of p.assets) raised += Math.floor((a.kind === 'stock' || a.kind === 'gold' ? a.cost : a.down || 0) / 2);
+    for (const a of p.assets) raised += Math.floor((['stock', 'gold', 'bond'].includes(a.kind) ? a.cost : a.down || 0) / 2);
     const sold = p.assets.length;
     p.assets = [];
     p.cash += raised;
@@ -809,6 +859,7 @@ export class Game {
       }),
       turn: t ? { pid: t.pid, seq: t.seq, step: t.step, move: t.move, card, bought: t.bought, gamble: t.gamble } : null,
       decks: Object.fromEntries(Object.entries(this.decks).map(([k, d]) => [k, d.draw.length])),
+      dice: [...this.diceStats],
       log: this.log.slice(-40),
     };
   }

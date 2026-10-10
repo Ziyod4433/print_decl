@@ -167,7 +167,10 @@
               <button type="button" role="tab" data-tab="log" aria-selected="false">📜 Jurnal</button>
             </div>
             <div class="tab-body" id="tab-statement" role="tabpanel"></div>
-            <div class="tab-body log" id="tab-log" role="tabpanel" hidden></div>
+            <div class="tab-body" id="tab-log" role="tabpanel" hidden>
+              <div class="dice-stats" id="dice-stats"></div>
+              <div class="log" id="log-list"></div>
+            </div>
           </div>
         </aside>
       </div>
@@ -203,6 +206,7 @@
         <li><b>Aksiyalar.</b> Aksiya kartasi chiqqanda faqat karta egasi sotib oladi, lekin shu aksiyasi bor <em>har qanday</em> o‘yinchi sotishi mumkin.</li>
         <li><b>Bozor.</b> Xaridorlar aktivlaringizni sotib olishni taklif qiladi — mos aktivi bor har bir o‘yinchi sotishi mumkin.</li>
         <li><b>Bank.</b> $1 000 qadam bilan qarz olish mumkin, har $1 000 uchun oyiga $100 to‘laysiz. Qarzlarni istalgan vaqtda yopish mumkin.</li>
+        <li><b>Halollik.</b> Zarlar va kartalar serverda kriptografik tasodifiy generator bilan aniqlanadi — hech kim natijani oldindan bila olmaydi. «Jurnal» bo‘limida zarlar statistikasini ko‘rishingiz mumkin.</li>
         <li><b>Tezkor yo‘l.</b> Erkinlikka chiqqach, har «Pul oqimi kuni» passiv daromadingiz × 100 ni olasiz. G‘alaba: orzuingizni sotib olish yoki oylik daromadni +$50 000 ga oshirish.</li>
       </ol>
       <form method="dialog"><button class="btn btn-primary" type="submit">Tushunarli</button></form>

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="uz">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Pul Oqimi — moliyaviy erkinlik o‘yini</title>
+  <meta name="description" content="Do‘stlaringiz bilan onlayn o‘ynang: aktivlar sotib oling, passiv daromad yarating va kalamush poygasidan birinchi bo‘lib chiqing!">
+  <meta name="theme-color" content="#070b1a">
+  <meta property="og:title" content="Pul Oqimi — moliyaviy erkinlik o‘yini">
+  <meta property="og:description" content="Do‘stlar bilan onlayn o‘yin: kalamush poygasidan chiqib, orzuingizni sotib oling!">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="pattern"></div>
+  </div>
+
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Pul Oqimi — bosh sahifa">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+        <defs>
+          <linearGradient id="bm" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#2bd67b"/>
+            <stop offset="1" stop-color="#16a34a"/>
+          </linearGradient>
+          <linearGradient id="bc" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#ffe08a"/>
+            <stop offset="1" stop-color="#f5a800"/>
+          </linearGradient>
+        </defs>
+        <rect x="2" y="2" width="36" height="36" rx="11" fill="url(#bm)"/>
+        <path d="M11 25a10 10 0 0 1 16-11" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+        <path d="M24.5 10.5l3.5 3.8-4.9 1.2z" fill="#fff"/>
+        <circle cx="25" cy="25" r="8" fill="url(#bc)" stroke="#fff" stroke-width="2"/>
+        <text x="25" y="29.2" text-anchor="middle" font-size="11" font-weight="800" fill="#7a4b00" font-family="Manrope, sans-serif">$</text>
+      </svg>
+      <span class="brand-name">Pul <b>Oqimi</b></span>
+    </a>
+    <div class="topbar-right">
+      <button class="room-chip" id="room-chip" type="button" hidden title="Taklif havolasini nusxalash">
+        <span class="room-chip-label">Xona</span> <b id="room-chip-code"></b>
+      </button>
+      <button class="icon-btn" id="btn-rules" type="button" aria-label="O‘yin qoidalari" title="O‘yin qoidalari">❔</button>
+      <button class="icon-btn" id="btn-react-toggle" type="button" aria-label="Reaksiyalar" aria-expanded="false" hidden>😊</button>
+      <button class="icon-btn" id="btn-sound" type="button" aria-label="Ovozni o‘chirish">🔊</button>
+      <button class="icon-btn" id="btn-topbar-leave" type="button" aria-label="Xonadan chiqish" title="Xonadan chiqish" hidden>🚪</button>
+    </div>
+  </header>
+
+  <main class="screens">
+    <section class="screen screen-loading" id="screen-loading" aria-live="polite">
+      <div class="loader"><span></span><span></span><span></span></div>
+      <p>Xonaga qaytilmoqda…</p>
+    </section>
+
+    <!-- Bosh sahifa -->
+    <section class="screen" id="screen-home">
+      <div class="home-grid">
+        <div class="hero">
+          <div class="hero-badge"><span class="live-dot"></span> Onlayn · 1–6 o‘yinchi</div>
+          <h1 class="hero-title"><span>Pul</span><span class="grad">Oqimi</span></h1>
+          <p class="hero-sub">Moliyaviy erkinlik haqidagi stol o‘yini — endi do‘stlaringiz bilan onlayn. Aktivlar sotib oling, passiv daromad yarating va kalamush poygasidan birinchi bo‘lib chiqing!</p>
+          <div class="hero-board" id="hero-board" aria-hidden="true"></div>
+          <ol class="how">
+            <li style="--i:0"><span class="how-ico">💼</span><div><b>Kasb oling</b><span>Maosh, xarajatlar va qarzlar bilan boshlaysiz</span></div></li>
+            <li style="--i:1"><span class="how-ico">🏘️</span><div><b>Aktiv yarating</b><span>Kvartira, biznes va aksiyalar passiv daromad beradi</span></div></li>
+            <li style="--i:2"><span class="how-ico">🚀</span><div><b>Erkinlikka chiqing</b><span>Passiv daromad xarajatdan oshsa — g‘alaba yo‘li ochiladi</span></div></li>
+          </ol>
+        </div>
+
+        <form class="card join-card" id="form-home" novalidate>
+          <div class="invite" id="invite" hidden>✉️ Sizni <b id="invite-code"></b> xonasiga taklif qilishdi!</div>
+          <label class="field">
+            <span class="field-label">Ismingiz</span>
+            <input class="input" id="inp-name" maxlength="16" autocomplete="nickname" placeholder="Masalan, Jasur" enterkeyhint="go">
+          </label>
+          <div class="field">
+            <span class="field-label">Avataringizni tanlang</span>
+            <div class="avatar-grid" id="avatar-grid" role="radiogroup" aria-label="Avatar"></div>
+          </div>
+          <button type="button" class="btn btn-primary btn-lg btn-shine" id="btn-create">✨ Yangi xona yaratish</button>
+          <div class="divider"><span>yoki do‘stingiz xonasiga qo‘shiling</span></div>
+          <div class="join-row">
+            <input class="input code-input" id="inp-code" maxlength="4" size="4" placeholder="KOD" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Xona kodi">
+            <button type="submit" class="btn btn-secondary" id="btn-join">Qo‘shilish →</button>
+          </div>
+          <p class="form-error" id="home-error" role="alert"></p>
+        </form>
+      </div>
+    </section>
+
+    <!-- Kutish zali -->
+    <section class="screen" id="screen-lobby">
+      <div class="lobby-grid">
+        <div class="card lobby-code">
+          <div class="eyebrow">Kutish zali · xona kodi</div>
+          <div class="code-tiles" id="code-tiles" aria-label="Xona kodi"></div>
+          <div class="share-row">
+            <button class="btn btn-ghost" id="btn-copy" type="button">🔗 Havolani nusxalash</button>
+            <a class="btn btn-telegram" id="btn-telegram" href="#" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M21.9 4.3 18.7 19.4c-.2 1-.9 1.3-1.7.8l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2L6.5 13.2 1.8 11.7c-1-.3-1-1 .2-1.5L20.5 3c.9-.3 1.6.2 1.4 1.3Z"/></svg>
+              Telegram’da ulashish
+            </a>
+          </div>
+          <p class="muted small center">Do‘stlaringiz shu kod yoki havola orqali qo‘shiladi</p>
+        </div>
+
+        <div class="card lobby-players">
+          <div class="card-head">
+            <h2>O‘yinchilar</h2>
+            <span class="pill" id="player-count">1 / 6</span>
+          </div>
+          <ul class="player-grid" id="lobby-players"></ul>
+          <div class="dream-pick">
+            <div class="card-head">
+              <h2>Orzuingizni tanlang</h2>
+              <span class="pill pill-muted">Tezkor yo‘lda shuni sotib olsangiz — g‘alaba</span>
+            </div>
+            <div class="dream-grid" id="dream-grid" role="radiogroup" aria-label="Orzu"></div>
+          </div>
+        </div>
+
+        <div class="card lobby-settings">
+          <div class="card-head">
+            <h2>Sozlamalar</h2>
+            <span class="pill pill-muted" id="settings-lock">🔒 Mezbon tanlaydi</span>
+          </div>
+          <div class="setting">
+            <span>O‘yin turi</span>
+            <div class="seg seg-wide" id="seg-mode" role="radiogroup" aria-label="O‘yin turi"></div>
+            <p class="setting-hint" id="mode-hint"></p>
+          </div>
+          <div class="setting">
+            <span>Navbat uchun vaqt</span>
+            <div class="seg" id="seg-turn" role="radiogroup" aria-label="Navbat uchun vaqt"></div>
+          </div>
+          <div class="lobby-actions">
+            <button class="btn btn-primary btn-lg btn-shine" id="btn-start" type="button">🎲 O‘yinni boshlash</button>
+            <p class="wait-host" id="wait-host">Mezbon o‘yinni boshlashini kutamiz<span class="dots"><i></i><i></i><i></i></span></p>
+            <p class="muted small center" id="solo-hint">Ko‘pchilik bilan qiziqroq — lekin yolg‘iz mashq qilish ham mumkin.</p>
+          </div>
+          <button class="btn btn-text" id="btn-leave" type="button">Xonadan chiqish</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- O‘yin -->
+    <section class="screen screen-game" id="screen-game">
+      <div class="strip" id="players-strip" aria-label="O‘yinchilar"></div>
+      <div class="game-grid">
+        <div class="board-col">
+          <div class="board" id="board"></div>
+        </div>
+        <aside class="side">
+          <div class="card turn-panel" id="turn-panel" aria-live="polite"></div>
+          <div class="card info-panel">
+            <div class="tabs" role="tablist">
+              <button type="button" role="tab" data-tab="statement" aria-selected="true">📊 Hisobot</button>
+              <button type="button" role="tab" data-tab="log" aria-selected="false">📜 Jurnal</button>
+            </div>
+            <div class="tab-body" id="tab-statement" role="tabpanel"></div>
+            <div class="tab-body" id="tab-log" role="tabpanel" hidden>
+              <div class="dice-stats" id="dice-stats"></div>
+              <div class="log" id="log-list"></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- Yakuniy natijalar -->
+    <section class="screen" id="screen-final">
+      <div class="final-head">
+        <div class="eyebrow center" id="final-eyebrow">O‘yin yakunlandi</div>
+        <h2 class="final-title" id="final-title">G‘olib aniqlandi!</h2>
+        <p class="final-sub" id="final-sub"></p>
+      </div>
+      <div class="podium" id="podium"></div>
+      <div class="awards" id="awards"></div>
+      <div class="card final-card">
+        <ol class="board-list" id="final-list"></ol>
+      </div>
+      <div class="final-actions">
+        <button class="btn btn-primary btn-lg btn-shine" id="btn-again" type="button">🔁 Yana o‘ynash</button>
+        <p class="wait-host" id="final-wait">Mezbon yangi o‘yinni boshlashini kutamiz<span class="dots"><i></i><i></i><i></i></span></p>
+        <button class="btn btn-text" id="btn-exit" type="button">Chiqish</button>
+      </div>
+    </section>
+  </main>
+
+  <dialog class="modal" id="rules-modal" aria-labelledby="rules-title">
+    <div class="modal-body">
+      <h2 id="rules-title">O‘yin qoidalari</h2>
+      <ol class="rules">
+        <li><b>Maqsad.</b> Kalamush poygasidan chiqish: <em>passiv daromad</em> (aktivlardan keladigan pul) <em>jami xarajatlardan</em> oshishi kerak.</li>
+        <li><b>Navbat.</b> Zar tashlang va katakda yozilgan ishni bajaring. «Maosh kuni»dan o‘tganda oylik pul oqimingizni olasiz.</li>
+        <li><b>Imkoniyat.</b> Kichik bitim ($5 000 gacha) yoki katta bitim kartasini oling. Sotib olsangiz — boshlang‘ich to‘lovni to‘laysiz, qolgani ipoteka bo‘ladi.</li>
+        <li><b>Aksiyalar.</b> Aksiya kartasi chiqqanda faqat karta egasi sotib oladi, lekin shu aksiyasi bor <em>har qanday</em> o‘yinchi sotishi mumkin.</li>
+        <li><b>Bozor.</b> Xaridorlar aktivlaringizni sotib olishni taklif qiladi — mos aktivi bor har bir o‘yinchi sotishi mumkin.</li>
+        <li><b>Bank.</b> $1 000 qadam bilan qarz olish mumkin, har $1 000 uchun oyiga $100 to‘laysiz. Qarzlarni istalgan vaqtda yopish mumkin.</li>
+        <li><b>Halollik.</b> Zarlar va kartalar serverda kriptografik tasodifiy generator bilan aniqlanadi — hech kim natijani oldindan bila olmaydi. «Jurnal» bo‘limida zarlar statistikasini ko‘rishingiz mumkin.</li>
+        <li><b>Tezkor yo‘l.</b> Erkinlikka chiqqach, har «Pul oqimi kuni» passiv daromadingiz × 100 ni olasiz. G‘alaba: orzuingizni sotib olish yoki oylik daromadni +$50 000 ga oshirish.</li>
+      </ol>
+      <form method="dialog"><button class="btn btn-primary" type="submit">Tushunarli</button></form>
+    </div>
+  </dialog>
+
+  <div class="reactions" id="reactions" hidden></div>
+  <div class="reaction-layer" id="reaction-layer" aria-hidden="true"></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <div class="spotlight" id="spotlight" hidden></div>
+  <div class="conn-banner" id="conn-banner" role="status" hidden><span class="spin-dot"></span> Aloqa uzildi. Qayta ulanmoqda…</div>
+  <canvas class="confetti" id="confetti" aria-hidden="true"></canvas>
+
+  <noscript><p class="noscript">O‘yin ishlashi uchun brauzeringizda JavaScript yoqilgan bo‘lishi kerak.</p></noscript>
+</body>
+</html>

@@ -74,7 +74,8 @@ function assetLine(a) {
   }
   if (a.kind === 'gold') return row(`🪙 Oltin tangalar`, `${a.count} ta · ${money(a.cost)}`);
   if (a.kind === 'bond') return row(`${a.icon} ${a.title}`, `${a.units} ta · ${money(a.cost)}`);
-  if (a.kind === 'fast') return row(`${a.icon} ${a.title}`, `${signed(a.cashflow)} / oy`, 'good');
+  if (a.kind === 'invest') return row(h('span', {}, `${a.icon} ${a.title} `, h('small', {}, `· ${+(a.rate * 100).toFixed(1)}%/oy`)), money(a.cost));
+  if (a.kind === 'fast') return row(h('span', {}, `${a.icon} ${a.title}`, a.risky ? h('small', {}, ' · 🎲 tavakkal') : null), `${signed(a.cashflow)} / oy`, 'good');
   return row(h('span', {}, `${a.icon} ${a.title}`, a.units > 1 ? h('small', {}, ` · ${a.units} xonadon`) : null), money(a.cost));
 }
 
@@ -105,7 +106,7 @@ export function renderStatement(container, { player: p, meta, isMe, canAct, onAc
           'div',
           { class: 'kpis' },
           h('div', { class: 'kpi' }, h('span', {}, 'Naqd pul'), cashEl),
-          h('div', { class: 'kpi' }, h('span', {}, 'Pul oqimi kuni'), h('b', { class: 'good' }, signed(p.fast.income))),
+          h('div', { class: 'kpi' }, h('span', {}, '«Pullar» kuni'), h('b', { class: 'good' }, signed(p.fast.income))),
           h('div', { class: 'kpi' }, h('span', {}, 'Maqsad'), h('b', {}, money(p.fast.goal))),
         )
       : h(
@@ -133,7 +134,7 @@ export function renderStatement(container, { player: p, meta, isMe, canAct, onAc
       ledger(
         'Tezkor yo‘ldagi bizneslar',
         '🏢',
-        fastAssets.length ? fastAssets.map(assetLine) : [h('p', { class: 'empty' }, 'Hali biznes yo‘q — biznes kataklariga tushganda sotib oling.')],
+        fastAssets.length ? fastAssets.map(assetLine) : [h('p', { class: 'empty' }, 'Hali biznes yo‘q — ishonchli yoki tavakkal biznes kataklariga tushganda sotib oling.')],
         ['Oylik daromad', signed(p.fast.income)],
       ),
     );
@@ -162,7 +163,7 @@ export function renderStatement(container, { player: p, meta, isMe, canAct, onAc
       ),
     );
     const realAssets = p.assets.filter((a) => a.kind !== 'fast');
-    parts.push(ledger('Aktivlar', '🏦', realAssets.length ? realAssets.map(assetLine) : [h('p', { class: 'empty' }, 'Hali aktivlar yo‘q — «Imkoniyat» kataklarida bitimlarni kuting.')]));
+    parts.push(ledger('Aktivlar', '🏦', realAssets.length ? realAssets.map(assetLine) : [h('p', { class: 'empty' }, 'Hali aktivlar yo‘q — «Imkoniyat» va «Investor» kataklarida bitimlarni kuting.')]));
 
     const liabRows = [];
     for (const k of LIABILITY_KEYS) {

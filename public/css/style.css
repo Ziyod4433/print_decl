@@ -754,7 +754,7 @@ h1, h2, h3 { margin: 0; }
   pointer-events: none;
 }
 .ring { position: absolute; left: 50%; top: 50%; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
-.ring-fast { width: 88%; height: 88%; border: 2.4cqw solid rgba(255, 203, 82, 0.06); box-shadow: inset 0 0 0 1px rgba(255, 203, 82, 0.14), 0 0 0 1px rgba(255, 203, 82, 0.1); }
+.ring-fast { width: 86%; height: 86%; border: 2.4cqw solid rgba(255, 203, 82, 0.06); box-shadow: inset 0 0 0 1px rgba(255, 203, 82, 0.14), 0 0 0 1px rgba(255, 203, 82, 0.1); }
 .ring-rat { width: 60%; height: 60%; border: 2.6cqw solid rgba(43, 214, 123, 0.07); box-shadow: inset 0 0 0 1px rgba(43, 214, 123, 0.16), 0 0 0 1px rgba(43, 214, 123, 0.1); }
 .track-labels { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .tl { font-family: var(--font-display); font-weight: 700; letter-spacing: 0.32em; }
@@ -775,9 +775,13 @@ h1, h2, h3 { margin: 0; }
   animation: tile-in 0.6s var(--ease-spring) both;
   animation-delay: calc(var(--i) * 16ms);
 }
-.tile-fast { width: 6.4%; border-radius: 50%; }
+.tile-fast { width: 4.6%; border-radius: 50%; }
+.tile-fast.t-risky { border-radius: 28%; box-shadow: 0 0 0 0.3cqw rgba(255, 255, 255, 0.55), 0 0.8cqw 1.6cqw -0.6cqw rgba(0, 0, 0, 0.85), inset 0 0.2cqw 0 rgba(255, 255, 255, 0.4); }
+.tile-fast.t-cfday { width: 5.6%; }
+.tile-fast.t-bankrot { background: radial-gradient(circle at 32% 25%, #4b5563, #0b0f19); }
 .tile-ico { font-size: 3.4cqw; line-height: 1; filter: drop-shadow(0 0.15cqw 0.2cqw rgba(0, 0, 0, 0.45)); }
-.tile-fast .tile-ico { font-size: 2.9cqw; }
+.tile-fast .tile-ico { font-size: 2.2cqw; }
+.tile-fast.t-cfday .tile-ico { font-size: 2.8cqw; }
 .tile-tag {
   position: absolute;
   bottom: -1.7cqw;
@@ -789,6 +793,8 @@ h1, h2, h3 { margin: 0; }
   font-weight: 800;
   white-space: nowrap;
 }
+.tile-fast .tile-tag { bottom: auto; left: calc(50% + var(--ox) * 3.6cqw); top: calc(50% + var(--oy) * 3.3cqw); transform: translate(calc(-50% + var(--ox) * 50%), -50%); padding: 0.05cqw 0.4cqw; font-size: 1.05cqw; }
+.tile-fast.t-risky .tile-tag { color: #c7d7ff; }
 .tile.t-dream { animation: tile-in 0.6s var(--ease-spring) both, dream-glow 3s ease-in-out infinite; animation-delay: calc(var(--i) * 16ms), 0s; }
 @keyframes dream-glow { 50% { box-shadow: 0 0 0 0.35cqw rgba(192, 132, 252, 0.6), 0 0 2cqw rgba(192, 132, 252, 0.45); } }
 .dream-marks { position: absolute; top: -1.1cqw; right: -1.3cqw; display: flex; }
@@ -855,8 +861,8 @@ h1, h2, h3 { margin: 0; }
 .f5 { transform: rotateY(-90deg) translateZ(var(--half)); }
 .f6 { transform: rotateY(180deg) translateZ(var(--half)); }
 
-.piles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5cqw; margin-top: 0.6cqw; }
-.pile { position: relative; width: 6.8cqw; height: 9.2cqw; }
+.piles { display: flex; flex-wrap: wrap; justify-content: center; gap: 2.6cqw 1.3cqw; width: 30cqw; margin-top: 0.4cqw; }
+.pile { position: relative; width: 5.6cqw; height: 7.6cqw; }
 .pile-card,
 .pile-top {
   position: absolute;
@@ -868,9 +874,9 @@ h1, h2, h3 { margin: 0; }
 .pile-card:nth-child(1) { transform: translate(0.5cqw, 0.5cqw) rotate(5deg); opacity: 0.45; }
 .pile-card:nth-child(2) { transform: translate(0.25cqw, 0.25cqw) rotate(2deg); opacity: 0.7; }
 .pile-top { display: grid; place-items: center; align-content: center; gap: 0.3cqw; box-shadow: 0 1cqw 2cqw -1cqw rgba(0, 0, 0, 0.85); }
-.pile-ico { font-size: 2.8cqw; line-height: 1; }
-.pile-label { font-size: 1.15cqw; font-weight: 800; color: rgba(0, 0, 0, 0.62); text-transform: uppercase; letter-spacing: 0.04em; }
-.pile-count { position: absolute; left: 0; right: 0; bottom: -2.4cqw; text-align: center; font-size: 1.3cqw; color: var(--muted); font-weight: 700; }
+.pile-ico { font-size: 2.3cqw; line-height: 1; }
+.pile-label { padding: 0 0.3cqw; font-size: 0.95cqw; font-weight: 800; line-height: 1.1; text-align: center; color: rgba(0, 0, 0, 0.62); text-transform: uppercase; letter-spacing: 0.02em; }
+.pile-count { position: absolute; left: 0; right: 0; bottom: -2.1cqw; text-align: center; font-size: 1.15cqw; color: var(--muted); font-weight: 700; }
 .pile.draw .pile-top { animation: pile-draw 0.7s ease; }
 @keyframes pile-draw { 40% { transform: translateY(-3.4cqw) rotate(-10deg) scale(1.12); box-shadow: 0 2cqw 3cqw -1cqw rgba(0, 0, 0, 0.9); } }
 
@@ -1150,3 +1156,19 @@ h1, h2, h3 { margin: 0; }
   }
   .float-emoji { animation-duration: 2s !important; }
 }
+
+/* ——— Stol varianti: investor summasi va tavakkal natijasi ——— */
+.qty.amount .stepper-val { min-width: 7.5em; font-family: var(--font-display); color: var(--gold); text-align: center; font-variant-numeric: tabular-nums; }
+.risky-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-weight: 700;
+  animation: pop-in 0.5s var(--ease-spring);
+}
+.risky-result.good { background: rgba(43, 214, 123, 0.14); color: #5cf0a0; box-shadow: inset 0 0 0 1px rgba(43, 214, 123, 0.35); }
+.risky-result.bad { background: rgba(255, 77, 97, 0.12); color: #ff8b98; box-shadow: inset 0 0 0 1px rgba(255, 77, 97, 0.35); }
+.risky-die { font-size: 34px; line-height: 1; animation: risky-spin 0.8s var(--ease-out); }
+@keyframes risky-spin { from { transform: rotate(-540deg) scale(0.4); opacity: 0; } to { transform: none; opacity: 1; } }

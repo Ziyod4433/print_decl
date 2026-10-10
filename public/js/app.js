@@ -4,13 +4,13 @@ import { sfx, isMuted, setMuted, unlockAudio } from './sound.js';
 import { floatEmoji, createConfetti } from './fx.js';
 import { createBoard } from './board.js';
 import { createGameUI } from './game-ui.js';
-import { DREAMS, PROFESSIONS, MAX_PLAYERS, RAT_BOARD, passiveIncome, totalExpenses, money, signed } from './shared/rules.js';
+import { DREAMS, PROFESSIONS, MAX_PLAYERS, RAT_BOARD, FAST_BOARD, FAST_GOAL, passiveIncome, totalExpenses, money, signed } from './shared/rules.js';
 
 // ——— Sozlamalar (server bilan bir xil) ———
 const AVATARS = ['🦊', '🐯', '🦁', '🐼', '🐸', '🦉', '🐺', '🐻', '🦄', '🐲', '🦅', '🐱', '🍉', '🍇', '🥟', '🫖'];
 const REACTIONS = ['👍', '😂', '😮', '🔥', '👏', '😭', '🤑', '🫡'];
 const MODES = [
-  ['full', 'To‘liq o‘yin', 'G‘alaba: tezkor yo‘lda orzuingizni sotib olish yoki oylik daromadni +$50 000 ga oshirish.'],
+  ['full', 'To‘liq o‘yin', `G‘alaba: tezkor yo‘lda orzuingizni sotib olish yoki oylik daromadni +${money(FAST_GOAL)} ga oshirish.`],
   ['quick', 'Qisqa o‘yin', 'G‘alaba: kalamush poygasidan birinchi bo‘lib chiqish — passiv daromad xarajatlardan oshishi kerak.'],
 ];
 const TURN_OPTIONS = [
@@ -23,7 +23,10 @@ const TIPS = [
   'Aksiyani arzon oling, qimmat soting: savdo oralig‘iga qarang.',
   'Manfiy pul oqimli mulk — bu aktiv emas, majburiyat!',
   'Kichik qarzlarni yopsangiz, oylik xarajatlar darhol kamayadi.',
-  'Bozor kartasi chiqqanda mos aktivi bor har bir o‘yinchi sotishi mumkin.',
+  '«Bozor: aksiyalar» katagida hamma o‘yinchilar chiqqan narxda aksiya sotib oladi va sotadi.',
+  'Investor kartasida summani o‘zingiz tanlaysiz — oylik daromad kiritgan pulingizga mutanosib.',
+  'Tavakkal biznes qimmat, lekin omad kulsa daromadi bir necha barobar yuqori.',
+  '«Bankrot» katagida bizneslaringizdan birini yo‘qotasiz — qaysi birini o‘zingiz tanlaysiz.',
   '«Yillik daromadlilik» — boshlang‘ich to‘lovingiz yiliga necha foiz qaytishi.',
 ];
 const CODE_RE = /^[A-Z]{4}$/;
@@ -119,7 +122,7 @@ function heroLoop(on) {
     const steps = dice.reduce((a, b) => a + b, 0);
     await hero.roll(dice);
     await hero.hop(t, t.track, t.pos, steps);
-    t.pos = (t.pos + steps) % (t.track === 'fast' ? 36 : RAT_BOARD.length);
+    t.pos = (t.pos + steps) % (t.track === 'fast' ? FAST_BOARD.length : RAT_BOARD.length);
     hero.place(heroTokens);
     if (S.screen === 'home') heroTimer = setTimeout(step, 900);
   };
@@ -369,7 +372,7 @@ function renderFinal(st) {
   const winner = g.winner ? meta(g.winner) : null;
   const reason = {
     dream: 'orzusini sotib olib',
-    income: 'oylik pul oqimini $50 000 ga oshirib',
+    income: `oylik pul oqimini ${money(FAST_GOAL)} ga oshirib`,
     escape: 'kalamush poygasidan birinchi chiqib',
   }[g.winReason];
   $('#final-title').textContent = winner ? (g.winner === st.you ? 'Siz g‘olibsiz! 🏆' : `${winner.name} g‘olib bo‘ldi!`) : 'O‘yin yakunlandi';

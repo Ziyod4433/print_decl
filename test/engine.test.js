@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Game } from '../server/cashflow/game.js';
-import { monthlyCashflow, totalExpenses, passiveIncome, loanCapacity, PROFESSIONS, RAT_BOARD } from '../public/js/shared/rules.js';
+import { monthlyCashflow, totalExpenses, passiveIncome, loanCapacity, PROFESSIONS, RAT_BOARD, FAST_BOARD, FAST_MULT, FAST_GOAL } from '../public/js/shared/rules.js';
 
 // Zar qiymatini aniq belgilash uchun: rng() → (v - 1) / 6
 const dieRng = (...values) => () => (values.length ? (values.shift() - 1) / 6 + 0.01 : 0.5);
-const newGame = (opts = {}) => new Game({ players: [{ id: 'a', dream: 'dacha' }, { id: 'b', dream: 'space' }], nameOf: (id) => id.toUpperCase(), ...opts });
+const newGame = (opts = {}) => new Game({ players: [{ id: 'a', dream: 'sayohat' }, { id: 'b', dream: 'kosmos' }], nameOf: (id) => id.toUpperCase(), ...opts });
 
 test('boshlanish: har kimda alohida kasb, naqd pul = jamg‘arma + oylik pul oqimi', () => {
   const g = newGame();
@@ -68,10 +68,10 @@ test('aksiya: faqat karta egasi oladi, boshqa egalar shu narxda sotadi; kutish o
   let t = 1000;
   const g = newGame({ now: () => t });
   const [a, b] = ['a', 'b'].map((id) => g.players.get(id));
-  b.assets.push({ id: 'x1', kind: 'stock', symbol: 'ANOR', title: 'Anor Tekstil', icon: '🧶', shares: 100, cost: 500, cashflow: 0 });
+  b.assets.push({ id: 'x1', kind: 'stock', symbol: 'AKFA', title: 'Akfa Group', icon: '🪟', shares: 100, cost: 500, cashflow: 0 });
   g.rng = dieRng(1);
   g.act('a', { type: 'roll' });
-  g.decks.small.draw.push({ kind: 'stock', symbol: 'ANOR', price: 30, title: 'Anor cho‘qqida', text: '' });
+  g.decks.small.draw.push({ kind: 'stock', symbol: 'AKFA', price: 30, title: 'Akfa cho‘qqida', text: '' });
   g.act('a', { type: 'deal', size: 'small' });
   a.cash = 1000;
   g.act('a', { type: 'buy', qty: 10 });
@@ -92,11 +92,11 @@ test('kutish oynasi 10 soniyadan keyin yopiladi', () => {
   let t = 0;
   const g = newGame({ now: () => t });
   g.players.get('b').assets.push({ id: 'x1', kind: 'realestate', type: 'house3', title: 'Hovli', icon: '🏡', cost: 50000, down: 5000, mortgage: 45000, cashflow: 200, units: 1 });
-  g.players.get('a').pos = 5;
-  g.rng = dieRng(1); // 6-katak: bozor
+  g.players.get('a').pos = 9;
+  g.rng = dieRng(1); // 10-katak: ko‘chmas mulk bozori
   g.decks.market.draw.push({ kind: 'sell', target: 'house3', price: 100000, title: 'Xaridor', text: '' });
   g.act('a', { type: 'roll' });
-  assert.equal(RAT_BOARD[6], 'market');
+  assert.equal(RAT_BOARD[10], 'market');
   assert.deepEqual(g.turn.card.eligible, ['b']);
   assert.throws(() => g.act('a', { type: 'end' }), { code: 'WAIT_OTHERS' });
   t = 10001;
@@ -108,7 +108,7 @@ test('bozor: mulkni sotganda ipoteka yopiladi, qolgani naqd pulga', () => {
   const g = newGame();
   const b = g.players.get('b');
   b.assets.push({ id: 'h1', kind: 'realestate', type: 'house3', title: 'Hovli', icon: '🏡', cost: 50000, down: 5000, mortgage: 45000, cashflow: 200, units: 1 });
-  g.players.get('a').pos = 5;
+  g.players.get('a').pos = 9;
   g.rng = dieRng(1);
   g.decks.market.draw.push({ kind: 'sell', target: 'house3', price: 100000, title: 'Xaridor', text: '' });
   g.act('a', { type: 'roll' });
@@ -120,7 +120,7 @@ test('bozor: mulkni sotganda ipoteka yopiladi, qolgani naqd pulga', () => {
   assert.ok(g.turn.card.responders.includes('b'));
 });
 
-test('ortiqcha xarajat: pul yetmasa bankdan avtomatik qarz', () => {
+test('kichik xarajat: pul yetmasa bankdan avtomatik qarz', () => {
   const g = newGame();
   const a = g.players.get('a');
   a.cash = 100;
@@ -177,9 +177,9 @@ test('qarzni yopish oylik xarajatni kamaytiradi', () => {
 test('xayriya: 3 navbat davomida 2 ta zar tanlash mumkin', () => {
   const g = newGame();
   const a = g.players.get('a');
-  a.pos = 3;
+  a.pos = 7;
   a.cash = 10000;
-  g.rng = dieRng(1); // 4-katak: xayriya
+  g.rng = dieRng(1); // 8-katak: xayriya
   g.act('a', { type: 'roll' });
   assert.equal(g.turn.step, 'charity');
   g.act('a', { type: 'charity', accept: true });
@@ -197,10 +197,10 @@ test('xayriya: 3 navbat davomida 2 ta zar tanlash mumkin', () => {
 test('ishdan bo‘shatish: xarajatlar to‘lanadi va 2 navbat o‘tkazib yuboriladi', () => {
   const g = newGame();
   const a = g.players.get('a');
-  a.pos = 11;
+  a.pos = 13;
   a.cash = 1e5;
   const due = totalExpenses(a);
-  g.rng = dieRng(1); // 12-katak
+  g.rng = dieRng(1); // 14-katak: ishsizlik
   g.act('a', { type: 'roll' });
   assert.equal(a.cash, 1e5 - due);
   g.act('a', { type: 'end' });
@@ -211,7 +211,7 @@ test('ishdan bo‘shatish: xarajatlar to‘lanadi va 2 navbat o‘tkazib yuboril
   assert.equal(a.skipTurns, 1);
 });
 
-test('kalamush poygasidan chiqish → tezkor yo‘l; biznes bilan +$50 000 — g‘alaba', () => {
+test('kalamush poygasidan chiqish → tezkor yo‘l; biznes bilan +$200 000 — g‘alaba', () => {
   const g = newGame();
   const b = g.players.get('b');
   b.assets.push({ id: 'big', kind: 'business', type: 'business', tag: 'x', title: 'Katta biznes', icon: '🏢', cost: 1, down: 1, mortgage: 0, cashflow: 50000, units: 1 });
@@ -219,21 +219,22 @@ test('kalamush poygasidan chiqish → tezkor yo‘l; biznes bilan +$50 000 — g
   g.act('a', { type: 'roll' });
   g.act('a', { type: 'end' });
   assert.equal(b.track, 'fast');
-  assert.equal(b.fast.income, passiveIncome(b) * 100);
+  assert.equal(b.fast.income, passiveIncome(b) * FAST_MULT);
+  assert.equal(b.fast.goal - b.fast.start, FAST_GOAL);
+  assert.equal(b.pos, 0);
   b.cash = 1e9;
   b.fast.income = b.fast.goal - 5000;
-  b.pos = 34;
   const cash = b.cash;
-  g.rng = dieRng(1, 1); // 34 → 0: «Pul oqimi kuni»
+  g.rng = dieRng(1, 1); // 0 → 2: «Pullar»
   g.act('b', { type: 'roll' });
   assert.equal(b.cash, cash + b.fast.income);
-  assert.equal(b.pos, 0);
+  assert.equal(FAST_BOARD[b.pos].type, 'cfday');
   g.act('b', { type: 'end' });
   g.rng = dieRng(1);
   g.act('a', { type: 'roll' });
   g.act('a', { type: 'end' });
-  b.pos = 35;
-  g.rng = dieRng(1, 1); // 35 → 1: avtosalon
+  b.pos = 55;
+  g.rng = dieRng(1, 1); // 55 → 1: yoqilg‘i quyish shoxobchasi (Start orqali)
   g.act('b', { type: 'roll' });
   assert.equal(g.turn.card.kind, 'fastBusiness');
   g.act('b', { type: 'buy' });
@@ -248,8 +249,8 @@ test('tezkor yo‘lda faqat o‘z orzuingizni sotib olasiz', () => {
   a.track = 'fast';
   a.fast = { income: 100000, start: 100000, goal: 150000 };
   a.cash = 1e6;
-  a.pos = 0;
-  g.rng = dieRng(1, 1); // 0 → 2: «Dunyo bo‘ylab sayohat» — a ning orzusi emas
+  a.pos = 3;
+  g.rng = dieRng(1, 1); // 3 → 5: «Kosmosga parvoz» — a ning orzusi emas
   g.act('a', { type: 'roll' });
   assert.equal(g.turn.card.mine, false);
   assert.throws(() => g.act('a', { type: 'buy' }), { code: 'BAD_STEP' });
@@ -257,7 +258,7 @@ test('tezkor yo‘lda faqat o‘z orzuingizni sotib olasiz', () => {
   g.rng = dieRng(1);
   g.act('b', { type: 'roll' });
   g.act('b', { type: 'end' });
-  g.rng = dieRng(2, 2); // 2 → 6: «Chorvoq bo‘yida dacha» — a ning orzusi
+  g.rng = dieRng(2, 2); // 5 → 9: «Oila bilan dunyo bo‘ylab sayohat» — a ning orzusi
   g.act('a', { type: 'roll' });
   assert.equal(g.turn.card.mine, true);
   g.act('a', { type: 'buy' });

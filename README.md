@@ -4,8 +4,12 @@ Moliyaviy erkinlik haqidagi onlayn stol o‘yini — do‘stlar bilan birga, o�
 
 Har bir o‘yinchi kasb bilan boshlaydi: maosh, soliqlar, ipoteka, kreditlar. Maqsad — **kalamush poygasidan
 chiqish**: aksiya, kvartira va biznes sotib olib, passiv daromadingizni jami xarajatlardan oshirish. Shundan
-so‘ng **tezkor yo‘l** ochiladi — u yerda orzuingizni sotib olgan yoki oylik daromadini +$50 000 ga oshirgan
+so‘ng **tezkor yo‘l** ochiladi — u yerda orzuingizni sotib olgan yoki oylik daromadini +$200 000 ga oshirgan
 o‘yinchi g‘olib bo‘ladi.
+
+> **Stol varianti (prototip).** Bu tarmoqda o‘zimizning stol o‘yini taxtasi asosidagi qoidalar: 52 katakli
+> tezkor yo‘l (ishonchli va tavakkal bizneslar, 15 ta orzu), 4 ta maosh kuni, «Investor», «Bozor: aksiyalar»,
+> «Bozor: ko‘chmas mulk», kichik va katta xarajatlar alohida to‘plamlarda.
 
 > O‘yin mexanikasi Robert Kiyosakining mashhur moliyaviy stol o‘yinidan ilhomlangan; barcha kartalar,
 > kasblar, raqamlar va dizayn — o‘zimizniki, mahalliy hayotga moslangan.
@@ -13,9 +17,16 @@ o‘yinchi g‘olib bo‘ladi.
 ## Imkoniyatlar
 
 - 🏠 **Onlayn xonalar**: 4 harfli kod yoki havola orqali 1–6 o‘yinchi, Telegram’da ulashish tugmasi
-- 🎲 **Ikki halqali taxta**: 24 katakli kalamush poygasi va 36 katakli tezkor yo‘l; 3D zarlar, sakrab yuradigan fishkalar
+- 🎲 **Ikki halqali taxta**: 24 katakli kalamush poygasi (4 ta maosh kuni) va 52 katak + 4 ta «Pullar» burchagidan
+  iborat tezkor yo‘l; 3D zarlar, sakrab yuradigan fishkalar
+- 🏢 **Ishonchli va tavakkal biznes**: ishonchli biznes kafolatli daromad beradi, tavakkal biznes qimmat va daromadi
+  yuqori — sotib olgach zar tashlanadi: 4–6 biznes ishlaydi, 1–3 sarmoya kuyadi
+- 🤵 **Investor**: biznesga istalgan summani kiriting ($1 000 qadam) — oylik daromad kiritgan pulga mutanosib
+- 📊 **Aksiyalar bozori**: O‘zbekiston kompaniyalari (Akfa, Korzinka, UzAuto Motors, Uzum, Artel, Uzbektelecom,
+  Navoiy KMK, Hamkorbank, Qizilqumsement) va o‘z brendlarimiz — Buraq Logistics, Moow Motors. Narx chiqqanda
+  barcha o‘yinchilar 15 soniya davomida sotib oladi va sotadi. Kartalardagi narx va yangiliklar o‘yin uchun o‘ylab topilgan
 - 💼 **13 ta kasb** — farroshdan shifokorgacha, har birining o‘z daromad-xarajat hisoboti bor
-- 🃏 **220+ karta**: aksiyalar (9 ta kompaniya), obligatsiya va fondlar, 1–3 xonali kvartiralar, garajlar,
+- 🃏 **300+ karta**: aksiyalar (11 ta kompaniya), obligatsiya va fondlar, 1–3 xonali kvartiralar, garajlar,
   do‘konlar, ko‘p xonadonli uylar, 30 dan ortiq biznes turi — somsaxona, choyxona, osh markazi, to‘yxona,
   Buxorodagi mehmon uyi, pomidor issiqxonasi… Bozor yangiliklari (ijara oshishi, mulk solig‘i, soliq imtiyozlari,
   yillik mukofot) va mahalliy ortiqcha xarajatlar: «to‘yona», beshik to‘yi, mehmonlar, Navro‘z dasturxoni
@@ -26,8 +37,11 @@ o‘yinchi g‘olib bo‘ladi.
 - 🏦 **Bank**: $1 000 qadamli qarz (oyiga 10%), qarzlarni muddatidan oldin yopish, majburiy to‘lovda avtomatik kredit, bankrotlik
 - 🤝 **O‘yinchilar o‘zaro**: aksiya yoki «Bozor» kartasi chiqqanda mos aktivi bor har bir o‘yinchi sotishi mumkin;
   10 soniyalik kutish oynasi hammaga ulgurish imkonini beradi
-- 👶 Farzand, 💤 ishsizlik, 🤝 xayriya (2 ta zar), ⚖️ sud, 🧾 soliq tekshiruvi, 🎲 tavakkal loyihalar
-- ⭐ **Orzular**: kutish zalida har kim o‘z orzusini tanlaydi — Chorvoq bo‘yida dacha, kosmosga parvoz…
+- 👶 Farzand, 💤 ishsizlik, 🤝 xayriya (2 ta zar), 🛍️ kichik va 💸 katta xarajatlar (to‘y, ta’mir, davolanish)
+- ⚠️ Tezkor yo‘ldagi xavflar: 🧾 soliq tekshiruvi (−30%), 💔 ajrashuv (−50%), 🚔 noqonuniy ish (2 navbat),
+  💥 bankrot (bizneslardan biri — o‘yinchi o‘zi tanlaydi)
+- ⭐ **15 ta orzu**: kutish zalida har kim o‘z orzusini tanlaydi — Surxondaryoda subtropik bog‘, 1000 ta oilaning to‘yi,
+  kosmosga parvoz, Dubaydan orol…
 - ⚙️ **Sozlamalar**: to‘liq yoki qisqa o‘yin, navbat uchun vaqt cheklovi
 - 🔁 Sahifa yangilansa yoki internet uzilsa — o‘yinchi o‘z hisoboti bilan qaytadi; uzilgan o‘yinchining navbati
   avtomatik o‘tadi; o‘yin davomida ham qo‘shilish mumkin

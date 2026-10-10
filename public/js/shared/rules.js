@@ -7,118 +7,171 @@ export const LOAN_RATE = 0.1; // oyiga 10%
 export const MAX_CHILDREN = 3;
 export const CHARITY_TURNS = 3;
 export const DOWNSIZE_TURNS = 2;
-export const FAST_MULT = 100; // tezkor yo‘lda: passiv daromad × 100
-export const FAST_GOAL = 50000; // tezkor yo‘lda g‘alaba: oylik pul oqimini +$50 000 ga oshirish
+export const INVEST_STEP = 1000; // investorga sarmoya $1 000 qadam bilan
+// Tezkor yo‘l stol variantidagi narxlar bilan (dollarda): biznes $100 000 – $1 500 000, orzular $600 000 – $2 800 000.
+// Shu sababli kirish daromadi va g‘alaba maqsadi ham 4 barobar katta.
+export const FAST_MULT = 400; // tezkor yo‘lda: passiv daromad × 400
+export const FAST_GOAL = 200000; // tezkor yo‘lda g‘alaba: oylik pul oqimini +$200 000 ga oshirish
+export const RISKY_NEED = 4; // tavakkal biznes: zar 4, 5 yoki 6 bo‘lsa — muvaffaqiyat
+export const AUDIT_SHARE = 0.3; // soliq tekshiruvi: naqd pulning 30%
+export const ILLEGAL_TURNS = 2; // noqonuniy ish: 2 navbat tanaffus
 export const SHARED_WINDOW_MS = 10000; // boshqalar aksiya/mulk sotishga ulgurishi uchun
 export const SMALL_DEAL_MAX = 5000;
 
-// ——— Kalamush poygasi (ichki halqa, 24 katak) ———
+// ——— Kalamush poygasi (ichki halqa, 24 katak, 4 ta maosh kuni) ———
 export const RAT_BOARD = [
-  'payday', 'opportunity', 'doodad', 'opportunity', 'charity', 'opportunity',
-  'market', 'opportunity', 'payday', 'opportunity', 'doodad', 'opportunity',
-  'downsized', 'opportunity', 'market', 'opportunity', 'payday', 'opportunity',
-  'doodad', 'opportunity', 'baby', 'opportunity', 'market', 'opportunity',
+  'payday', 'opportunity', 'doodad', 'opportunity', 'stocks', 'investor',
+  'payday', 'opportunity', 'charity', 'opportunity', 'market', 'bigDoodad',
+  'payday', 'opportunity', 'downsized', 'investor', 'stocks', 'opportunity',
+  'payday', 'opportunity', 'doodad', 'baby', 'market', 'opportunity',
 ];
 
+// Stol variantidagi 15 ta orzu (narxlar dollarda)
 export const DREAMS = [
-  { id: 'travel', title: 'Dunyo bo‘ylab sayohat', icon: '🌍', cost: 150000 },
-  { id: 'dacha', title: 'Chorvoq bo‘yida dacha', icon: '🏡', cost: 120000 },
-  { id: 'parents', title: 'Ota-onamga yangi uy sovg‘a qilish', icon: '🏠', cost: 200000 },
-  { id: 'school', title: 'O‘z xususiy maktabimni ochish', icon: '🎓', cost: 250000 },
-  { id: 'fund', title: 'Xayriya fondini tashkil etish', icon: '🤲', cost: 300000 },
-  { id: 'yacht', title: 'Yaxta va dengiz sayohati', icon: '⛵', cost: 220000 },
-  { id: 'hotel', title: 'Samarqandda butik-mehmonxona', icon: '🏛️', cost: 350000 },
-  { id: 'space', title: 'Kosmosga parvoz', icon: '🚀', cost: 500000 },
-  { id: 'book', title: 'Kitob yozib nashr ettirish', icon: '📚', cost: 90000 },
-  { id: 'cars', title: 'Klassik avtomobillar kolleksiyasi', icon: '🏎️', cost: 250000 },
+  { id: 'yordam', title: 'Qarovchisi yo‘q insonlarga yordam berish', icon: '🤲', cost: 800000 },
+  { id: 'hamkor', title: 'Dunyoning eng yirik kompaniyasi bilan shartnoma tuzish', icon: '🤝', cost: 2000000 },
+  { id: 'mehmonxona', title: '5 yulduzli mehmonxona qurish', icon: '🏨', cost: 1700000 },
+  { id: 'futbol', title: 'Orzuingizdagi futbol jamoasini tuzish', icon: '⚽', cost: 700000 },
+  { id: 'bog', title: 'Surxondaryoda subtropik mevalar bog‘i barpo etish', icon: '🍊', cost: 1000000 },
+  { id: 'samolyot', title: 'Shaxsiy samolyot sotib olish', icon: '✈️', cost: 2100000 },
+  { id: 'toylar', title: '1000 ta oilaning to‘y marosimini o‘tkazib berish', icon: '💒', cost: 2500000 },
+  { id: 'maktab', title: 'Yevropada shaxsiy maktabingizni ochish', icon: '🎓', cost: 1300000 },
+  { id: 'parfyum', title: 'Fransuz parfyumeriya kompaniyasi bilan shartnoma', icon: '🌸', cost: 1600000 },
+  { id: 'yulduzlar', title: 'Farzandingiz to‘yiga Rossiya va Gollivud yulduzlarini olib kelish', icon: '🎤', cost: 2000000 },
+  { id: 'sayohat', title: 'Oila bilan 1 yil dunyo bo‘ylab sayohat', icon: '🌍', cost: 900000 },
+  { id: 'kosmos', title: 'Kosmosga parvoz qilish', icon: '🚀', cost: 1200000 },
+  { id: 'yaxta', title: 'Yaxta sotib olish', icon: '⛵', cost: 1000000 },
+  { id: 'superkar', title: 'Italiya superkarini sotib olish', icon: '🏎️', cost: 600000 },
+  { id: 'orol', title: 'Dubaydan orol sotib olish', icon: '🏝️', cost: 2800000 },
 ];
 
-// ——— Tezkor yo‘l (tashqi halqa, 36 katak) ———
+// ——— Tezkor yo‘l (tashqi halqa): stol variantidagi 52 katak + 4 ta burchakdagi «Pullar» ———
+// Ishonchli biznes — kafolatli daromad. Tavakkal biznes — qimmat va daromadi yuqori, lekin
+// sotib olgach zar tashlanadi: 4–6 — biznes ishlaydi, 1–3 — sarmoya kuyadi.
 const biz = (title, icon, cost, cashflow) => ({ type: 'business', title, icon, cost, cashflow });
+const risky = (title, icon, cost, cashflow) => ({ type: 'risky', title, icon, cost, cashflow });
+const dream = (id) => ({ type: 'dream', dream: id });
+const cf = { type: 'cfday' };
 export const FAST_BOARD = [
-  { type: 'cfday' },
-  biz('Toshkentda avtosalon', '🚘', 150000, 5000),
-  { type: 'dream', dream: 'travel' },
-  biz('Gilos bog‘i va fermer xo‘jaligi', '🍒', 100000, 3000),
-  { type: 'lawsuit' },
-  biz('Restoranlar tarmog‘i', '🍽️', 250000, 8000),
-  { type: 'dream', dream: 'dacha' },
-  { type: 'gamble', title: 'Texnologiya startapi IPO', icon: '📈', stake: 50000, need: 6, payout: 500000 },
-  biz('IT-kompaniya ulushi', '💻', 200000, 7000),
-  { type: 'cfday' },
-  { type: 'dream', dream: 'parents' },
-  biz('Fitnes klublar tarmog‘i', '🏋️', 120000, 4000),
+  { type: 'start' },
+  biz('Yoqilg‘i quyish shoxobchasi', '⛽', 320000, 16000),
+  cf,
+  risky('Katta issiqxonada limon yetishtirish', '🍋', 250000, 30000),
+  biz('Kelin ko‘ylaklari, sarpo va go‘zallik saloni', '👰', 600000, 25000),
+  dream('kosmos'),
+  biz('Golf klubi', '⛳', 800000, 30000),
+  risky('Otlar uchun poyga maydoni', '🏇', 250000, 30000),
+  biz('Mebel saloni', '🛋️', 120000, 7000),
+  dream('sayohat'),
+  { type: 'illegal' },
+  risky('Parfyumeriya ishlab chiqarish', '🧴', 680000, 70000),
+  dream('yulduzlar'),
+  cf,
+  risky('3D formatda uy qurish texnologiyasi', '🏗️', 150000, 20000),
+  biz('Qurilish mollari va uy jihozlari supermarketi', '🧱', 150000, 8000),
+  dream('toylar'),
+  biz('«Business Compass» konsalting markazi', '🧭', 400000, 20000),
+  dream('maktab'),
+  risky('Shaxsiy radiostansiya', '📻', 350000, 30000),
+  biz('«Avtooyna» avtomobil oynalari zavodi', '🚘', 750000, 32000),
+  dream('parfyum'),
+  biz('«Sunday» supermarketlar tarmog‘i', '🛒', 630000, 23000),
+  dream('bog'),
+  biz('Chevrolet avtomobillariga servis tarmog‘i', '🔧', 250000, 10000),
+  { type: 'divorce' },
+  risky('Chiqindilarni qayta ishlash korxonasi', '♻️', 550000, 40000),
+  biz('«Dori-Darmon» dorixonalar tarmog‘i', '💊', 480000, 20000),
+  dream('samolyot'),
+  biz('Bouling klubi', '🎳', 500000, 23000),
+  cf,
+  dream('yordam'),
+  risky('Zotdor sigirlar fermasi', '🐄', 150000, 30000),
+  dream('hamkor'),
+  biz('Ko‘p qavatli kiyim-kechak savdo majmuasi', '👗', 720000, 24000),
+  dream('mehmonxona'),
+  biz('Chevrolet avtosaloni', '🚗', 680000, 30000),
+  dream('futbol'),
   { type: 'audit' },
-  biz('Non zavodi', '🍞', 180000, 6000),
-  { type: 'dream', dream: 'school' },
-  { type: 'gamble', title: 'Oltin koni ulushi', icon: '⛏️', stake: 75000, need: 5, payout: 400000 },
-  biz('Quyosh elektr stansiyasi', '☀️', 400000, 13000),
-  { type: 'dream', dream: 'fund' },
-  { type: 'cfday' },
-  biz('Buxoroda mehmonxona', '🏨', 300000, 10000),
-  { type: 'fraud' },
-  { type: 'dream', dream: 'yacht' },
-  biz('Bolalar bog‘chalari tarmog‘i', '🧸', 160000, 5500),
-  biz('Logistika kompaniyasi', '🚛', 350000, 11000),
-  { type: 'dream', dream: 'hotel' },
-  { type: 'gamble', title: 'Neft qidiruv loyihasi', icon: '🛢️', stake: 100000, need: 6, payout: 1000000 },
-  biz('Tikuvchilik fabrikasi', '🧵', 220000, 7500),
-  { type: 'cfday' },
-  { type: 'dream', dream: 'space' },
-  biz('Zominda sanatoriy', '🏔️', 450000, 14000),
-  { type: 'lawsuit' },
-  biz('Tibbiyot klinikasi', '🏥', 380000, 12000),
-  { type: 'dream', dream: 'book' },
-  biz('Savdo markazi', '🏬', 500000, 16000),
-  biz('Avtomobil yuvish tarmog‘i', '🫧', 125000, 4000),
-  { type: 'dream', dream: 'cars' },
+  risky('Ko‘ngilochar istirohat bog‘i', '🎡', 1500000, 140000),
+  biz('«Golden House»: ko‘p qavatli zamonaviy uylar', '🏢', 720000, 27000),
+  cf,
+  biz('600 kishilik to‘yxona', '💒', 550000, 20000),
+  risky('Trassa bo‘yida kafe va avtoservis', '☕', 100000, 25000),
+  { type: 'bankrot' },
+  biz('Reklama agentligi', '📣', 280000, 11000),
+  dream('yaxta'),
+  biz('Basseyn va saunali fitnes markazi', '🏊', 640000, 22000),
+  risky('Fransiyadan parfyumeriya importi', '🌸', 1300000, 120000),
+  biz('«Taxi Express»: 100 ta Chevrolet Gentra', '🚕', 700000, 26000),
+  dream('superkar'),
+  biz('Shaxsiy musiqiy telekanal', '🎵', 450000, 20000),
+  risky('Sifatli poyabzal ishlab chiqarish', '👟', 150000, 40000),
+  biz('«Pokiza» kimyoviy tozalash tarmog‘i', '🧺', 360000, 18000),
+  dream('orol'),
+  biz('«Shaxsiy biznes olami» jurnali', '📰', 320000, 13000),
 ];
 
 export const SQUARES = {
   payday: { label: 'Maosh kuni', short: 'Maosh', icon: '💰', color: '#f5b83d', hint: 'Shu katakdan o‘tganda yoki to‘xtaganda oylik pul oqimingizni olasiz.' },
-  opportunity: { label: 'Imkoniyat', short: 'Imkoniyat', icon: '💡', color: '#2bd67b', hint: 'Kichik yoki katta bitim kartasini oling: aksiya, ko‘chmas mulk, biznes.' },
-  market: { label: 'Bozor', short: 'Bozor', icon: '📈', color: '#7aa2ff', hint: 'Xaridorlar aktivlaringizni sotib olishni taklif qiladi.' },
-  doodad: { label: 'Ortiqcha xarajat', short: 'Xarajat', icon: '🛍️', color: '#ff5f8a', hint: 'Majburiy xarajat — keraksiz narsalarga pul ketadi.' },
+  opportunity: { label: 'Imkoniyat', short: 'Imkoniyat', icon: '💡', color: '#2bd67b', hint: 'Kichik yoki katta bitim kartasini oling: ko‘chmas mulk, biznes, obligatsiya.' },
+  investor: { label: 'Investor', short: 'Investor', icon: '🤵', color: '#14b8a6', hint: 'Biznes sarmoyador izlamoqda: istalgan summani kiriting va undan oylik foiz oling.' },
+  stocks: { label: 'Bozor: aksiyalar', short: 'Aksiya', icon: '📊', color: '#22c3e6', hint: 'O‘zbekiston kompaniyalari aksiyalari narxi chiqadi — barcha o‘yinchilar shu narxda sotib olishi va sotishi mumkin.' },
+  market: { label: 'Bozor: ko‘chmas mulk', short: 'Mulk bozori', icon: '🏘️', color: '#7aa2ff', hint: 'Xaridorlar mulk va bizneslaringizni sotib olishni taklif qiladi — mos aktivi bor har kim sotishi mumkin.' },
+  doodad: { label: 'Kichik xarajat', short: 'Xarajat', icon: '🛍️', color: '#ff5f8a', hint: 'Mayda, lekin tez-tez bo‘ladigan xarajatlar.' },
+  bigDoodad: { label: 'Katta xarajat', short: 'Katta xarajat', icon: '💸', color: '#e11d48', hint: 'Kamdan-kam, lekin og‘ir xarajat: to‘y, ta’mir, davolanish.' },
   charity: { label: 'Xayriya', short: 'Xayriya', icon: '🤝', color: '#ff9f43', hint: 'Daromadning 10% ini bering — 3 navbat davomida 2 ta zar tashlaysiz.' },
   baby: { label: 'Farzand', short: 'Farzand', icon: '👶', color: '#7dd3fc', hint: 'Oilada farzand tug‘iladi — xarajatlar oshadi.' },
-  downsized: { label: 'Ishdan bo‘shatish', short: 'Ishsizlik', icon: '📉', color: '#94a3b8', hint: 'Bir oylik xarajatlarni to‘laysiz va 2 navbat o‘tkazib yuborasiz.' },
-  cfday: { label: 'Pul oqimi kuni', short: 'Pul kuni', icon: '💸', color: '#f5b83d', hint: 'Tezkor yo‘ldagi oylik daromadingizni olasiz.' },
-  business: { label: 'Biznes', short: 'Biznes', icon: '🏢', color: '#2bd67b', hint: 'Yirik biznes sotib olib, oylik pul oqimini oshiring.' },
+  downsized: { label: 'Ishsizlik', short: 'Ishsizlik', icon: '📉', color: '#94a3b8', hint: 'Bir oylik xarajatlarni to‘laysiz va 2 navbat o‘tkazib yuborasiz.' },
+  start: { label: 'Start', short: 'Start', icon: '🏁', color: '#fbbf24', hint: 'Tezkor yo‘lning boshlanishi.' },
+  cfday: { label: 'Pullar', short: 'Pullar', icon: '💰', color: '#3b5bdb', hint: 'Tezkor yo‘ldagi oylik daromadingizni olasiz (o‘tganda ham).' },
+  business: { label: 'Ishonchli biznes', short: 'Ishonchli', icon: '🏢', color: '#2bd67b', hint: 'Kafolatli oylik daromad beradigan biznes.' },
+  risky: { label: 'Tavakkal biznes', short: 'Tavakkal', icon: '🎲', color: '#8fb3ff', hint: 'Qimmat va daromadi yuqori. Sotib olgach zar tashlanadi: 4–6 — biznes ishlaydi, 1–3 — sarmoya kuyadi.' },
   dream: { label: 'Orzu', short: 'Orzu', icon: '⭐', color: '#c084fc', hint: 'O‘z orzuingizni sotib olsangiz — g‘alaba!' },
-  lawsuit: { label: 'Sud da’vosi', short: 'Sud', icon: '⚖️', color: '#ff4d61', hint: 'Naqd pulingizning yarmini yo‘qotasiz.' },
-  audit: { label: 'Soliq tekshiruvi', short: 'Soliq', icon: '🧾', color: '#ff4d61', hint: 'Naqd pulingizning yarmini yo‘qotasiz.' },
-  fraud: { label: 'Firibgarlik', short: 'Firib', icon: '🕵️', color: '#ff4d61', hint: 'Ishonchli hamkor aldadi — barcha naqd puldan ayrilasiz.' },
-  gamble: { label: 'Tavakkal', short: 'Tavakkal', icon: '🎲', color: '#22c3e6', hint: 'Pul tikib zar tashlang: omad kulsa — katta yutuq.' },
+  audit: { label: 'Soliq tekshiruvi', short: 'Audit', icon: '🧾', color: '#ff4d61', hint: 'Naqd pulingizning 30% ini yo‘qotasiz.' },
+  divorce: { label: 'Ajrashuv', short: 'Ajrashuv', icon: '💔', color: '#ff4d61', hint: 'Mol-mulk bo‘linadi — naqd pulingizning yarmini yo‘qotasiz.' },
+  illegal: { label: 'Noqonuniy ish', short: 'Noqonuniy', icon: '🚔', color: '#ff4d61', hint: 'Noqonuniy ish ochildi — 2 navbat o‘tkazib yuborasiz.' },
+  bankrot: { label: 'Bankrot', short: 'Bankrot', icon: '💥', color: '#111827', hint: 'Bizneslaringizdan birini (o‘zingiz tanlaysiz) yo‘qotasiz.' },
 };
 
 export const DECKS = {
-  small: { label: 'Kichik bitim', color: '#2bd67b', icon: '💡' },
-  big: { label: 'Katta bitim', color: '#22c3e6', icon: '🏢' },
-  market: { label: 'Bozor', color: '#7aa2ff', icon: '📈' },
-  doodad: { label: 'Ortiqcha xarajat', color: '#ff5f8a', icon: '🛍️' },
+  small: { label: 'Kichik bitim', pile: 'Kichik', color: '#2bd67b', icon: '💡' },
+  big: { label: 'Katta bitim', pile: 'Katta', color: '#10b981', icon: '🏢' },
+  investor: { label: 'Investor', pile: 'Investor', color: '#14b8a6', icon: '🤵' },
+  stocks: { label: 'Bozor: aksiyalar', pile: 'Aksiya', color: '#22c3e6', icon: '📊' },
+  market: { label: 'Bozor: ko‘chmas mulk', pile: 'Mulk', color: '#7aa2ff', icon: '🏘️' },
+  doodad: { label: 'Kichik xarajat', pile: 'Xarajat', color: '#ff5f8a', icon: '🛍️' },
+  bigDoodad: { label: 'Katta xarajat', pile: 'Katta xarajat', color: '#e11d48', icon: '💸' },
   charity: { label: 'Xayriya', color: '#ff9f43', icon: '🤝' },
   baby: { label: 'Farzand', color: '#7dd3fc', icon: '👶' },
-  downsized: { label: 'Ishdan bo‘shatish', color: '#94a3b8', icon: '📉' },
+  downsized: { label: 'Ishsizlik', color: '#94a3b8', icon: '📉' },
   payday: { label: 'Maosh kuni', color: '#f5b83d', icon: '💰' },
-  cfday: { label: 'Pul oqimi kuni', color: '#f5b83d', icon: '💸' },
-  fast: { label: 'Tezkor yo‘l · biznes', color: '#2bd67b', icon: '🏢' },
+  start: { label: 'Start', color: '#fbbf24', icon: '🏁' },
+  cfday: { label: 'Pullar', color: '#f5b83d', icon: '💰' },
+  fast: { label: 'Ishonchli biznes', color: '#2bd67b', icon: '🏢' },
+  risky: { label: 'Tavakkal biznes', color: '#8fb3ff', icon: '🎲' },
   dream: { label: 'Orzu', color: '#c084fc', icon: '⭐' },
-  gamble: { label: 'Tavakkal', color: '#22c3e6', icon: '🎲' },
-  lawsuit: { label: 'Sud da’vosi', color: '#ff4d61', icon: '⚖️' },
   audit: { label: 'Soliq tekshiruvi', color: '#ff4d61', icon: '🧾' },
-  fraud: { label: 'Firibgarlik', color: '#ff4d61', icon: '🕵️' },
+  divorce: { label: 'Ajrashuv', color: '#ff4d61', icon: '💔' },
+  illegal: { label: 'Noqonuniy ish', color: '#ff4d61', icon: '🚔' },
+  bankrot: { label: 'Bankrot', color: '#64748b', icon: '💥' },
 };
+// Taxta markazidagi kartalar to‘plami
+export const PILES = ['small', 'big', 'investor', 'stocks', 'market', 'doodad', 'bigDoodad'];
 
+// O‘zbekistonning haqiqiy kompaniyalari va o‘z brendlarimiz (Buraq Logistics, Moow Motors). Kartalardagi narx va yangiliklar o‘yin uchun o‘ylab topilgan —
+// kompaniyalarning haqiqiy aksiya narxi yoki holatini aks ettirmaydi.
 export const STOCKS = {
-  ANOR: { name: 'Anor Tekstil', icon: '🧶', range: [5, 30] },
-  QOVN: { name: 'Qovun Agro', icon: '🍈', range: [5, 40] },
-  TLPR: { name: 'Tulpor Motors', icon: '🐎', range: [5, 30] },
-  CHNR: { name: 'Chinor Soft', icon: '🌳', range: [5, 40] },
-  SMRQ: { name: 'Samarqand Media', icon: '📺', range: [5, 25] },
-  BLUT: { name: 'Bulut Telekom', icon: '☁️', range: [5, 30] },
-  TOGO: { name: 'Tog‘ Oltin', icon: '⛰️', range: [10, 50] },
-  NVRZ: { name: 'Navro‘z Savdo', icon: '🛍️', range: [5, 35] },
-  ASAL: { name: 'Asal Food', icon: '🍯', range: [5, 25] },
+  AKFA: { name: 'Akfa Group', icon: '🪟', range: [1, 30] },
+  KRZN: { name: 'Korzinka', icon: '🛒', range: [5, 40] },
+  UZAM: { name: 'UzAuto Motors', icon: '🚗', range: [1, 30] },
+  UZUM: { name: 'Uzum', icon: '🍇', range: [5, 40] },
+  ARTL: { name: 'Artel', icon: '📺', range: [5, 25] },
+  UZTL: { name: 'Uzbektelecom', icon: '📡', range: [5, 30] },
+  NKMK: { name: 'Navoiy KMK', icon: '⛰️', range: [10, 50] },
+  HMKB: { name: 'Hamkorbank', icon: '🏦', range: [5, 35] },
+  QZSM: { name: 'Qizilqumsement', icon: '🧱', range: [5, 25] },
+  BRAQ: { name: 'Buraq Logistics', icon: '🚚', range: [5, 40] },
+  MOOW: { name: 'Moow Motors', icon: '⚙️', range: [5, 40] },
 };
 
 // Obligatsiya va fondlar: har bir dona har oy barqaror daromad beradi
@@ -184,6 +237,7 @@ export const ASSET_TYPE_LABELS = {
   land: 'Yer uchastkasi',
   business: 'Biznes',
   startup: 'Kichik biznes',
+  invest: 'Investitsiya ulushi',
 };
 
 // ——— Moliyaviy hisob-kitoblar ———
@@ -196,6 +250,10 @@ export const monthlyCashflow = (p) => totalIncome(p) - totalExpenses(p);
 export const loanCapacity = (p) => Math.max(0, Math.floor(monthlyCashflow(p) / (LOAN_STEP * LOAN_RATE))) * LOAN_STEP;
 export const charityAmount = (p) => Math.round(totalIncome(p) * 0.1);
 export const roundUpToLoan = (n) => Math.ceil(Math.max(0, n) / LOAN_STEP) * LOAN_STEP;
+// Investor kartasi: kiritilgan summadan oylik daromad
+export const investIncome = (card, amount) => Math.round(amount * card.rate);
+// Katta xarajat maoshga bog‘liq bo‘lishi mumkin (salaryPct — maoshning ulushi)
+export const doodadCost = (card, p) => (card.perChild ? card.perChild * p.children : card.salaryPct ? Math.round((p.salary * card.salaryPct) / 10) * 10 : card.cost || 0);
 // Kalamush poygasidan chiqish uchun: passiv daromad > jami xarajatlar
 export const canEscape = (p) => p.track === 'rat' && passiveIncome(p) > totalExpenses(p);
 
@@ -211,6 +269,8 @@ export function marketMatches(card, asset) {
       return asset.kind === 'gold';
     case 'sellBond':
       return asset.kind === 'bond' && (!card.symbol || asset.symbol === card.symbol);
+    case 'sellInvest':
+      return asset.kind === 'invest';
     default:
       return false;
   }
@@ -218,6 +278,7 @@ export function marketMatches(card, asset) {
 
 export function saleValue(card, asset) {
   if (card.kind === 'sellUnit' || card.kind === 'sellBond') return card.price * (asset.units || 1);
+  if (card.kind === 'sellInvest') return Math.round((asset.cost * card.mult) / 100) * 100;
   return card.price;
 }
 
@@ -233,7 +294,7 @@ export const shortMoney = (n) => {
 export const squareOf = (track, pos) => (track === 'fast' ? FAST_BOARD[pos] : { type: RAT_BOARD[pos] });
 export const squareLabel = (track, pos) => {
   const sq = squareOf(track, pos);
-  if (sq.type === 'business' || sq.type === 'gamble') return sq.title;
+  if (sq.type === 'business' || sq.type === 'risky' || sq.type === 'gamble') return sq.title;
   if (sq.type === 'dream') return `Orzu: ${DREAMS.find((d) => d.id === sq.dream)?.title}`;
   return SQUARES[sq.type].label;
 };

@@ -1,13 +1,13 @@
 // O‘yin taxtasi: ichki halqa — kalamush poygasi, tashqi halqa — tezkor yo‘l.
 // Katak, fishka va zarlar foizlarda joylashadi, shuning uchun taxta har qanday ekranga moslashadi.
 
-import { RAT_BOARD, FAST_BOARD, SQUARES, DREAMS, DECKS, money, shortMoney } from './shared/rules.js';
+import { RAT_BOARD, FAST_BOARD, SQUARES, DREAMS, DECKS, PILES, RISKY_NEED, money, shortMoney } from './shared/rules.js';
 import { h } from './dom.js';
 import { reducedMotion } from './fx.js';
 
 const RING = {
   rat: { r: 30, n: RAT_BOARD.length },
-  fast: { r: 44, n: FAST_BOARD.length },
+  fast: { r: 43, n: FAST_BOARD.length },
 };
 const HOP_MS = 210;
 
@@ -89,23 +89,21 @@ export function createBoard(root, { piles = true } = {}) {
     let icon = meta.icon;
     let title = `${meta.label}: ${meta.hint}`;
     let tag = null;
-    if (sq.type === 'business') {
+    if (sq.type === 'business' || sq.type === 'risky') {
       icon = sq.icon;
-      title = `${sq.title} — narxi ${money(sq.cost)}, oylik daromad +${money(sq.cashflow)}`;
+      title = `${meta.label}: ${sq.title} — narxi ${money(sq.cost)}, oylik daromad +${money(sq.cashflow)}${sq.type === 'risky' ? ` (zar ${RISKY_NEED}–6 tushsa)` : ''}`;
       tag = shortMoney(sq.cost);
     } else if (sq.type === 'dream') {
       const d = DREAMS.find((x) => x.id === sq.dream);
       icon = d.icon;
       title = `Orzu: ${d.title} — ${money(d.cost)}`;
-    } else if (sq.type === 'gamble') {
-      icon = sq.icon;
-      title = `${sq.title}: ${money(sq.stake)} tiking, zar ${sq.need === 6 ? '6' : `${sq.need} yoki undan ko‘p`} tushsa — ${money(sq.payout)}`;
     }
     const el = h(
       'div',
       { class: `tile tile-fast t-${sq.type}`, style: { left: `${p.x}%`, top: `${p.y}%`, '--c': meta.color, '--i': i }, title },
       h('span', { class: 'tile-ico' }, icon),
-      tag ? h('span', { class: 'tile-tag' }, tag) : null,
+      // narx yorlig‘i halqadan tashqariga qaraydi — qo‘shni kataklar ustiga tushmaydi
+      tag ? h('span', { class: 'tile-tag', style: { '--ox': (p.x - 50) / RING.fast.r, '--oy': (p.y - 50) / RING.fast.r } }, tag) : null,
       sq.type === 'dream' ? h('span', { class: 'dream-marks' }) : null,
     );
     tiles.fast.push(el);
@@ -117,14 +115,14 @@ export function createBoard(root, { piles = true } = {}) {
   const pilesBox = h(
     'div',
     { class: 'piles' },
-    ...['small', 'big', 'market', 'doodad'].map((k) => {
+    ...PILES.map((k) => {
       const d = DECKS[k];
       const el = h(
         'div',
         { class: 'pile', 'data-deck': k, style: { '--c': d.color }, title: d.label },
         h('span', { class: 'pile-card' }),
         h('span', { class: 'pile-card' }),
-        h('span', { class: 'pile-top' }, h('span', { class: 'pile-ico' }, d.icon), h('span', { class: 'pile-label' }, d.label.split(' ')[0])),
+        h('span', { class: 'pile-top' }, h('span', { class: 'pile-ico' }, d.icon), h('span', { class: 'pile-label' }, d.pile)),
         h('b', { class: 'pile-count' }),
       );
       pileEls[k] = el;

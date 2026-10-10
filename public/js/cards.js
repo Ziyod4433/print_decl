@@ -20,10 +20,14 @@ const KIND_LABEL = {
   sellTag: 'Xaridor',
   boost: 'Yangilik',
   damage: 'Kutilmagan xarajat',
-  fastBusiness: 'Yirik biznes',
+  fastBusiness: 'Ishonchli biznes',
+  risky: 'Tavakkal biznes',
   dream: 'Orzu',
-  gamble: 'Tavakkal',
+  invest: 'Sarmoya',
+  sellInvest: 'Xaridor',
 };
+
+const pct = (rate) => `${+(rate * 100).toFixed(1)}%`;
 
 const roi = (cf, down) => (down > 0 ? `${Math.round(((cf * 12) / down) * 100)}%` : '—');
 
@@ -45,7 +49,9 @@ function describe(card, ctx) {
     case 'payday':
       return { icon: '💰', title: 'Maosh kuni!', text: 'Oylik pul oqimingiz hisobingizga tushdi.', stats: [stat('Oylik pul oqimi', signed(card.amount), card.amount >= 0 ? 'good' : 'bad')] };
     case 'cfday':
-      return { icon: '💸', title: 'Pul oqimi kuni!', text: 'Bizneslaringizdan tushgan oylik daromad hisobingizda.', stats: [stat('Daromad', signed(card.amount), 'good')] };
+      return { icon: '💰', title: 'Pullar!', text: 'Bizneslaringizdan tushgan oylik daromad hisobingizda.', stats: [stat('Daromad', signed(card.amount), 'good')] };
+    case 'start':
+      return { icon: '🏁', title: 'Start', text: 'Tezkor yo‘lning boshlanish nuqtasi. Bu safar hech narsa bo‘lmaydi — keyingi navbatga tayyorlaning.', stats: [] };
     case 'baby':
       return card.full
         ? { icon: '👨‍👩‍👧‍👦', title: 'Katta oila!', text: 'Sizda allaqachon 3 ta farzand bor — xarajatlar o‘zgarmaydi.', stats: [] }
@@ -62,15 +68,23 @@ function describe(card, ctx) {
         text: `Kompaniyada qisqartirish. Bir oylik jami xarajatlarni to‘laysiz va ${DOWNSIZE_TURNS} navbat o‘tkazib yuborasiz.`,
         stats: [stat('To‘lov', money(card.amount), 'bad'), stat('Tanaffus', `${DOWNSIZE_TURNS} navbat`)],
       };
-    case 'lawsuit':
-      return { icon: '⚖️', title: 'Sud da’vosi', text: 'Sobiq hamkor sudga berdi — naqd pulingizning yarmini yo‘qotdingiz.', stats: [stat('Yo‘qotish', money(card.amount), 'bad')] };
     case 'audit':
-      return { icon: '🧾', title: 'Soliq tekshiruvi', text: 'Hisob-kitobda xato topildi — naqd pulning yarmi jarimaga ketdi.', stats: [stat('Jarima', money(card.amount), 'bad')] };
-    case 'fraud':
-      return { icon: '🕵️', title: 'Firibgarlik', text: 'Ishonchli tuyulgan hamkor barcha naqd pulingiz bilan g‘oyib bo‘ldi.', stats: [stat('Yo‘qotish', money(card.amount), 'bad')] };
-    case 'doodad': {
+      return { icon: '🧾', title: 'Soliq tekshiruvi', text: 'Hisob-kitobda xato topildi — naqd pulingizning 30% i jarimaga ketdi.', stats: [stat('Jarima', money(card.amount), 'bad')] };
+    case 'divorce':
+      return { icon: '💔', title: 'Ajrashuv', text: 'Mol-mulk sud orqali bo‘lindi — naqd pulingizning yarmini yo‘qotdingiz.', stats: [stat('Yo‘qotish', money(card.amount), 'bad')] };
+    case 'illegal':
+      return { icon: '🚔', title: 'Noqonuniy ish', text: 'Hujjatsiz ish fosh bo‘ldi — tekshiruv tugaguncha biznes to‘xtatildi.', stats: [stat('Tanaffus', `${card.turns} navbat`, 'bad')] };
+    case 'bankrot':
+      return card.lost
+        ? { icon: '💥', title: 'Bankrot', text: `«${card.lost.title}» biznesi yopildi.`, stats: [stat('Oylik daromad', signed(-card.lost.cashflow), 'bad')] }
+        : card.count
+          ? { icon: '💥', title: 'Bankrot', text: 'Bizneslaringizdan biri yopiladi. Qaysi biridan voz kechasiz — o‘zingiz tanlang.', stats: [stat('Bizneslar', String(card.count))] }
+          : { icon: '😅', title: 'Bankrot', text: 'Sizda hali biznes yo‘q — yo‘qotadigan narsa ham yo‘q.', stats: [] };
+    case 'doodad':
+    case 'bigDoodad': {
       const stats = [];
       if (card.perChild) stats.push(stat('Har bir farzandga', money(card.perChild), 'bad'));
+      else if (card.salaryPct) stats.push(stat('Narxi', `maoshning ${pct(card.salaryPct)}${me ? ` = ${money(Math.round((me.salary * card.salaryPct) / 10) * 10)}` : ''}`, 'bad'));
       else stats.push(stat('Narxi', money(card.cost), 'bad'));
       if (card.loan) stats.push(stat('Qarz', money(card.loan.amount)), stat('Oylik to‘lov', `${signed(-card.loan.payment)} / oy`, 'bad'));
       return { icon: card.icon, title: card.title, text: card.text, stats };
@@ -132,6 +146,19 @@ function describe(card, ctx) {
           stat('Kimga ta’sir qiladi', card.targets.map((t) => ASSET_TYPE_LABELS[t] || t).join(', ')),
         ],
       };
+    case 'invest':
+      return {
+        icon: card.icon,
+        title: card.title,
+        text: card.text,
+        stats: [
+          stat('Sarmoya', `${money(card.min)} – ${money(card.max)}`, 'big'),
+          stat('Oylik daromad', `${pct(card.rate)} / oy`, 'good'),
+          stat('Yillik daromadlilik', pct(card.rate * 12), 'good'),
+        ],
+      };
+    case 'sellInvest':
+      return { icon: '📈', title: card.title, text: card.text, stats: [stat('Taklif', `kiritilgan summaning ${Math.round(card.mult * 100)}%`, 'big'), stat('Kimga kerak', 'Investitsiya ulushlari')] };
     case 'bonus':
       return { icon: '🎁', title: card.title, text: card.text, stats: [stat('Sizga', card.salaryMonths ? `${card.salaryMonths} oylik maosh` : signed(card.amount), 'good')] };
     case 'realestate':
@@ -164,8 +191,19 @@ function describe(card, ctx) {
       return {
         icon: card.icon,
         title: card.title,
-        text: 'Yirik biznesga sarmoya kiriting va oylik pul oqimingizni oshiring.',
+        text: 'Ishonchli biznes: daromad kafolatlangan. Sotib oling va oylik pul oqimingizni oshiring.',
         stats: [stat('Narxi', money(card.cost), 'big'), stat('Oylik pul oqimi', signed(card.cashflow), 'good'), stat('Yillik daromadlilik', roi(card.cashflow, card.cost), 'good')],
+      };
+    case 'risky':
+      return {
+        icon: card.icon,
+        title: card.title,
+        text: `Daromadi yuqori, lekin kafolat yo‘q. Sotib olgach zar tashlanadi: ${card.need}–6 tushsa biznes ishlaydi, 1–${card.need - 1} tushsa sarmoya kuyadi.`,
+        stats: [
+          stat('Narxi', money(card.cost), 'big'),
+          stat('Omad kulsa', `${signed(card.cashflow)}/oy`, 'good'),
+          stat('Omad ehtimoli', `${Math.round(((7 - card.need) / 6) * 100)}%`),
+        ],
       };
     case 'dream': {
       const owners = ctx.players.filter((p) => p.dream === card.dream).map((p) => `${p.avatar} ${p.name}`);
@@ -176,13 +214,6 @@ function describe(card, ctx) {
         stats: [stat('Narxi', money(card.cost), 'big')],
       };
     }
-    case 'gamble':
-      return {
-        icon: card.icon,
-        title: card.title,
-        text: `${money(card.stake)} tiking va zar tashlang: ${card.need === 6 ? '6' : `${card.need} yoki undan ko‘p`} tushsa — ${money(card.payout)} olasiz.`,
-        stats: [stat('Tikish', money(card.stake), 'bad'), stat('Kerakli zar', card.need === 6 ? '6' : `${card.need}+`), stat('Yutuq', money(card.payout), 'good')],
-      };
   }
   return { icon: '🃏', title: card.title || 'Karta', text: card.text || '', stats: [] };
 }

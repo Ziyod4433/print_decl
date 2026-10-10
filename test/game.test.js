@@ -59,12 +59,12 @@ test('xona, orzular, sozlamalar va o‘yin boshlanishi', async () => {
   const a = client();
   const b = client();
   await Promise.all([a.open(), b.open()]);
-  a.send({ t: 'create', name: 'Jasur', avatar: '🦊', dream: 'dacha' });
+  a.send({ t: 'create', name: 'Jasur', avatar: '🦊', dream: 'sayohat' });
   const ja = await a.wait((m) => m.t === 'joined');
   b.send({ t: 'join', code: ja.code, name: 'Malika', avatar: '🦄' });
   const jb = await b.wait((m) => m.t === 'joined');
-  b.send({ t: 'dream', dream: 'space' });
-  await a.wait((m) => m.t === 'state' && m.players.find((p) => p.id === jb.playerId)?.dream === 'space');
+  b.send({ t: 'dream', dream: 'kosmos' });
+  await a.wait((m) => m.t === 'state' && m.players.find((p) => p.id === jb.playerId)?.dream === 'kosmos');
 
   b.send({ t: 'settings', mode: 'quick' });
   assert.equal((await b.wait((m) => m.t === 'error')).code, 'NOT_HOST');
@@ -75,7 +75,7 @@ test('xona, orzular, sozlamalar va o‘yin boshlanishi', async () => {
   const s = await b.wait((m) => m.t === 'state' && m.room.phase === 'playing');
   assert.equal(s.game.mode, 'quick');
   assert.equal(s.game.players.length, 2);
-  assert.equal(s.game.players.find((p) => p.id === ja.playerId).dream, 'dacha');
+  assert.equal(s.game.players.find((p) => p.id === ja.playerId).dream, 'sayohat');
   assert.equal(s.game.turn.pid, ja.playerId);
   assert.ok(s.game.deadline > Date.now(), 'navbat taymeri ishlayapti');
   assert.equal(s.you, jb.playerId);
@@ -96,6 +96,8 @@ test('xona, orzular, sozlamalar va o‘yin boshlanishi', async () => {
   // Navbatni tugatish (kerak bo‘lsa — bitimdan voz kechish yoki xayriyani rad etish)
   const step = rolled.game.turn.step;
   if (step === 'charity') a.act({ type: 'charity', accept: false });
+  // «Bozor: aksiyalar»da hamma qatnashadi — b savdoni tugatadi
+  if (rolled.game.turn.card?.eligible?.includes(jb.playerId)) b.act({ type: 'pass' });
   if (rolled.game.turn.card?.eligible?.length) await new Promise((r) => setTimeout(r, 50));
   a.act({ type: 'end' });
   const next = await b.wait((m) => m.t === 'state' && m.game?.turn?.pid === jb.playerId, 12000);

@@ -18,6 +18,10 @@ import {
   FAST_MULT,
   FAST_GOAL,
   SHARED_WINDOW_MS,
+  INVEST_STEP,
+  RISKY_NEED,
+  AUDIT_SHARE,
+  ILLEGAL_TURNS,
   SQUARES,
   passiveIncome,
   totalIncome,
@@ -29,13 +33,16 @@ import {
   canEscape,
   marketMatches,
   saleValue,
+  investIncome,
+  doodadCost,
   money,
   signed,
   squareLabel,
 } from '../../public/js/shared/rules.js';
-import { SMALL_DEALS, BIG_DEALS, MARKET, DOODADS } from './cards.js';
+import { SMALL_DEALS, BIG_DEALS, MARKET, DOODADS, BIG_DOODADS, STOCK_MARKET, INVESTORS } from './cards.js';
 
 const LOG_LIMIT = 80;
+const TRADE_WINDOW_MS = 15000; // «Bozor: aksiyalar» — hamma sotib olishi va sotishi uchun
 
 export const GAME_ERRORS = {
   NOT_YOUR_TURN: 'Hozir sizning navbatingiz emas.',
@@ -87,8 +94,11 @@ export class Game {
     this.decks = {
       small: this._deck(SMALL_DEALS),
       big: this._deck(BIG_DEALS),
+      investor: this._deck(INVESTORS),
+      stocks: this._deck(STOCK_MARKET),
       market: this._deck(MARKET),
       doodad: this._deck(DOODADS),
+      bigDoodad: this._deck(BIG_DOODADS),
     };
     this.professionBag = this._shuffle(PROFESSIONS.map((p) => p.id));
     this._log({ icon: '🎬', text: 'O‘yin boshlandi! Har kim o‘z kasbi bilan kalamush poygasini boshlaydi.' });
@@ -127,7 +137,7 @@ export class Game {
 
   _discard(card) {
     if (!card || !this.decks[card.deck]) return;
-    const { id, deck, eligible, responders, openedAt, ...template } = card;
+    const { id, deck, eligible, responders, openedAt, trade, windowMs, ...template } = card;
     this.decks[card.deck].discard.push(template);
   }
 
@@ -285,7 +295,9 @@ export class Game {
         ownTurn() && step('choose');
         return this._deal(p, action.size === 'big' ? 'big' : 'small');
       case 'buy':
-        ownTurn() && step('card');
+        // «Bozor: aksiyalar»da boshqa o‘yinchilar ham sotib oladi
+        if (!mine && !(t.card?.trade && t.step === 'card' && p.track === 'rat')) fail('NOT_YOUR_TURN');
+        step('card');
         return this._buy(p, action);
       case 'sell':
         step('card');
@@ -295,9 +307,9 @@ export class Game {
       case 'charity':
         ownTurn() && step('charity');
         return this._charity(p, !!action.accept, !!action.borrow);
-      case 'gamble':
-        ownTurn() && step('card');
-        return this._gamble(p, !!action.accept);
+      case 'forfeit':
+        ownTurn() && step('forfeit');
+        return this._forfeit(p, p.assets.find((a) => a.id === action.assetId && a.kind === 'fast') || fail('BAD_REQUEST'));
       case 'loan':
         ownTurn();
         return this._takeLoan(p, action.amount);
@@ -324,6 +336,10 @@ export class Game {
       this._log({ pid: p.id, kind: 'timeout', icon: '⏱️', text: `${this._name(p)} uchun zar avtomatik tashlandi` });
       this._roll(p, 1);
       return;
+    }
+    if (t.step === 'forfeit') {
+      const cheapest = p.assets.filter((a) => a.kind === 'fast').sort((x, y) => x.cashflow - y.cashflow)[0];
+      if (cheapest) this._forfeit(p, cheapest);
     }
     this._log({ pid: p.id, kind: 'timeout', icon: '⏱️', text: `${this._name(p)}: vaqt tugadi — navbat keyingi o‘yinchiga o‘tdi` });
     this._endTurn();
@@ -377,6 +393,25 @@ export class Game {
       case 'opportunity':
         t.step = 'choose';
         return;
+      case 'investor': {
+        const card = this._draw('investor');
+        t.card = card;
+        t.step = 'card';
+        this._log({ pid: p.id, kind: 'deal', icon: '🤵', text: `Investor: «${card.title}»` });
+        return;
+      }
+      case 'stocks': {
+        const card = this._draw('stocks');
+        t.card = card;
+        t.step = 'card';
+        this._log({ pid: p.id, kind: 'market', icon: '📊', text: `Aksiyalar bozori: «${card.title}»` });
+        if (card.kind === 'split') {
+          t.step = 'end';
+          return this._applySplit(card);
+        }
+        if (card.kind === 'stock') return this._openTrade(card);
+        return this._openShared(card);
+      }
       case 'market': {
         const card = this._draw('market');
         t.card = card;
@@ -384,8 +419,9 @@ export class Game {
         this._log({ pid: p.id, kind: 'market', icon: '📈', text: `Bozor: «${card.title}»` });
         return this._applyMarket(p, card);
       }
-      case 'doodad': {
-        const card = this._draw('doodad');
+      case 'doodad':
+      case 'bigDoodad': {
+        const card = this._draw(RAT_BOARD[p.pos]);
         t.card = card;
         t.step = 'end';
         return this._applyDoodad(p, card);
@@ -413,11 +449,18 @@ export class Game {
     const id = `k${++this.seq.card}`;
     t.step = 'end';
     switch (sq.type) {
+      case 'start':
+        t.card = { deck: 'start', id };
+        return;
       case 'cfday':
         t.card = { deck: 'cfday', id, amount: p.fast.income };
         return;
       case 'business':
         t.card = { deck: 'fast', id, kind: 'fastBusiness', title: sq.title, icon: sq.icon, cost: sq.cost, cashflow: sq.cashflow };
+        t.step = 'card';
+        return;
+      case 'risky':
+        t.card = { deck: 'risky', id, kind: 'risky', title: sq.title, icon: sq.icon, cost: sq.cost, cashflow: sq.cashflow, need: RISKY_NEED };
         t.step = 'card';
         return;
       case 'dream': {
@@ -426,20 +469,41 @@ export class Game {
         if (d.id === p.dream) t.step = 'card';
         return;
       }
-      case 'gamble':
-        t.card = { deck: 'gamble', id, kind: 'gamble', title: sq.title, icon: sq.icon, stake: sq.stake, need: sq.need, payout: sq.payout };
-        t.step = 'card';
-        return;
-      case 'lawsuit':
       case 'audit':
-      case 'fraud': {
-        const loss = sq.type === 'fraud' ? p.cash : Math.floor(p.cash / 2);
+      case 'divorce': {
+        const loss = Math.round(p.cash * (sq.type === 'audit' ? AUDIT_SHARE : 0.5));
         p.cash -= loss;
         t.card = { deck: sq.type, id, amount: loss };
         this._log({ pid: p.id, kind: 'loss', icon: SQUARES[sq.type].icon, amount: -loss, text: `${this._name(p)}: ${SQUARES[sq.type].label} — ${money(-loss)}` });
         return;
       }
+      case 'illegal':
+        p.skipTurns += ILLEGAL_TURNS;
+        t.card = { deck: 'illegal', id, turns: ILLEGAL_TURNS };
+        this._log({ pid: p.id, kind: 'downsized', icon: '🚔', text: `${this._name(p)}: noqonuniy ish ochildi — ${ILLEGAL_TURNS} navbat tanaffus` });
+        return;
+      case 'bankrot': {
+        // Bankrot: bizneslardan biri yo‘qoladi — qaysi biri, o‘yinchi o‘zi tanlaydi
+        const own = p.assets.filter((a) => a.kind === 'fast');
+        t.card = { deck: 'bankrot', id, kind: 'bankrot', count: own.length, lost: null };
+        if (!own.length) {
+          this._log({ pid: p.id, kind: 'info', icon: '😅', text: `${this._name(p)}: Bankrot katagi, lekin biznes yo‘q — hech narsa yo‘qotilmadi` });
+          return;
+        }
+        if (own.length === 1) return this._forfeit(p, own[0]);
+        t.step = 'forfeit';
+        return;
+      }
     }
+  }
+
+  _forfeit(p, a) {
+    const t = this.turn;
+    p.assets = p.assets.filter((x) => x !== a);
+    p.fast.income -= a.cashflow;
+    t.card = { ...t.card, lost: { title: a.title, icon: a.icon, cashflow: a.cashflow } };
+    t.step = 'end';
+    this._log({ pid: p.id, kind: 'bankrupt', icon: '💥', text: `${this._name(p)}: Bankrot — «${a.title}» yo‘qotildi, oylik daromad ${signed(-a.cashflow)}` });
   }
 
   // ——— kartalar ———
@@ -452,20 +516,34 @@ export class Game {
     this._log({ pid: p.id, kind: 'deal', icon: size === 'big' ? '🏢' : '💡', text: `${this._name(p)} ${size === 'big' ? 'katta' : 'kichik'} bitim oldi: «${card.title}»` });
     if (card.kind === 'split') {
       t.step = 'end';
-      for (const pl of this.players.values()) {
-        const a = pl.assets.find((x) => x.kind === 'stock' && x.symbol === card.symbol);
-        if (!a) continue;
-        const before = a.shares;
-        a.shares = card.ratio >= 1 ? a.shares * card.ratio : Math.ceil(a.shares * card.ratio);
-        this._log({ pid: pl.id, kind: 'split', icon: '✂️', text: `${this._name(pl)}: ${card.symbol} aksiyalari ${before} → ${a.shares} ta` });
-      }
+      this._applySplit(card);
     }
     if (card.kind === 'stock') this._openShared(card);
   }
 
+  _applySplit(card) {
+    for (const pl of this.players.values()) {
+      const a = pl.assets.find((x) => x.kind === 'stock' && x.symbol === card.symbol);
+      if (!a) continue;
+      const before = a.shares;
+      a.shares = card.ratio >= 1 ? a.shares * card.ratio : Math.ceil(a.shares * card.ratio);
+      this._log({ pid: pl.id, kind: 'split', icon: '✂️', text: `${this._name(pl)}: ${card.symbol} aksiyalari ${before} → ${a.shares} ta` });
+    }
+  }
+
   _openShared(card) {
     card.openedAt = this.now();
+    card.windowMs = SHARED_WINDOW_MS;
     card.eligible = [...this.players.values()].filter((pl) => pl.track === 'rat' && this._sellable(pl, card).length).map((pl) => pl.id);
+    card.responders = [];
+  }
+
+  // Aksiyalar bozori: kalamush poygasidagi har bir o‘yinchi shu narxda sotib olishi yoki sotishi mumkin
+  _openTrade(card) {
+    card.openedAt = this.now();
+    card.windowMs = TRADE_WINDOW_MS;
+    card.trade = true;
+    card.eligible = [...this.players.values()].filter((pl) => pl.track === 'rat').map((pl) => pl.id);
     card.responders = [];
   }
 
@@ -521,8 +599,7 @@ export class Game {
   }
 
   _applyDoodad(p, card) {
-    let cost = card.cost || 0;
-    if (card.perChild) cost = card.perChild * p.children;
+    const cost = doodadCost(card, p);
     if (card.loan) {
       p.liabilities[card.loan.liability] += card.loan.amount;
       p.expenses[card.loan.liability] += card.loan.payment;
@@ -562,10 +639,14 @@ export class Game {
     if (!card) fail('BAD_STEP');
     if (p.track === 'fast') return this._buyFast(p, card);
     const multi = card.kind === 'stock' || card.kind === 'gold' || card.kind === 'bond';
-    if (!['stock', 'gold', 'bond', 'realestate', 'business', 'land', 'startup'].includes(card.kind)) fail('BAD_STEP');
+    if (!['stock', 'gold', 'bond', 'realestate', 'business', 'land', 'startup', 'invest'].includes(card.kind)) fail('BAD_STEP');
     if (!multi && t.bought) fail('BAD_STEP');
     const qty = multi ? posInt(action.qty, 1e6) : 1;
-    const cost = multi ? card.price * qty : card.down;
+    let cost = multi ? card.price * qty : card.down;
+    if (card.kind === 'invest') {
+      cost = posInt(action.amount, card.max);
+      if (cost < card.min || cost % INVEST_STEP) fail('BAD_REQUEST');
+    }
     if (action.borrow && cost > p.cash) {
       const need = roundUpToLoan(cost - p.cash);
       if (need > loanCapacity(p)) fail('LOAN_LIMIT');
@@ -611,6 +692,12 @@ export class Game {
       return;
     }
     t.bought = true;
+    if (card.kind === 'invest') {
+      const income = investIncome(card, cost);
+      p.assets.push({ id: `a${++this.seq.asset}`, kind: 'invest', type: 'invest', tag: card.tag, title: card.title, icon: card.icon, cost, rate: card.rate, cashflow: income });
+      this._log({ pid: p.id, kind: 'buy', icon: card.icon, amount: -cost, text: `${this._name(p)} «${card.title}»ga ${money(cost)} sarmoya kiritdi: oyiga ${signed(income)}` });
+      return;
+    }
     p.assets.push({
       id: `a${++this.seq.asset}`,
       kind: card.kind,
@@ -644,6 +731,25 @@ export class Game {
       p.stats.deals++;
       p.assets.push({ id: `a${++this.seq.asset}`, kind: 'fast', title: card.title, icon: card.icon, cost: card.cost, cashflow: card.cashflow });
       this._log({ pid: p.id, kind: 'buy', icon: card.icon, amount: -card.cost, text: `${this._name(p)} «${card.title}» sotib oldi: oylik daromad ${signed(card.cashflow)}` });
+      if (p.fast.income >= p.fast.goal) this._win(p, 'income');
+      return;
+    }
+    if (card.kind === 'risky') {
+      if (card.cost > p.cash) fail('NO_CASH');
+      t.bought = true;
+      p.cash -= card.cost;
+      p.stats.deals++;
+      const die = this._die();
+      const won = die >= card.need;
+      t.gamble = { die, won };
+      t.step = 'end';
+      if (!won) {
+        this._log({ pid: p.id, kind: 'gamble', icon: '💨', amount: -card.cost, text: `${this._name(p)} «${card.title}»ga tavakkal qildi: zar ${die} — biznes ishlamadi, ${money(card.cost)} kuydi` });
+        return;
+      }
+      p.fast.income += card.cashflow;
+      p.assets.push({ id: `a${++this.seq.asset}`, kind: 'fast', risky: true, title: card.title, icon: card.icon, cost: card.cost, cashflow: card.cashflow });
+      this._log({ pid: p.id, kind: 'gamble', icon: '🎉', amount: -card.cost, text: `${this._name(p)} «${card.title}»ga tavakkal qildi: zar ${die} — omad! Oylik daromad ${signed(card.cashflow)}` });
       if (p.fast.income >= p.fast.goal) this._win(p, 'income');
       return;
     }
@@ -688,7 +794,7 @@ export class Game {
       p.stats.sold++;
       this._log({ pid: p.id, kind: 'sell', icon: '💵', amount: net, text: `${this._name(p)} «${a.title}»ni ${money(value)} ga sotdi, qo‘lga ${money(net)} tegdi` });
     }
-    if (!this._sellable(p, card).length && !card.responders.includes(p.id)) card.responders.push(p.id);
+    if (!card.trade && !this._sellable(p, card).length && !card.responders.includes(p.id)) card.responders.push(p.id);
   }
 
   _pass(p) {
@@ -718,33 +824,11 @@ export class Game {
     this._log({ pid: p.id, kind: 'charity', icon: '🤝', amount: -amount, text: `${this._name(p)} ${money(amount)} xayriya qildi — ${CHARITY_TURNS} navbat 2 ta zar tashlaydi` });
   }
 
-  _gamble(p, accept) {
-    const t = this.turn;
-    const card = t.card;
-    if (card?.kind !== 'gamble' || t.gamble) fail('BAD_STEP');
-    if (!accept) {
-      t.step = 'end';
-      return;
-    }
-    if (card.stake > p.cash) fail('NO_CASH');
-    p.cash -= card.stake;
-    const die = this._die();
-    const won = die >= card.need;
-    t.gamble = { die, won };
-    t.step = 'end';
-    if (won) {
-      p.cash += card.payout;
-      this._log({ pid: p.id, kind: 'gamble', icon: '🎉', amount: card.payout - card.stake, text: `${this._name(p)} tavakkal qildi: zar ${die} — yutuq ${money(card.payout)}!` });
-    } else {
-      this._log({ pid: p.id, kind: 'gamble', icon: '💨', amount: -card.stake, text: `${this._name(p)} tavakkal qildi: zar ${die} — ${money(card.stake)} yo‘qotildi` });
-    }
-  }
-
   _tryEnd(p) {
     const card = this.turn.card;
     if (card?.eligible && this.turn.step === 'card') {
       const waiting = card.eligible.filter((id) => id !== p.id && !card.responders.includes(id) && this.players.get(id));
-      if (waiting.length && this.now() - card.openedAt < SHARED_WINDOW_MS) fail('WAIT_OTHERS');
+      if (waiting.length && this.now() - card.openedAt < (card.windowMs || SHARED_WINDOW_MS)) fail('WAIT_OTHERS');
     }
     this._endTurn();
   }
@@ -812,7 +896,7 @@ export class Game {
   _bankrupt(p, amount) {
     p.stats.bankrupt++;
     let raised = 0;
-    for (const a of p.assets) raised += Math.floor((['stock', 'gold', 'bond'].includes(a.kind) ? a.cost : a.down || 0) / 2);
+    for (const a of p.assets) raised += Math.floor((['stock', 'gold', 'bond', 'invest'].includes(a.kind) ? a.cost : a.down || 0) / 2);
     const sold = p.assets.length;
     p.assets = [];
     p.cash += raised;
@@ -843,9 +927,9 @@ export class Game {
     const t = this.turn;
     let card = null;
     if (t?.card) {
-      const { openedAt, ...rest } = t.card;
+      const { openedAt, windowMs, ...rest } = t.card;
       card = { ...rest };
-      if (t.card.eligible) card.waitUntil = openedAt + SHARED_WINDOW_MS;
+      if (t.card.eligible) card.waitUntil = openedAt + (windowMs || SHARED_WINDOW_MS);
     }
     return {
       mode: this.mode,

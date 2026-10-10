@@ -12,6 +12,9 @@ import {
   BONDS,
   RAT_BOARD,
   FAST_BOARD,
+  PILES,
+  INVEST_STEP,
+  investIncome,
   passiveIncome,
   totalExpenses,
   monthlyCashflow,
@@ -29,6 +32,7 @@ const STEP_TEXT = {
   choose: 'bitim tanlamoqda',
   card: 'qaror qabul qilmoqda',
   charity: 'xayriya haqida o‘ylamoqda',
+  forfeit: 'qaysi biznesdan voz kechishni tanlamoqda',
   end: 'navbatini yakunlamoqda',
 };
 
@@ -232,7 +236,7 @@ export function createGameUI({ send, toast, confetti, serverNow }) {
         const el = cardEl(t.card, { me: fin(st.you), players: st.players });
         el.classList.add('flip-in');
         cardBox.replaceChildren(el);
-        if (['small', 'big', 'market', 'doodad'].includes(t.card.deck)) board.drawFrom(t.card.deck);
+        if (PILES.includes(t.card.deck)) board.drawFrom(t.card.deck);
         sfx.flip();
       } else cardBox.replaceChildren();
     }
@@ -273,6 +277,46 @@ export function createGameUI({ send, toast, confetti, serverNow }) {
     );
     queueMicrotask(() => onChange(qty.get(key)));
     return wrap;
+  }
+
+  // Investor kartasi: summa min..max oralig‘ida, INVEST_STEP qadam bilan
+  function amountStepper(key, min, max, initial, onChange) {
+    if (!qty.has(key)) qty.set(key, Math.max(min, Math.min(initial, max)));
+    const val = h('b', { class: 'stepper-val' });
+    const set = (v) => {
+      const n = Math.max(min, Math.min(max, Math.round(v / INVEST_STEP) * INVEST_STEP));
+      qty.set(key, n);
+      val.textContent = money(n);
+      onChange(n);
+    };
+    const stepOf = () => (qty.get(key) >= 50000 ? 5 * INVEST_STEP : INVEST_STEP);
+    const wrap = h(
+      'div',
+      { class: 'qty amount' },
+      h('button', { type: 'button', 'aria-label': 'Kamaytirish', onclick: () => set(qty.get(key) - stepOf()) }, '−'),
+      val,
+      h('button', { type: 'button', 'aria-label': 'Oshirish', onclick: () => set(qty.get(key) + stepOf()) }, '+'),
+      h('button', { type: 'button', class: 'qty-max', onclick: () => set(max) }, 'Maks'),
+    );
+    queueMicrotask(() => set(qty.get(key)));
+    return wrap;
+  }
+
+  // Aksiya, oltin yoki obligatsiyani dona bilan sotib olish
+  function multiBuyBlock(card, me) {
+    const maxAfford = Math.max(1, Math.floor((me.cash + loanCapacity(me)) / card.price));
+    const total = h('span', { class: 'qty-total' });
+    const holder = h('div');
+    return h(
+      'div',
+      { class: 'trade buy' },
+      h('div', { class: 'trade-title' }, `Sotib olish: ${card.kind === 'stock' ? `${card.symbol} aksiyasi` : card.kind === 'bond' ? BONDS[card.symbol].name.toLowerCase() : 'oltin tanga'} ${money(card.price)} dan`),
+      qtyStepper(`buy:${card.id}`, Math.max(1, Math.floor(me.cash / card.price / 2)), maxAfford, (n) => {
+        total.textContent = `Jami: ${money(n * card.price)}`;
+        holder.replaceChildren(buyButton(me, n * card.price, `Sotib olish ${n} ta`, { type: 'buy', qty: n }));
+      }),
+      h('div', { class: 'trade-row' }, total, holder),
+    );
   }
 
   // Sotib olish tugmasi: pul yetmasa — bankdan qarz olib sotib olish taklifi
@@ -331,7 +375,12 @@ export function createGameUI({ send, toast, confetti, serverNow }) {
 
     // Boshqa o‘yinchining navbatida: aksiya/mulk sotish imkoniyati
     if (!mine) {
-      if (card?.eligible?.includes(st.you) && me.track === 'rat' && t.step === 'card') {
+      if (card?.trade && card.eligible.includes(st.you) && me.track === 'rat' && t.step === 'card') {
+        const responded = card.responders.includes(st.you);
+        out.push(h('p', { class: 'tp-note good' }, `📊 Aksiyalar bozori: siz ham ${card.symbol} ni ${money(card.price)} dan sotib olishingiz yoki sotishingiz mumkin!`));
+        out.push(multiBuyBlock(card, me), ...sellControls(card, me, false));
+        if (!responded) out.push(btn('Tayyor — savdo tugadi', () => act({ type: 'pass' }), 'btn-ghost btn-sm'));
+      } else if (card?.eligible?.includes(st.you) && me.track === 'rat' && t.step === 'card') {
         const responded = card.responders.includes(st.you);
         out.push(h('p', { class: 'tp-note good' }, '💡 Sizda mos aktiv bor — hozir sotishingiz mumkin!'));
         out.push(...sellControls(card, me, false));
@@ -365,6 +414,21 @@ export function createGameUI({ send, toast, confetti, serverNow }) {
         out.push(h('p', { class: 'tp-hint' }, `Naqd pulingiz: ${money(p.cash)}${p.track === 'rat' ? ` · bank yana ${money(loanCapacity(p))} bera oladi` : ''}`));
         out.push(btn('Bitimdan voz kechish', () => act({ type: 'end' }), 'btn-text'));
         return out;
+      case 'forfeit': {
+        out.push(h('p', { class: 'tp-note bad' }, '💥 Bankrot! Qaysi biznesdan voz kechasiz? Daromadi eng kami bilan xayrlashish — eng arzon yo‘qotish.'));
+        const own = p.assets.filter((a) => a.kind === 'fast').sort((x, y) => x.cashflow - y.cashflow);
+        for (const a of own) {
+          out.push(
+            h(
+              'div',
+              { class: 'trade sell-asset' },
+              h('div', {}, h('b', {}, `${a.icon} ${a.title}`), h('small', {}, ` · ${signed(a.cashflow)}/oy${a.risky ? ' · tavakkal' : ''}`)),
+              btn('Voz kechish', () => act({ type: 'forfeit', assetId: a.id }), 'btn-ghost'),
+            ),
+          );
+        }
+        return out;
+      }
       case 'charity':
         out.push(
           h(
@@ -380,21 +444,35 @@ export function createGameUI({ send, toast, confetti, serverNow }) {
     // step: card | end
     if (card && t.step === 'card') {
       if (card.kind === 'stock' || card.kind === 'gold' || card.kind === 'bond') {
-        const maxAfford = Math.max(1, Math.floor((p.cash + loanCapacity(p)) / card.price));
-        const total = h('span', { class: 'qty-total' });
-        const holder = h('div');
-        const trade = h(
-          'div',
-          { class: 'trade buy' },
-          h('div', { class: 'trade-title' }, `Sotib olish: ${card.kind === 'stock' ? `${card.symbol} aksiyasi` : card.kind === 'bond' ? BONDS[card.symbol].name.toLowerCase() : 'oltin tanga'} ${money(card.price)} dan`),
-          qtyStepper(`buy:${card.id}`, Math.max(1, Math.floor(p.cash / card.price / 2)), maxAfford, (n) => {
-            total.textContent = `Jami: ${money(n * card.price)}`;
-            holder.replaceChildren(buyButton(p, n * card.price, `Sotib olish ${n} ta`, { type: 'buy', qty: n }));
-          }),
-          h('div', { class: 'trade-row' }, total, holder),
-        );
-        out.push(trade);
+        if (card.trade) out.push(h('p', { class: 'tp-note' }, '📊 Aksiyalar bozori: barcha o‘yinchilar shu narxda savdo qila oladi.'));
+        out.push(multiBuyBlock(card, p));
         out.push(...sellControls(card, p, true));
+      } else if (card.kind === 'invest') {
+        if (t.bought) out.push(h('p', { class: 'tp-note good' }, '✅ Sarmoya kiritildi! Daromad har maosh kuni keladi.'));
+        else {
+          const canMax = Math.min(card.max, Math.floor((p.cash + loanCapacity(p)) / INVEST_STEP) * INVEST_STEP);
+          if (canMax < card.min) {
+            out.push(h('p', { class: 'tp-note bad' }, `Eng kam sarmoya ${money(card.min)} — naqd pul va bank krediti yetmaydi.`));
+            out.push(btn('O‘tkazib yuborish', () => act({ type: 'end' }), 'btn-ghost'));
+            return out;
+          }
+          const income = h('span', { class: 'qty-total' });
+          const holder = h('div');
+          out.push(
+            h(
+              'div',
+              { class: 'trade buy' },
+              h('div', { class: 'trade-title' }, `Qancha sarmoya kiritasiz? (${money(card.min)} – ${money(card.max)})`),
+              amountStepper(`inv:${card.id}`, card.min, canMax, Math.min(canMax, Math.max(card.min, Math.floor(p.cash / 2 / INVEST_STEP) * INVEST_STEP)), (n) => {
+                income.textContent = `Daromad: ${signed(investIncome(card, n))}/oy`;
+                holder.replaceChildren(buyButton(p, n, 'Sarmoya kiritish', { type: 'buy', amount: n }));
+              }),
+              h('div', { class: 'trade-row' }, income, holder),
+            ),
+            btn('Rad etish', () => act({ type: 'end' }), 'btn-text'),
+          );
+          return out;
+        }
       } else if (['realestate', 'business', 'land', 'startup'].includes(card.kind)) {
         if (t.bought) out.push(h('p', { class: 'tp-note good' }, '✅ Sotib olindi! Aktiv hisobotingizga qo‘shildi.'));
         else {
@@ -415,14 +493,22 @@ export function createGameUI({ send, toast, confetti, serverNow }) {
       } else if (card.kind === 'dream' && card.mine) {
         out.push(h('div', { class: 'btn-row' }, buyButton(p, card.cost, '🏆 Orzuni sotib olish', { type: 'buy' }), btn('Keyinroq', () => act({ type: 'end' }), 'btn-ghost')));
         return out;
-      } else if (card.kind === 'gamble') {
-        out.push(
-          h('div', { class: 'btn-row' }, buyButton(p, card.stake, '🎲 Tavakkal qilish', { type: 'gamble', accept: true }), btn('Yo‘q', () => act({ type: 'gamble', accept: false }), 'btn-ghost')),
-        );
+      } else if (card.kind === 'risky' && !t.bought) {
+        out.push(h('p', { class: 'tp-note' }, `🎲 Sotib olsangiz, zar tashlanadi: ${card.need}–6 — biznes ishlaydi, 1–${card.need - 1} — ${money(card.cost)} kuyadi.`));
+        out.push(h('div', { class: 'btn-row' }, buyButton(p, card.cost, '🎲 Tavakkal qilish', { type: 'buy' }), btn('O‘tkazib yuborish', () => act({ type: 'end' }), 'btn-ghost')));
         return out;
       }
     }
-    if (t.gamble) out.push(h('p', { class: `tp-note ${t.gamble.won ? 'good' : 'bad'}` }, `🎲 Zar: ${t.gamble.die} — ${t.gamble.won ? 'omad kuldi! 🎉' : 'bu safar omad kulmadi'}`));
+    if (t.gamble) {
+      out.push(
+        h(
+          'div',
+          { class: `risky-result ${t.gamble.won ? 'good' : 'bad'}` },
+          h('span', { class: 'risky-die' }, ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'][t.gamble.die - 1]),
+          h('span', {}, t.gamble.won ? `Zar ${t.gamble.die} — omad kuldi! Biznes ishga tushdi 🎉` : `Zar ${t.gamble.die} — biznes ishlamadi, sarmoya kuydi`),
+        ),
+      );
+    }
     out.push(endButton(t));
     return out;
   }
@@ -522,7 +608,8 @@ export function createGameUI({ send, toast, confetti, serverNow }) {
           confetti.cannons();
           break;
         case 'gamble':
-          sound('gamble', e.amount > 0 ? sfx.correct : sfx.wrong);
+          sound('gamble', e.icon === '🎉' ? sfx.correct : sfx.wrong);
+          if (e.icon === '🎉') celebrate(e.pid, '🎲');
           break;
       }
     }

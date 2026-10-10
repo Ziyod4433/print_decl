@@ -74,7 +74,7 @@ function assetLine(a) {
   }
   if (a.kind === 'gold') return row(`🪙 Oltin tangalar`, `${a.count} ta · ${money(a.cost)}`);
   if (a.kind === 'bond') return row(`${a.icon} ${a.title}`, `${a.units} ta · ${money(a.cost)}`);
-  if (a.kind === 'invest') return row(h('span', {}, `${a.icon} ${a.title} `, h('small', {}, `· ${+(a.rate * 100).toFixed(1)}%/oy`)), money(a.cost));
+  if (a.kind === 'invest') return row(h('span', {}, `${a.icon} ${a.title} `, h('small', {}, `· ${signed(a.cashflow)}/oy`)), money(a.cost));
   if (a.kind === 'fast') return row(h('span', {}, `${a.icon} ${a.title}`, a.risky ? h('small', {}, ' · 🎲 tavakkal') : null), `${signed(a.cashflow)} / oy`, 'good');
   return row(h('span', {}, `${a.icon} ${a.title}`, a.units > 1 ? h('small', {}, ` · ${a.units} xonadon`) : null), money(a.cost));
 }

@@ -1,6 +1,6 @@
 // O‘yin kartalari ko‘rinishi: sarlavha, matn va asosiy raqamlar (narx, oylik daromad, yillik daromadlilik)
 
-import { DECKS, STOCKS, BONDS, DREAMS, ASSET_TYPE_LABELS, CHARITY_TURNS, DOWNSIZE_TURNS, money, signed } from './shared/rules.js';
+import { DECKS, STOCKS, BONDS, DREAMS, ASSET_TYPE_LABELS, CHARITY_TURNS, DOWNSIZE_TURNS, investIncome, money, signed } from './shared/rules.js';
 import { h } from './dom.js';
 
 const KIND_LABEL = {
@@ -153,7 +153,7 @@ function describe(card, ctx) {
         text: card.text,
         stats: [
           stat('Sarmoya', `${money(card.min)} – ${money(card.max)}`, 'big'),
-          stat('Oylik daromad', `${pct(card.rate)} / oy`, 'good'),
+          stat('Oylik daromad', `${signed(investIncome(card, card.min))} – ${signed(investIncome(card, card.max))}`, 'good'),
           stat('Yillik daromadlilik', pct(card.rate * 12), 'good'),
         ],
       };

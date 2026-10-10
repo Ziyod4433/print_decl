@@ -274,3 +274,19 @@ test('mulk bozori: investitsiya ulushini kiritilgan summaning 150% iga sotish', 
   assert.equal(b.cash, cash + 15000);
   assert.equal(passiveIncome(b), 0);
 });
+
+test('tezkor yo‘lga chiqish: kirishda pul berilmaydi, birinchi zarda «Pullar» o‘tiladi', () => {
+  const g = newGame();
+  const b = g.players.get('b');
+  b.assets.push({ id: 'big', kind: 'business', type: 'business', tag: 'x', title: 'Biznes', icon: '🏢', cost: 1, down: 1, mortgage: 0, cashflow: 50000, units: 1 });
+  g.rng = dieRng(1);
+  g.act('a', { type: 'roll' });
+  g.act('a', { type: 'end' });
+  assert.equal(b.track, 'fast');
+  const cash = b.cash;
+  const income = b.fast.income;
+  g.rng = dieRng(1, 1); // eng kichik zar (2) ham 2-katakdagi «Pullar»ga yetadi
+  g.act('b', { type: 'roll' });
+  assert.equal(FAST_BOARD[2].type, 'cfday');
+  assert.equal(b.cash, cash + income);
+});

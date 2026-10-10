@@ -9,9 +9,10 @@ export const CHARITY_TURNS = 3;
 export const DOWNSIZE_TURNS = 2;
 export const INVEST_STEP = 1000; // investorga sarmoya $1 000 qadam bilan
 // Tezkor yo‘l stol variantidagi narxlar bilan (dollarda): biznes $100 000 – $1 500 000, orzular $600 000 – $2 800 000.
-// Shu sababli kirish daromadi va g‘alaba maqsadi ham 4 barobar katta.
-export const FAST_MULT = 400; // tezkor yo‘lda: passiv daromad × 400
-export const FAST_GOAL = 200000; // tezkor yo‘lda g‘alaba: oylik pul oqimini +$200 000 ga oshirish
+// Shu sababli «Pullar» daromadi va g‘alaba maqsadi ham kattaroq. Balans bot simulyatsiyasi bilan tanlangan:
+// g‘olib tezkor yo‘lda o‘rtacha ~19 navbat o‘ynaydi, 3 navbatda yutish — 4% o‘yinda.
+export const FAST_MULT = 200; // tezkor yo‘lda: passiv daromad × 200
+export const FAST_GOAL = 250000; // tezkor yo‘lda g‘alaba: oylik pul oqimini +$250 000 ga oshirish
 export const RISKY_NEED = 4; // tavakkal biznes: zar 4, 5 yoki 6 bo‘lsa — muvaffaqiyat
 export const AUDIT_SHARE = 0.3; // soliq tekshiruvi: naqd pulning 30%
 export const ILLEGAL_TURNS = 2; // noqonuniy ish: 2 navbat tanaffus

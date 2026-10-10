@@ -252,14 +252,13 @@ export class Game {
     p.track = 'fast';
     p.pos = 0;
     p.charityTurns = 0;
+    // Kirishda alohida pul berilmaydi: birinchi zarda «Pullar» (2-katak) baribir o‘tiladi
     p.fast = { income, start: income, goal: income + FAST_GOAL };
-    p.cash += income;
     this._log({
       pid: p.id,
       kind: 'escape',
       icon: '🚀',
-      amount: income,
-      text: `${this._name(p)} kalamush poygasidan chiqdi! Tezkor yo‘lda har «Pul oqimi kuni» ${money(income)} oladi`,
+      text: `${this._name(p)} kalamush poygasidan chiqdi! Tezkor yo‘lda har «Pullar»da ${money(income)} oladi`,
     });
   }
 

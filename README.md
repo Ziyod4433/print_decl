@@ -4,7 +4,7 @@ Moliyaviy erkinlik haqidagi onlayn stol o‘yini — do‘stlar bilan birga, o�
 
 Har bir o‘yinchi kasb bilan boshlaydi: maosh, soliqlar, ipoteka, kreditlar. Maqsad — **kalamush poygasidan
 chiqish**: aksiya, kvartira va biznes sotib olib, passiv daromadingizni jami xarajatlardan oshirish. Shundan
-so‘ng **tezkor yo‘l** ochiladi — u yerda orzuingizni sotib olgan yoki oylik daromadini +$200 000 ga oshirgan
+so‘ng **tezkor yo‘l** ochiladi — u yerda orzuingizni sotib olgan yoki oylik daromadini +$250 000 ga oshirgan
 o‘yinchi g‘olib bo‘ladi.
 
 > **Stol varianti (prototip).** Bu tarmoqda o‘zimizning stol o‘yini taxtasi asosidagi qoidalar: 52 katakli

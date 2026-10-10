@@ -104,7 +104,7 @@ export function createGameServer({ timings, heartbeatMs = 25000, sweepMs = 60000
     const conn = { room: null, playerId: null };
     const allow = createLimiter();
     const send = (msg) => {
-      if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
+      if (ws.readyState === ws.OPEN) ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg));
     };
     const fail = (code) => send({ t: 'error', code, message: ERRORS[code] });
     // Ulanish hali ham shu o‘yinchini boshqaradimi (boshqa oynada qayta ulanmaganmi)?
@@ -144,7 +144,7 @@ export function createGameServer({ timings, heartbeatMs = 25000, sweepMs = 60000
         case 'create': {
           detach();
           const room = manager.create();
-          const res = room.addPlayer({ name: msg.name, avatar: msg.avatar, send });
+          const res = room.addPlayer({ name: msg.name, avatar: msg.avatar, dream: msg.dream, send });
           if (res.error) {
             manager.delete(room.code);
             return fail(res.error);
@@ -155,7 +155,7 @@ export function createGameServer({ timings, heartbeatMs = 25000, sweepMs = 60000
           const room = manager.get(msg.code);
           if (!room) return fail('NO_ROOM');
           if (room === conn.room && current()) return;
-          const res = room.addPlayer({ name: msg.name, avatar: msg.avatar, send });
+          const res = room.addPlayer({ name: msg.name, avatar: msg.avatar, dream: msg.dream, send });
           if (res.error) return fail(res.error);
           detach();
           return attach(room, res.player);

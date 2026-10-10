@@ -1,20 +1,17 @@
 import crypto from 'node:crypto';
-import { createCaseGenerator, publicCase, FIELDS, OK } from './cases.js';
+import { Game, GameError } from './cashflow/game.js';
+import { DREAMS, MAX_PLAYERS } from '../public/js/shared/rules.js';
 
 export const AVATARS = ['🦊', '🐯', '🦁', '🐼', '🐸', '🦉', '🐺', '🐻', '🦄', '🐲', '🦅', '🐱', '🍉', '🍇', '🥟', '🫖'];
-export const PLAYER_COLORS = ['#22c3e6', '#2fd27a', '#ffc94a', '#ff7a59', '#b78cff', '#ff5fa2', '#4dd0b5', '#7aa2ff', '#f2994a', '#a3e635', '#f472b6', '#38bdf8'];
-export const REACTIONS = ['👍', '😂', '😮', '🔥', '👏', '😭', '🎉', '🫡'];
-export const ROUND_OPTIONS = [5, 8, 12];
-export const TIME_OPTIONS = [15, 25, 40];
-export const MAX_PLAYERS = 12;
+export const PLAYER_COLORS = ['#2bd67b', '#22c3e6', '#ffc94a', '#ff7a59', '#b78cff', '#ff5fa2'];
+export const REACTIONS = ['👍', '😂', '😮', '🔥', '👏', '😭', '🤑', '🫡'];
+export const MODES = ['full', 'quick'];
+export const TURN_OPTIONS = [0, 60, 120];
 
 export const DEFAULT_TIMINGS = {
-  countdown: 3600, // 3, 2, 1, Boshladik!
-  reveal: 6500, // to‘g‘ri javobni ko‘rsatish
-  board: 5500, // raundlar orasidagi reyting
-  earlyEnd: 700, // hamma javob berganda raundni erta tugatish
   hostGrace: 8000, // mezbon sahifani yangilasa, mezbonlik darhol o‘tib ketmasin
   lobbyDrop: 45000, // kutish zalida uzilib qolgan o‘yinchini olib tashlash
+  offlineTurn: 15000, // navbati kelgan o‘yinchi uzilib qolsa, shuncha kutamiz
 };
 
 export const ERRORS = {
@@ -44,34 +41,29 @@ export class Room {
   constructor(code, { timings = {}, rng, onEmpty, now = Date.now } = {}) {
     this.code = code;
     this.timings = { ...DEFAULT_TIMINGS, ...timings };
-    this.gen = createCaseGenerator(rng);
+    this.rng = rng;
     this.onEmpty = onEmpty || (() => {});
     this.now = now;
     this.players = new Map();
     this.hostId = null;
     this.phase = 'lobby';
-    this.settings = { rounds: 8, time: 25 };
+    this.settings = { mode: 'full', turnSeconds: 0 };
     this.gameId = 0;
-    this.round = 0; // 1-dan boshlanadi; 0 — o‘yin boshlanmagan
-    this.cases = [];
-    this.answers = new Map();
-    this.lastReveal = null;
-    this.endsAt = null;
-    this.phaseMs = 0;
-    this.roundStartedAt = 0;
-    this.timer = null;
-    this.earlyTimer = null;
+    this.game = null;
+    this.turnTimer = null;
+    this.turnKey = null;
+    this.deadline = null;
     this.lastActivity = now();
     this.destroyed = false;
   }
 
   // ——— o‘yinchilar ———
 
-  addPlayer({ name, avatar, send }) {
+  addPlayer({ name, avatar, dream, send }) {
     const clean = cleanName(name);
     if (clean.length < 2) return { error: 'BAD_NAME' };
     if (this.players.size >= MAX_PLAYERS) {
-      this._dropDisconnected();
+      if (this.phase === 'lobby') this._dropDisconnected();
       if (this.players.size >= MAX_PLAYERS) return { error: 'FULL' };
     }
     const player = {
@@ -80,18 +72,20 @@ export class Room {
       name: this._uniqueName(clean),
       avatar: AVATARS.includes(avatar) ? avatar : AVATARS[this.players.size % AVATARS.length],
       color: this._freeColor(),
+      dream: DREAMS.some((d) => d.id === dream) ? dream : DREAMS[crypto.randomInt(DREAMS.length)].id,
       joinedAt: this.now(),
       connected: true,
       send,
       dropTimer: null,
       lastReactAt: 0,
     };
-    this._resetStats(player);
     this.players.set(player.id, player);
     if (!this.hostId) this.hostId = player.id;
     this.touch();
+    // O‘yin ketayotgan bo‘lsa ham qo‘shilish mumkin — yangi o‘yinchi navbatning oxiriga qo‘yiladi
+    if (this.phase === 'playing') this.game.addPlayer({ id: player.id, dream: player.dream });
     this.emit({ t: 'event', kind: 'joined', id: player.id, name: player.name, avatar: player.avatar }, player.id);
-    this.broadcastState();
+    this._update();
     return { player };
   }
 
@@ -104,10 +98,9 @@ export class Room {
     p.connected = true;
     clearTimeout(p.dropTimer);
     p.dropTimer = null;
-    // eski ulanish (masalan, boshqa oynada) endi bu o‘yinchini boshqarmaydi
     if (old && old !== send) old({ t: 'error', code: 'REPLACED', message: 'Siz boshqa oynada ulandingiz.' });
     this.touch();
-    this.broadcastState();
+    this._update();
     return p;
   }
 
@@ -117,17 +110,14 @@ export class Room {
     p.connected = false;
     p.send = null;
     this.touch();
-    if (this.phase === 'lobby') {
-      p.dropTimer = setTimeout(() => this._remove(p.id), this.timings.lobbyDrop);
-    }
+    if (this.phase === 'lobby') p.dropTimer = setTimeout(() => this._remove(p.id), this.timings.lobbyDrop);
     if (this.hostId === p.id) {
       setTimeout(() => {
         const host = this.players.get(this.hostId);
         if (!this.destroyed && host && !host.connected) this._transferHost();
       }, this.timings.hostGrace);
     }
-    if (this.phase === 'round') this._checkAllAnswered();
-    this.broadcastState();
+    this._update();
   }
 
   leave(playerId) {
@@ -139,15 +129,14 @@ export class Room {
     if (!p) return;
     clearTimeout(p.dropTimer);
     this.players.delete(playerId);
-    this.answers.delete(playerId);
+    if (this.game && !this.game.over) this.game.removePlayer(playerId);
     this.emit({ t: 'event', kind: 'left', id: p.id, name: p.name, avatar: p.avatar });
     if (this.players.size === 0) {
       this.onEmpty();
       return;
     }
     if (this.hostId === playerId) this._transferHost();
-    if (this.phase === 'round') this._checkAllAnswered();
-    this.broadcastState();
+    this._update();
   }
 
   _transferHost() {
@@ -156,7 +145,7 @@ export class Room {
     if (!next || next.id === this.hostId) return;
     this.hostId = next.id;
     this.emit({ t: 'event', kind: 'host', id: next.id, name: next.name, avatar: next.avatar });
-    this.broadcastState();
+    this._update();
   }
 
   _dropDisconnected() {
@@ -177,16 +166,6 @@ export class Room {
     return PLAYER_COLORS.find((c) => !used.has(c)) || PLAYER_COLORS[this.players.size % PLAYER_COLORS.length];
   }
 
-  _resetStats(p) {
-    p.score = 0;
-    p.streak = 0;
-    p.bestStreak = 0;
-    p.correct = 0;
-    p.fastest = null;
-    p.lastGain = 0;
-    p.lastCorrect = null;
-  }
-
   touch() {
     this.lastActivity = this.now();
   }
@@ -200,77 +179,75 @@ export class Room {
     switch (msg.t) {
       case 'settings':
         return this._settings(p, msg);
+      case 'dream':
+        return this._dream(p, msg.dream);
       case 'start':
         return this._start(p);
-      case 'answer':
-        return this._answer(p, msg.choice);
+      case 'act':
+        return this._act(p, msg.action);
       case 'react':
         return this._react(p, msg.emoji);
       case 'again':
         return this._again(p);
-      case 'skip':
-        return this._skip(p);
       default:
         return this._error(p, 'BAD_REQUEST');
     }
   }
 
-  _error(p, code) {
-    p.send?.({ t: 'error', code, message: ERRORS[code] });
+  _error(p, code, message = ERRORS[code]) {
+    p.send?.({ t: 'error', code, message });
   }
 
-  _settings(p, { rounds, time }) {
+  _settings(p, { mode, turnSeconds }) {
     if (p.id !== this.hostId) return this._error(p, 'NOT_HOST');
     if (this.phase !== 'lobby') return;
-    if (ROUND_OPTIONS.includes(rounds)) this.settings.rounds = rounds;
-    if (TIME_OPTIONS.includes(time)) this.settings.time = time;
-    this.broadcastState();
+    if (MODES.includes(mode)) this.settings.mode = mode;
+    if (TURN_OPTIONS.includes(turnSeconds)) this.settings.turnSeconds = turnSeconds;
+    this._update();
+  }
+
+  _dream(p, dream) {
+    if (this.phase !== 'lobby' || !DREAMS.some((d) => d.id === dream)) return;
+    p.dream = dream;
+    this._update();
   }
 
   _start(p) {
     if (p.id !== this.hostId) return this._error(p, 'NOT_HOST');
     if (this.phase !== 'lobby') return;
     this._dropDisconnected();
-    for (const pl of this.players.values()) this._resetStats(pl);
     this.gameId++;
-    this.cases = this.gen.makeGame(this.settings.rounds);
-    this.round = 0;
-    this.lastReveal = null;
-    this._setPhase('countdown', this.timings.countdown, () => this._beginRound());
+    const players = [...this.players.values()].sort((a, b) => a.joinedAt - b.joinedAt);
+    this.game = new Game({
+      players: players.map((x) => ({ id: x.id, dream: x.dream })),
+      mode: this.settings.mode,
+      rng: this.rng,
+      now: this.now,
+      nameOf: (id) => this.players.get(id)?.name || 'O‘yinchi',
+    });
+    this.phase = 'playing';
+    this._update();
   }
 
   _again(p) {
     if (p.id !== this.hostId) return this._error(p, 'NOT_HOST');
     if (this.phase !== 'final') return;
-    this._clearTimers();
+    this._clearTurnTimer();
     this.phase = 'lobby';
-    this.round = 0;
-    this.cases = [];
-    this.answers.clear();
-    this.lastReveal = null;
-    this.endsAt = null;
+    this.game = null;
     this._dropDisconnected();
-    for (const pl of this.players.values()) this._resetStats(pl);
-    this.broadcastState();
+    this._update();
   }
 
-  // Mezbon reyting yoki javob ekranini kutmasdan o‘tkazib yuborishi mumkin
-  _skip(p) {
-    if (p.id !== this.hostId) return this._error(p, 'NOT_HOST');
-    if (this.phase === 'reveal' || this.phase === 'board') {
-      const fn = this.timer?.fn;
-      this._clearTimers();
-      fn?.();
+  _act(p, action) {
+    if (this.phase !== 'playing' || !action || typeof action !== 'object') return;
+    try {
+      this.game.act(p.id, action);
+    } catch (e) {
+      if (e instanceof GameError) return this._error(p, e.code, e.message);
+      throw e;
     }
-  }
-
-  _answer(p, choice) {
-    if (this.phase !== 'round' || this.answers.has(p.id)) return;
-    if (choice !== OK && !FIELDS.includes(choice)) return this._error(p, 'BAD_REQUEST');
-    const at = Math.max(0, this.now() - this.roundStartedAt);
-    this.answers.set(p.id, { choice, at });
-    this.broadcastState();
-    this._checkAllAnswered();
+    this._update();
   }
 
   _react(p, emoji) {
@@ -281,99 +258,57 @@ export class Room {
     this.emit({ t: 'react', id: p.id, emoji });
   }
 
-  _checkAllAnswered() {
-    if (this.phase !== 'round' || this.earlyTimer) return;
-    const active = [...this.players.values()].filter((x) => x.connected);
-    if (active.length && active.every((x) => this.answers.has(x.id))) {
-      this.earlyTimer = setTimeout(() => {
-        this.earlyTimer = null;
-        if (this.phase === 'round') {
-          this._clearTimers();
-          this._endRound();
-        }
-      }, this.timings.earlyEnd);
-    }
+  // ——— navbat taymeri ———
+
+  _clearTurnTimer() {
+    clearTimeout(this.turnTimer);
+    this.turnTimer = null;
+    this.turnKey = null;
+    this.deadline = null;
   }
 
-  // ——— o‘yin bosqichlari ———
-
-  _setPhase(phase, ms, next) {
-    this._clearTimers();
-    this.phase = phase;
-    this.phaseMs = ms;
-    this.endsAt = ms ? this.now() + ms : null;
-    if (next) {
-      const fn = () => {
-        this.timer = null;
-        if (!this.destroyed) next();
-      };
-      this.timer = { id: setTimeout(fn, ms), fn };
+  _syncTurnTimer() {
+    const turn = this.game?.turn;
+    if (this.phase !== 'playing' || !turn || this.game.over) return this._clearTurnTimer();
+    const active = this.players.get(turn.pid);
+    const offline = !active?.connected;
+    const key = `${turn.seq}:${turn.step}:${offline}`;
+    if (key === this.turnKey) return;
+    clearTimeout(this.turnTimer);
+    this.turnKey = key;
+    const limits = [];
+    if (this.settings.turnSeconds) limits.push(this.settings.turnSeconds * 1000);
+    if (offline) limits.push(this.timings.offlineTurn);
+    if (!limits.length) {
+      this.turnTimer = null;
+      this.deadline = null;
+      return;
     }
+    const ms = Math.min(...limits);
+    this.deadline = this.now() + ms;
+    this.turnTimer = setTimeout(() => {
+      this.turnTimer = null;
+      this.turnKey = null;
+      if (this.destroyed || this.phase !== 'playing') return;
+      this.game.timeout();
+      this._update();
+    }, ms);
+  }
+
+  // Har o‘zgarishdan keyin: bosqichni tekshirish, taymerni yangilash, hammaga yuborish
+  _update() {
+    if (this.destroyed) return;
+    if (this.phase === 'playing' && this.game?.over) {
+      this.phase = 'final';
+      this._clearTurnTimer();
+    }
+    this._syncTurnTimer();
     this.broadcastState();
-  }
-
-  _clearTimers() {
-    if (this.timer) clearTimeout(this.timer.id);
-    if (this.earlyTimer) clearTimeout(this.earlyTimer);
-    this.timer = null;
-    this.earlyTimer = null;
-  }
-
-  _beginRound() {
-    this.round++;
-    this.answers.clear();
-    this.lastReveal = null;
-    this.roundStartedAt = this.now();
-    this._setPhase('round', this.settings.time * 1000, () => this._endRound());
-  }
-
-  _endRound() {
-    const c = this.cases[this.round - 1];
-    const duration = this.settings.time * 1000;
-    const picks = {};
-    for (const p of this.players.values()) {
-      const a = this.answers.get(p.id);
-      p.lastGain = 0;
-      if (!a) {
-        p.lastCorrect = null;
-        p.streak = 0;
-        continue;
-      }
-      picks[p.id] = a.choice;
-      if (a.choice === c.answer) {
-        p.streak++;
-        p.bestStreak = Math.max(p.bestStreak, p.streak);
-        p.correct++;
-        p.fastest = p.fastest === null ? a.at : Math.min(p.fastest, a.at);
-        const speed = Math.max(0, Math.min(1, 1 - a.at / duration));
-        const streakBonus = Math.min(p.streak - 1, 5) * 50;
-        p.lastGain = Math.round(500 + 500 * speed) + streakBonus;
-        p.score += p.lastGain;
-        p.lastCorrect = true;
-      } else {
-        p.streak = 0;
-        p.lastCorrect = false;
-      }
-    }
-    this.lastReveal = { answer: c.answer, explain: c.explain, picks };
-    const last = this.round >= this.cases.length;
-    this._setPhase('reveal', this.timings.reveal, () => (last ? this._final() : this._board()));
-  }
-
-  _board() {
-    this._setPhase('board', this.timings.board, () => this._beginRound());
-  }
-
-  _final() {
-    this._setPhase('final', 0, null);
   }
 
   // ——— holatni yuborish ———
 
   snapshot() {
-    const inRound = this.phase === 'round';
-    const showCase = this.phase === 'round' || this.phase === 'reveal';
-    const c = this.cases[this.round - 1];
     return {
       t: 'state',
       now: this.now(),
@@ -383,39 +318,21 @@ export class Room {
         hostId: this.hostId,
         settings: { ...this.settings },
         gameId: this.gameId,
-        round: this.round,
-        totalRounds: this.phase === 'lobby' ? this.settings.rounds : this.cases.length,
-        endsAt: this.endsAt,
-        phaseMs: this.phaseMs,
+        maxPlayers: MAX_PLAYERS,
       },
       players: [...this.players.values()]
         .sort((a, b) => a.joinedAt - b.joinedAt)
-        .map((p) => ({
-          id: p.id,
-          name: p.name,
-          avatar: p.avatar,
-          color: p.color,
-          score: p.score,
-          streak: p.streak,
-          bestStreak: p.bestStreak,
-          correct: p.correct,
-          fastest: p.fastest,
-          lastGain: p.lastGain,
-          lastCorrect: p.lastCorrect,
-          connected: p.connected,
-          answered: inRound ? this.answers.has(p.id) : false,
-        })),
-      case: showCase && c ? publicCase(c) : null,
-      reveal: this.phase === 'reveal' ? this.lastReveal : null,
+        .map((p) => ({ id: p.id, name: p.name, avatar: p.avatar, color: p.color, dream: p.dream, connected: p.connected })),
+      game: this.game ? { ...this.game.view(), deadline: this.deadline } : null,
     };
   }
 
   broadcastState() {
     if (this.destroyed) return;
-    const base = this.snapshot();
+    const base = JSON.stringify(this.snapshot()).slice(0, -1);
     for (const p of this.players.values()) {
       if (!p.send) continue;
-      p.send({ ...base, you: p.id, myChoice: this.answers.get(p.id)?.choice ?? null });
+      p.send(`${base},"you":${JSON.stringify(p.id)}}`);
     }
   }
 
@@ -425,7 +342,7 @@ export class Room {
 
   destroy() {
     this.destroyed = true;
-    this._clearTimers();
+    this._clearTurnTimer();
     for (const p of this.players.values()) clearTimeout(p.dropTimer);
   }
 }
@@ -442,10 +359,7 @@ export class RoomManager {
     let code;
     do code = Array.from({ length: 4 }, () => CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)]).join('');
     while (this.rooms.has(code));
-    const room = new Room(code, {
-      ...this.roomOptions,
-      onEmpty: () => this.delete(code),
-    });
+    const room = new Room(code, { ...this.roomOptions, onEmpty: () => this.delete(code) });
     this.rooms.set(code, room);
     return room;
   }
@@ -461,8 +375,7 @@ export class RoomManager {
     this.rooms.delete(code);
   }
 
-  // Hech kim ulanmagan va uzoq vaqt faolsiz xonalarni tozalash
-  sweep(idleMs = 10 * 60 * 1000, now = Date.now()) {
+  sweep(idleMs = 30 * 60 * 1000, now = Date.now()) {
     for (const [code, room] of this.rooms) {
       const anyone = [...room.players.values()].some((p) => p.connected);
       if (!room.players.size || (!anyone && now - room.lastActivity > idleMs)) this.delete(code);

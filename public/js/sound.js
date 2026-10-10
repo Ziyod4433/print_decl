@@ -72,31 +72,45 @@ export const sfx = {
     tone(587, { dur: 0.14, type: 'triangle', vol: 0.12 });
     tone(392, { at: 0.1, dur: 0.22, type: 'triangle', vol: 0.12 });
   },
-  tick: () => tone(1250, { dur: 0.05, type: 'square', vol: 0.05 }),
-  beat: () => tone(440, { dur: 0.2, type: 'triangle', vol: 0.22 }),
-  go: () => {
-    tone(660, { dur: 0.14, type: 'triangle', vol: 0.22 });
-    tone(990, { at: 0.12, dur: 0.35, type: 'triangle', vol: 0.22 });
+  // Zar stolda dumalaydi
+  dice: () => {
+    for (let i = 0; i < 7; i++) noise({ at: i * 0.09 + Math.random() * 0.03, dur: 0.05, vol: 0.35 - i * 0.03, freq: 2400 + Math.random() * 1500, type: 'bandpass', q: 2 });
   },
-  stamp: () => {
-    noise({ dur: 0.16, vol: 0.55, freq: 420 });
-    tone(110, { dur: 0.16, vol: 0.4, to: 45 });
+  step: () => tone(880 + Math.random() * 80, { dur: 0.05, type: 'triangle', vol: 0.06 }),
+  flip: () => noise({ dur: 0.18, vol: 0.14, freq: 3000, type: 'highpass', q: 0.5 }),
+  coin: () => {
+    tone(1568, { dur: 0.08, type: 'square', vol: 0.05 });
+    tone(2093, { at: 0.07, dur: 0.2, type: 'square', vol: 0.05 });
+  },
+  // Kassa apparati: «chin-chin»
+  kaching: () => {
+    noise({ dur: 0.06, vol: 0.25, freq: 1800, type: 'bandpass' });
+    [1318, 1760, 2637].forEach((f, i) => tone(f, { at: 0.06 + i * 0.07, dur: 0.35, type: 'sine', vol: 0.11 }));
+  },
+  buy: () => {
+    tone(392, { dur: 0.12, type: 'triangle', vol: 0.16 });
+    tone(523, { at: 0.08, dur: 0.12, type: 'triangle', vol: 0.16 });
+    tone(784, { at: 0.16, dur: 0.3, type: 'triangle', vol: 0.16 });
+  },
+  spend: () => {
+    tone(523, { dur: 0.12, type: 'triangle', vol: 0.12 });
+    tone(415, { at: 0.1, dur: 0.24, type: 'triangle', vol: 0.12 });
+  },
+  baby: () => [784, 988, 1175, 1568].forEach((f, i) => tone(f, { at: i * 0.11, dur: 0.25, type: 'sine', vol: 0.12 })),
+  charity: () => [523, 659, 784].forEach((f, i) => tone(f, { at: i * 0.1, dur: 0.4, type: 'sine', vol: 0.12 })),
+  down: () => {
+    tone(392, { dur: 0.25, type: 'sawtooth', vol: 0.06, to: 330 });
+    tone(330, { at: 0.22, dur: 0.25, type: 'sawtooth', vol: 0.06, to: 262 });
+    tone(262, { at: 0.44, dur: 0.5, type: 'sawtooth', vol: 0.06, to: 196 });
+  },
+  turn: () => {
+    tone(660, { dur: 0.12, type: 'triangle', vol: 0.18 });
+    tone(990, { at: 0.1, dur: 0.3, type: 'triangle', vol: 0.18 });
   },
   correct: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, { at: i * 0.075, dur: 0.24, type: 'triangle', vol: 0.17 })),
   wrong: () => {
     tone(233, { dur: 0.28, type: 'sawtooth', vol: 0.08, to: 150 });
     tone(175, { at: 0.14, dur: 0.34, type: 'sawtooth', vol: 0.07, to: 98 });
-  },
-  car: () => {
-    tone(55, { dur: 1.3, type: 'sawtooth', vol: 0.035, to: 95, attack: 0.15 });
-    noise({ dur: 1.2, vol: 0.06, freq: 260 });
-  },
-  barrier: () => tone(320, { dur: 0.5, type: 'triangle', vol: 0.07, to: 620 }),
-  siren: () => {
-    for (let i = 0; i < 3; i++) {
-      tone(880, { at: i * 0.34, dur: 0.17, type: 'square', vol: 0.035 });
-      tone(660, { at: i * 0.34 + 0.17, dur: 0.17, type: 'square', vol: 0.035 });
-    }
   },
   whoosh: () => noise({ dur: 0.4, vol: 0.16, freq: 1400, type: 'bandpass' }),
   fanfare: () => {

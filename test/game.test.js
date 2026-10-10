@@ -3,12 +3,11 @@ import assert from 'node:assert/strict';
 import WebSocket from 'ws';
 import { createGameServer } from '../server/app.js';
 
-const timings = { countdown: 60, reveal: 80, board: 60, earlyEnd: 20, hostGrace: 50, lobbyDrop: 200 };
 let game;
 let url;
 
 before(async () => {
-  game = createGameServer({ timings });
+  game = createGameServer({ timings: { hostGrace: 50, lobbyDrop: 200, offlineTurn: 150 } });
   const addr = await game.listen(0, '127.0.0.1');
   url = `ws://127.0.0.1:${addr.port}/ws`;
 });
@@ -21,18 +20,13 @@ function client() {
   ws.on('message', (data) => {
     const msg = JSON.parse(data.toString());
     inbox.push(msg);
-    for (const w of [...waiters]) {
-      if (w.pred(msg)) {
-        waiters.splice(waiters.indexOf(w), 1);
-        w.resolve(msg);
-      }
-    }
+    for (const w of [...waiters]) if (w.pred(msg)) w.resolve(msg);
   });
   const c = {
     ws,
-    inbox,
     open: () => new Promise((r) => ws.once('open', r)),
     send: (m) => ws.send(JSON.stringify(m)),
+    act: (action) => ws.send(JSON.stringify({ t: 'act', action })),
     wait(pred, ms = 2000) {
       const found = inbox.find(pred);
       if (found) {
@@ -40,129 +34,116 @@ function client() {
         return Promise.resolve(found);
       }
       return new Promise((resolve, reject) => {
-        const w = { pred, resolve: (m) => (inbox.splice(inbox.indexOf(m), 1), clearTimeout(t), resolve(m)) };
         const t = setTimeout(() => reject(new Error('kutish vaqti tugadi')), ms);
+        const w = {
+          pred,
+          resolve: (m) => {
+            clearTimeout(t);
+            waiters.splice(waiters.indexOf(w), 1);
+            inbox.splice(inbox.indexOf(m), 1);
+            resolve(m);
+          },
+        };
         waiters.push(w);
       });
     },
-    state: (phase) => c.wait((m) => m.t === 'state' && (!phase || m.room.phase === phase)),
+    latest: () => [...inbox].reverse().find((m) => m.t === 'state'),
     close: () => ws.close(),
   };
   return c;
 }
 
-const lastState = (c) => [...c.inbox].reverse().find((m) => m.t === 'state');
+const settle = () => new Promise((r) => setTimeout(r, 60));
 
-test('to‘liq o‘yin: yaratish, qo‘shilish, javoblar, ball va yakun', async () => {
+test('xona, orzular, sozlamalar va o‘yin boshlanishi', async () => {
   const a = client();
   const b = client();
   await Promise.all([a.open(), b.open()]);
+  a.send({ t: 'create', name: 'Jasur', avatar: '🦊', dream: 'dacha' });
+  const ja = await a.wait((m) => m.t === 'joined');
+  b.send({ t: 'join', code: ja.code, name: 'Malika', avatar: '🦄' });
+  const jb = await b.wait((m) => m.t === 'joined');
+  b.send({ t: 'dream', dream: 'space' });
+  await a.wait((m) => m.t === 'state' && m.players.find((p) => p.id === jb.playerId)?.dream === 'space');
 
-  a.send({ t: 'create', name: '  Jasur  ', avatar: '🦊' });
-  const joinedA = await a.wait((m) => m.t === 'joined');
-  assert.match(joinedA.code, /^[A-Z]{4}$/);
-
-  b.send({ t: 'join', code: joinedA.code.toLowerCase(), name: 'Jasur', avatar: '🐼' });
-  const joinedB = await b.wait((m) => m.t === 'joined');
-  const lobby = await b.wait((m) => m.t === 'state' && m.players.length === 2);
-  assert.deepEqual(lobby.players.map((p) => p.name), ['Jasur', 'Jasur 2']);
-  assert.equal(lobby.room.hostId, joinedA.playerId);
-
-  // Faqat mezbon sozlay oladi
-  b.send({ t: 'settings', rounds: 5 });
+  b.send({ t: 'settings', mode: 'quick' });
   assert.equal((await b.wait((m) => m.t === 'error')).code, 'NOT_HOST');
-  a.send({ t: 'settings', rounds: 5, time: 15 });
-  await a.wait((m) => m.t === 'state' && m.room.settings.rounds === 5 && m.room.settings.time === 15);
+  a.send({ t: 'settings', mode: 'quick', turnSeconds: 60 });
+  await a.wait((m) => m.t === 'state' && m.room.settings.mode === 'quick' && m.room.settings.turnSeconds === 60);
 
   a.send({ t: 'start' });
-  await a.state('countdown');
+  const s = await b.wait((m) => m.t === 'state' && m.room.phase === 'playing');
+  assert.equal(s.game.mode, 'quick');
+  assert.equal(s.game.players.length, 2);
+  assert.equal(s.game.players.find((p) => p.id === ja.playerId).dream, 'dacha');
+  assert.equal(s.game.turn.pid, ja.playerId);
+  assert.ok(s.game.deadline > Date.now(), 'navbat taymeri ishlayapti');
+  assert.equal(s.you, jb.playerId);
+  assert.equal(s.game.decks.small > 0, true);
+  assert.equal(JSON.stringify(s).includes('"draw"'), false, 'kartalar tartibi yashirin');
 
-  let correctSeen = false;
-  for (let r = 1; r <= 5; r++) {
-    const ra = await a.wait((m) => m.t === 'state' && m.room.phase === 'round' && m.room.round === r);
-    assert.ok(ra.case.decl && ra.case.passport);
-    assert.equal(ra.case.answer, undefined, 'javob raund davomida yashirin');
-    assert.equal(ra.reveal, null);
-    const diff = ['fio', 'vin', 'model', 'year', 'engine', 'color'].filter((f) => ra.case.decl[f] !== ra.case.passport[f]);
-    const right = diff[0] || 'ok';
-    const wrong = right === 'ok' ? 'vin' : 'ok';
-    a.send({ t: 'answer', choice: right });
-    a.send({ t: 'answer', choice: wrong }); // ikkinchi javob e’tiborsiz qoldiriladi
-    b.send({ t: 'answer', choice: wrong });
+  // Navbati bo‘lmagan o‘yinchi zar tashlay olmaydi
+  b.act({ type: 'roll' });
+  assert.equal((await b.wait((m) => m.t === 'error')).code, 'NOT_YOUR_TURN');
 
-    const rev = await a.wait((m) => m.t === 'state' && m.room.phase === 'reveal' && m.room.round === r);
-    assert.equal(rev.reveal.answer, right);
-    assert.equal(rev.reveal.picks[joinedA.playerId], right);
-    const pa = rev.players.find((p) => p.id === joinedA.playerId);
-    const pb = rev.players.find((p) => p.id === joinedB.playerId);
-    assert.equal(pa.lastCorrect, true);
-    assert.ok(pa.lastGain >= 500 && pa.lastGain <= 1250, `ball: ${pa.lastGain}`);
-    assert.equal(pa.streak, r);
-    assert.equal(pb.lastCorrect, false);
-    assert.equal(pb.lastGain, 0);
-    correctSeen = true;
-    if (r < 5) await a.state('board');
-  }
-  assert.ok(correctSeen);
+  a.act({ type: 'roll' });
+  const rolled = await b.wait((m) => m.t === 'state' && m.game?.turn?.move);
+  const mv = rolled.game.turn.move;
+  assert.equal(mv.pid, ja.playerId);
+  assert.equal(mv.dice.length, 1);
+  assert.equal(rolled.game.players.find((p) => p.id === ja.playerId).pos, mv.to);
 
-  const fin = await a.state('final');
-  const pa = fin.players.find((p) => p.id === joinedA.playerId);
-  assert.equal(pa.correct, 5);
-  assert.equal(pa.bestStreak, 5);
-  assert.ok(pa.score > 5 * 500);
-  assert.equal(fin.players.find((p) => p.id === joinedB.playerId).score, 0);
-
-  // Yana o‘ynash — hisoblar nolga tushadi
-  a.send({ t: 'again' });
-  const back = await b.state('lobby');
-  assert.ok(back.players.every((p) => p.score === 0));
-
+  // Navbatni tugatish (kerak bo‘lsa — bitimdan voz kechish yoki xayriyani rad etish)
+  const step = rolled.game.turn.step;
+  if (step === 'charity') a.act({ type: 'charity', accept: false });
+  if (rolled.game.turn.card?.eligible?.length) await new Promise((r) => setTimeout(r, 50));
+  a.act({ type: 'end' });
+  const next = await b.wait((m) => m.t === 'state' && m.game?.turn?.pid === jb.playerId, 12000);
+  assert.equal(next.game.turn.step, 'roll');
   a.close();
   b.close();
 });
 
-test('qayta ulanish (resume) va mezbonlikni o‘tkazish', async () => {
+test('uzilib qolgan o‘yinchi navbati avtomatik o‘tadi, qayta ulanish ishlaydi', async () => {
   const a = client();
   const b = client();
   await Promise.all([a.open(), b.open()]);
-  a.send({ t: 'create', name: 'Malika', avatar: '🦄' });
+  a.send({ t: 'create', name: 'Sardor', avatar: '🦁' });
   const ja = await a.wait((m) => m.t === 'joined');
-  b.send({ t: 'join', code: ja.code, name: 'Bobur', avatar: '🐯' });
+  b.send({ t: 'join', code: ja.code, name: 'Nilufar', avatar: '🐼' });
   const jb = await b.wait((m) => m.t === 'joined');
+  a.send({ t: 'start' });
+  await b.wait((m) => m.t === 'state' && m.room.phase === 'playing');
 
-  // Noto‘g‘ri token bilan qaytib bo‘lmaydi
-  const evil = client();
-  await evil.open();
-  evil.send({ t: 'resume', code: ja.code, playerId: ja.playerId, token: 'x'.repeat(32) });
-  assert.equal((await evil.wait((m) => m.t === 'error')).code, 'RESUME_FAILED');
-  evil.close();
-
-  // Mezbon uzildi va qaytdi — mezbonlik saqlanadi
+  // Navbat egasi uziladi — server 150 ms dan keyin uning o‘rniga zar tashlaydi, keyin navbatni o‘tkazadi
   a.close();
-  await b.wait((m) => m.t === 'state' && m.players.find((p) => p.id === ja.playerId)?.connected === false);
+  await b.wait((m) => m.t === 'state' && m.game?.turn?.pid === jb.playerId, 3000);
+
   const a2 = client();
   await a2.open();
   a2.send({ t: 'resume', code: ja.code, playerId: ja.playerId, token: ja.token });
   await a2.wait((m) => m.t === 'joined' && m.playerId === ja.playerId);
-  const s = await a2.wait((m) => m.t === 'state' && m.you === ja.playerId);
-  assert.equal(s.room.hostId, ja.playerId);
+  const s = await a2.wait((m) => m.t === 'state' && m.room.phase === 'playing');
+  assert.equal(s.you, ja.playerId);
+  assert.ok(s.game.log.some((e) => e.kind === 'timeout'));
 
-  // Mezbon chiqib ketsa, mezbonlik keyingisiga o‘tadi
-  a2.send({ t: 'leave' });
-  const ev = await b.wait((m) => m.t === 'event' && m.kind === 'host');
-  assert.equal(ev.id, jb.playerId);
-  const s2 = await b.wait((m) => m.t === 'state' && m.players.length === 1);
-  assert.equal(s2.room.hostId, jb.playerId);
+  // O‘yin davomida yangi o‘yinchi qo‘shiladi va navbat oxiriga turadi
+  const c = client();
+  await c.open();
+  c.send({ t: 'join', code: ja.code, name: 'Bobur', avatar: '🐯' });
+  const jc = await c.wait((m) => m.t === 'joined');
+  const sc = await c.wait((m) => m.t === 'state' && m.game?.players.some((p) => p.id === jc.playerId));
+  assert.equal(sc.game.order.at(-1), jc.playerId);
 
-  // Oxirgi o‘yinchi chiqsa, xona o‘chiriladi
-  b.send({ t: 'leave' });
-  await new Promise((r) => setTimeout(r, 50));
-  assert.equal(game.manager.get(ja.code), null);
+  // O‘yinchi chiqsa — o‘yindan ham chiqariladi
+  c.send({ t: 'leave' });
+  await a2.wait((m) => m.t === 'state' && m.game && !m.game.players.some((p) => p.id === jc.playerId));
   a2.close();
   b.close();
+  c.close();
 });
 
-test('noto‘g‘ri so‘rovlar va mavjud bo‘lmagan xona', async () => {
+test('xatolar: noto‘g‘ri xona, ism va so‘rovlar', async () => {
   const c = client();
   await c.open();
   c.send({ t: 'join', code: 'ZZZZ', name: 'Test', avatar: '🦊' });
@@ -171,26 +152,28 @@ test('noto‘g‘ri so‘rovlar va mavjud bo‘lmagan xona', async () => {
   assert.equal((await c.wait((m) => m.t === 'error')).code, 'BAD_NAME');
   c.ws.send('{bu json emas');
   assert.equal((await c.wait((m) => m.t === 'error')).code, 'BAD_REQUEST');
-  c.send({ t: 'create', name: '<b>Hack</b>', avatar: 'not-an-avatar' });
+  c.send({ t: 'create', name: '<b>Hack</b>', avatar: 'x', dream: 'not-a-dream' });
   const st = await c.wait((m) => m.t === 'state');
   assert.equal(st.players[0].name, 'bHack/b');
-  assert.ok(['🦊', '🐯', '🦁', '🐼', '🐸', '🦉', '🐺', '🐻', '🦄', '🐲', '🦅', '🐱', '🍉', '🍇', '🥟', '🫖'].includes(st.players[0].avatar));
+  assert.ok(st.players[0].dream && st.players[0].dream !== 'not-a-dream');
+  c.send({ t: 'act', action: { type: 'roll' } }); // o‘yin boshlanmagan — e’tiborsiz
+  await settle();
   c.close();
 });
 
-test('hamma javob bersa raund erta tugaydi', async () => {
-  const a = client();
-  await a.open();
-  a.send({ t: 'create', name: 'Sardor', avatar: '🦁' });
-  await a.wait((m) => m.t === 'joined');
-  a.send({ t: 'settings', rounds: 5, time: 40 });
-  a.send({ t: 'start' });
-  const r = await a.state('round');
-  const t0 = Date.now();
-  a.send({ t: 'answer', choice: 'ok' });
-  const rev = await a.state('reveal');
-  assert.ok(Date.now() - t0 < 1000, '40 soniya kutilmadi');
-  assert.equal(rev.room.round, r.room.round);
-  assert.equal(rev.myChoice, 'ok');
-  a.close();
+test('xona 6 o‘yinchidan oshmaydi', async () => {
+  const host = client();
+  await host.open();
+  host.send({ t: 'create', name: 'Mezbon', avatar: '🦊' });
+  const j = await host.wait((m) => m.t === 'joined');
+  const others = [];
+  for (let i = 0; i < 6; i++) {
+    const c = client();
+    await c.open();
+    c.send({ t: 'join', code: j.code, name: `O‘yinchi ${i}`, avatar: '🐼' });
+    others.push(c);
+  }
+  const last = others.at(-1);
+  assert.equal((await last.wait((m) => m.t === 'error' || m.t === 'joined')).code, 'FULL');
+  for (const c of [host, ...others]) c.close();
 });

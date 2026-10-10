@@ -1,0 +1,386 @@
+#!/usr/bin/env python3
+"""Сборка модели: исходный файл заказчика base/Sklad4_realistic.html + модули parts/*.js + модуль фильма и живого
+процесса film/*.js + встроенные ресурсы (assets/, vendor/) → один автономный HTML.
+Запуск:  python3 build.py            → Sklad4_realistic_film.html рядом с этим скриптом
+         python3 build.py out.html   → в указанный файл
+Правки вносятся строковыми заменами rep()/cut(): каждая проверяет, что искомый кусок найден ровно нужное число раз,
+иначе сборка падает с сообщением — так видно, какая правка перестала совпадать с основой."""
+import re, sys, os, glob
+ROOT=os.path.dirname(os.path.abspath(__file__))
+SRC=os.path.join(ROOT,'base','Sklad4_realistic.html')
+OUT=sys.argv[1] if len(sys.argv)>1 else os.path.join(ROOT,'Sklad4_realistic_film.html')
+P=os.path.join(ROOT,'parts')+os.sep
+s=open(SRC,encoding='utf-8').read()
+part=lambda n: open(P+n,encoding='utf-8').read()
+film=lambda: ''.join(open(f,encoding='utf-8').read() for f in sorted(glob.glob(os.path.join(ROOT,'film','*.js'))))   # модуль фильма: файлы film/ склеиваются по порядку номеров
+
+def rep(a,b,cnt=1):
+    global s
+    n=s.count(a)
+    assert n==cnt, f'ожидалось {cnt}, найдено {n}: {a[:90]!r}'
+    s=s.replace(a,b)
+def cut(start,end,new):
+    """заменить кусок от start (включительно) до end (не включая)"""
+    global s
+    i=s.index(start); j=s.index(end,i)
+    s=s[:i]+new+s[j:]
+
+# ---------- 1. тон и материалы ----------
+rep("renderer.toneMappingExposure = 1.0;","renderer.toneMappingExposure = 0.95;")
+rep("const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});",
+    "const renderer = new THREE.WebGLRenderer({antialias:!window.__noAA, preserveDrawingBuffer:true});   // __noAA — только для покадрового экспорта")
+rep("renderer.toneMappingExposure=evening?0.85:1.0;","renderer.toneMappingExposure=evening?0.82:0.95;")
+rep("const hemi=new THREE.HemisphereLight(0xa8c4e0,0x5b5347,0.55); scene.add(hemi);",
+    "const hemi=new THREE.HemisphereLight(0xa8c4e0,0x4d463c,0.5); scene.add(hemi);")
+rep("hemi.intensity=evening?0.28:0.55;","hemi.intensity=evening?0.26:0.5;")
+rep("g.fillStyle='#2b2f34'; g.fillRect(0,0,s,s); noise(g,s,s,30000,.16); return T(c,208,208);",
+    "g.fillStyle='#30343a'; g.fillRect(0,0,s,s); noise(g,s,s,26000,.09); return T(c,260,260);")
+rep("M.cabPaint=std(0xdfe4e8,.4,.4); M.chrome=std(0xd8dde2,.2,1.0); M.fenderM=std(0x2f353c,.7,.2,{side:THREE.DoubleSide});",
+    "M.cabPaint=std(0xdfe4e8,.4,.4); M.chrome=std(0xd8dde2,.2,1.0); M.fenderM=std(0x2f353c,.7,.2,{side:THREE.DoubleSide});\n"
+    "/* материалы для людей, погрузчика, ворот и плёнки */\n"
+    "M.boot=std(0x2b2a28,.75,.05); M.rubberSole=std(0x141517,.95,0); M.glove=std(0xd9b441,.85,0);\n"
+    "M.helmet=std(0xf5c518,.32,.05,{envMapIntensity:1.1}); M.cloth=std(0x2d3746,.9,0); M.pants=std(0x28303c,.88,0);\n"
+    "M.fkOrange=std(0xdc5a12,.5,.1,{envMapIntensity:0.8}); M.fkGrey=std(0x3a4047,.55,.35); M.fkMat=std(0x1b1d20,.95,0);\n"
+    "M.doorPanel=std(0xe6e9ec,.42,.35); M.doorRib=std(0xc3c9cf,.5,.35); M.doorGlass=std(0x1f2d3b,.08,.6,{envMapIntensity:1.6});\n"
+    "M.filmSheet=std(0xe4ecf2,.3,.02,{transparent:true,opacity:.45,side:THREE.DoubleSide});")
+
+# ---------- 2. люди и погрузчик ----------
+cut("function forklift(x,z,rot){","function palletJack(",part('forklift.js'))
+cut("function person(x,z,rot,pose,role,p){","\n/* ============================== ЗДАНИЕ ОХРАНЫ",part('human.js').replace('/*__MOCAP__*/null',open(os.path.join(ROOT,'assets','mocap_v2.json'),encoding='utf-8').read()).replace('  /*__RPM_CORE__*/',part('rpm_core.js'))+'\n'+part('person2.js'))
+
+# ---------- 3. ворота: вместо белых планок — секционные полотна ----------
+rep("""    for(let i=0;i<4;i++)
+      box(0.12,0.42,gw-0.1,M.white,xFix+inwardSign*0.24,GATE_H-0.28-i*0.46,cz,G.walls);
+""","")
+rep("wallSide(0,+1); wallSide(W,-1);","wallSide(0,+1); wallSide(W,-1);\n"+part('doors.js'))
+rep("""  box(4.4,0.42,0.5,M.white,0,GATE_H+0.55,0,g);
+  for(let j=0;j<10;j++) box(0.34,0.06,0.42,M.dark,-1.9+j*0.42,GATE_H+0.35,0,g);
+  box(0.5,0.3,0.3,M.steelDark,2.4,GATE_H+0.55,0,g);""",
+"""  box(4.4,0.42,0.5,M.white,0,GATE_H+1.35,0,g);                      // завеса выше направляющих ворот
+  for(let j=0;j<10;j++) box(0.34,0.06,0.42,M.dark,-1.9+j*0.42,GATE_H+1.15,0,g);
+  box(0.5,0.3,0.3,M.steelDark,2.4,GATE_H+1.35,0,g);""")
+
+# ---------- 4. свет, спринклеры, лотки, пожарные шкафы ----------
+rep("/* боковые стены x=0 и x=48 — с двумя воротами каждая */",part('infra.js')+"\n/* боковые стены x=0 и x=48 — с двумя воротами каждая */")
+
+# ---------- 5. обмотчик: заменяем только его блок; запас поддонов и упаковщик — как в исходнике ----------
+i=s.index("/* ---------- [4] юнитизация ---------- */"); j=s.index("{ const g=grp(14.4,0,12.3);",i)
+s=s[:i]+part('wrapper.js')+s[j:]
+
+# ---------- 6. ссылки на статичные объекты, которые фильм временно убирает ----------
+rep("tag(forklift(27.5,28.6,-Math.PI/2),{","const FORK0=tag(forklift(27.5,28.6,-Math.PI/2),{")
+rep("tag(flatTruck(-6.2,GATES[1].z,11,-1,false,Math.PI/2),","const TRK_L2=tag(flatTruck(-6.2,GATES[1].z,11,-1,false,Math.PI/2),")
+rep("tag(flatTruck(-6.2,25.5,11,-1,false,Math.PI/2),","const TRK_Q=tag(flatTruck(-6.2,25.5,11,-1,false,Math.PI/2),")
+rep("tag(tandem(51.8,GATES[1].z+4.5,-Math.PI/2),","const TRK_TANDEM=tag(tandem(51.8,GATES[1].z+4.5,-Math.PI/2),")
+rep("tagEq(palletJack(45.9,15.6,-1.6,false),10,[45.9,1,15.6],10);\npalletJack(45.9,17.0,-1.6,false);",
+    "const JACK_P2a=tagEq(palletJack(45.9,15.6,-1.6,false),10,[45.9,1,15.6],10);\nconst JACK_P2b=palletJack(45.9,17.0,-1.6,false);")
+rep("person(43.0,11.2,-1.6,false,'ВОДИТЕЛЬ ПОГРУЗЧИКА');","const MAN_S=person(43.0,11.2,-1.6,false,'ВОДИТЕЛЬ ПОГРУЗЧИКА');")
+rep("[[0,3,0],[1,2,1],[3,4,2],[5,2,3],[6,3,1],[8,2,4],[10,3,5],[11,2,6],[13,3,0],[14,2,2],\n [15,3,4],[17,2,3],[18,3,1],[20,2,5],[22,3,2],[24,2,0]]\n  .forEach(p=>{ const c=CELLS[p[0]]; if(c) cellStack(c,p[1],p[2]); });",
+    "const CELLSPEC=[[0,3,0],[1,2,1],[3,4,2],[5,2,3],[6,3,1],[8,2,4],[10,3,5],[11,2,6],[12,2,2],[13,3,0],[15,3,4],[17,2,3],[18,3,1],[20,2,5],[22,3,2],[24,2,0]];   // ячейка, ярусов (≥3 — два), день приёмки\n"
+    "CELLSPEC.forEach(p=>{ const c=CELLS[p[0]]; if(c) CELLSTACK[p[0]]=cellRack(c,p[1]>=3?2:1,p[2],p[0]); });   // в ячейках — стоечные поддоны, до двух ярусов")
+rep("function cellStack(c,layers,day){","const CELLSTACK={};\nfunction cellStack(c,layers,day){")
+rep("  dayTag(g,0,0.2+layers*0.40,0.44,day);","  const tg=dayTag(g,0,0.2+layers*0.40,c.row==='A'?-0.44:0.44,day); if(c.row==='A') tg.rotation.y=Math.PI;   // бирка лицом к своему проезду")
+# экран DWS доступен фильму
+rep("    sc.rotation.x=-0.16; sc.castShadow=false;","    sc.rotation.x=-0.16; sc.castShadow=false; g.userData.dwsScreen=sc;")
+
+# ---------- 6b. стабильные ID редактора ----------
+rep("pickables.forEach((o,i)=>{ const id='b'+i; o.userData.eid=id; edMap.set(id,o); });",
+    "{ let bi=0; pickables.forEach(o=>{ const id=o.userData.eid||('b'+(bi++)); o.userData.eid=id; if(!o.userData.removed) edMap.set(id,o); });   // новые объекты имеют свой eid и не сдвигают нумерацию исходных\n"
+    "  for(let i=pickables.length-1;i>=0;i--){ const o=pickables[i]; if(!o.userData.removed) continue; pickables.splice(i,1); if(o.parent) o.parent.remove(o); } }   // убранные (обмотчик, рольганги): номер занят, объекта нет")
+
+# ---------- 7. цикл отрисовки и размер ----------
+rep("function resize(){ const w=view.clientWidth,h=view.clientHeight;",
+    "function resize(){ if(typeof FILM!=='undefined'&&FILM.on) return; const w=view.clientWidth,h=view.clientHeight;")
+rep("  const dt=Math.min(Math.max((now-prev)/1000,0),0.05); prev=now;",
+    "  const dt=Math.min(Math.max((now-prev)/1000,0),0.05); prev=now;\n"
+    "  if(FILM.on){ FILM.tick(dt); requestAnimationFrame(loop); return; }\n"
+    "  if(!reduceMotion&&G.people.visible){ const tt=now/1000; for(const H of PEOPLE){ if(H.root.parent&&H.root.visible) HUM.pose(H,Object.assign({t:tt},H.base)); } }")
+for ev in ["canvas.addEventListener('pointerdown',e=>{","canvas.addEventListener('pointermove',e=>{"]:
+    rep(ev, ev+"\n  if(FILM.on) return;")
+rep("canvas.addEventListener('wheel',e=>{ e.preventDefault(); if(walk) return;","canvas.addEventListener('wheel',e=>{ e.preventDefault(); if(walk||FILM.on) return;")
+
+
+# ---------- 10. кино-графика: HDR + постобработка ----------
+rep("/* --------------------------------------------------------------- groups */",
+    part('post.js')+"\nif(POST.P.on) renderer.toneMapping=THREE.NoToneMapping;   // тон ACES — в финальном проходе\ncamera.layers.enable(1);                                     // слой 1 — подписи поверх кадра\n\n/* --------------------------------------------------------------- groups */")
+rep("  s.renderOrder=999; paintLabel(s); allLabels.push(s); return s;","  s.renderOrder=999; s.layers.set(1); paintLabel(s); allLabels.push(s); return s;")
+rep("marker.visible=false; scene.add(marker);","marker.visible=false; marker.layers.set(1); scene.add(marker);")
+rep("edSelBox.visible=false; scene.add(edSelBox);","edSelBox.visible=false; edSelBox.layers.set(1); scene.add(edSelBox);")
+rep("""  renderer.render(scene,camera);
+  requestAnimationFrame(loop);
+}""","""  POST.P.time=now/1000; POST.P.exposure=G.roof.visible?(walk?1.1:1.0):0.62;   // солнечный вид сверху — ниже экспозиция
+  if(POST.P.on) POST.render(scene,camera); else renderer.render(scene,camera);
+  requestAnimationFrame(loop);
+}""")
+rep("""mkBtn('Скачать кадр PNG',true,()=>{
+  renderer.render(scene,camera);""","""mkBtn('Скачать кадр PNG',true,()=>{
+  if(POST.P.on) POST.render(scene,camera); else renderer.render(scene,camera);""")
+rep("const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();","""function setCine(on){                                         // кино-графика вкл/выкл (на слабых ПК — выкл)
+  POST.P.on=on&&renderer.capabilities.isWebGL2;
+  renderer.toneMapping=POST.P.on?THREE.NoToneMapping:THREE.ACESFilmicToneMapping;
+  scene.traverse(o=>{ if(o.material) (Array.isArray(o.material)?o.material:[o.material]).forEach(m=>m.needsUpdate=true); });
+  renderer.shadowMap.needsUpdate=true;
+}
+mkBtn('Кино-графика',true,b=>{ setCine(!POST.P.on); b.classList.toggle('on',POST.P.on); },POST.P.on);
+
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();""")
+
+
+# ---------- 11. фотореализм: текстуры, окружение, материалы ----------
+i=s.index("/* --------------------------------------------------------- environment */"); j=s.index("{\n  const c=cnv(4,256),g=c.getContext('2d');",i)
+s=s[:i]+part('look.js')+"\n"+part('env.js')+"\n"+s[j:]
+rep("""  const f=mesh(new THREE.PlaneGeometry(W,D),new THREE.MeshStandardMaterial({
+    map:T(concreteCanvas,W/6,D/6),bumpMap:T(concreteCanvas,W/6,D/6,false),bumpScale:.02,
+    roughnessMap:T(concreteCanvas,W/6,D/6,false),roughness:1.0,metalness:.02,envMapIntensity:.6}),W/2,0,D/2,G.struct);""",
+"""  const fm=new THREE.MeshStandardMaterial({color:new THREE.Color(0.74,0.745,0.75),
+    map:LOOK.tex(LOOK.concDetail,W/2.5,D/2.5),bumpMap:LOOK.tex(LOOK.concDetail,W/2.5,D/2.5),bumpScale:.004,
+    roughnessMap:LOOK.tex(LOOK.concDetail,W/2.5,D/2.5),roughness:1.25,metalness:0,envMapIntensity:1.0});
+  const f=mesh(new THREE.PlaneGeometry(W,D),worldMacro(fm,{map:LOOK.floorMacro,box:[0,0,W,D],k:1,rough:.9}),W/2,0,D/2,G.struct);""")
+rep("""  const yMat=new THREE.MeshStandardMaterial({map:asphaltMap,roughness:.95,metalness:0,envMapIntensity:.4});""",
+"""  const yMat=worldMacro(new THREE.MeshStandardMaterial({color:new THREE.Color(.25,.255,.26),map:LOOK.tex(LOOK.asphDetail,800,800),
+    roughnessMap:LOOK.tex(LOOK.asphDetail,800,800),bumpMap:LOOK.tex(LOOK.asphDetail,800,800),bumpScale:.01,roughness:1.6,metalness:0,envMapIntensity:.5}),
+    {map:LOOK.asphMacro,box:LOOK.asphBox,k:1,rough:.5});""")
+rep("function box(w,h,d,mat,x,y,z,p){ return mesh(bg(w,h,d),mat,x,y,z,p); }",
+    "function box(w,h,d,mat,x,y,z,p){ if(mat===M.carton) mat=LOOK.cartons[(LOOK.R()*LOOK.cartons.length)|0];   // разные короба\n  return mesh(bg(w,h,d),mat,x,y,z,p); }")
+rep("""  return new THREE.MeshStandardMaterial({color:PAL.wall, map:T(corrCanvas,len/0.32,1),
+    bumpMap:T(corrCanvas,len/0.32,1,false), bumpScale:0.05, roughness:0.55, metalness:0.32, envMapIntensity:0.8});""",
+"""  return worldMacro(new THREE.MeshStandardMaterial({color:PAL.wall, map:T(corrCanvas,len/0.32,1),
+    bumpMap:T(corrCanvas,len/0.32,1,false), bumpScale:0.05, roughness:0.55, metalness:0.32, envMapIntensity:0.8}),{dirtY:2.2,dirtK:.32});""")
+rep("  carton:new THREE.MeshStandardMaterial({map:cartonMap,roughness:.92,metalness:0,envMapIntensity:.5}),",
+    "  carton:LOOK.cartons[0],")
+rep("""  film:new THREE.MeshStandardMaterial({color:0xd9e6ee,roughness:.25,metalness:0,
+    transparent:true,opacity:.34,envMapIntensity:1.2})""",
+"""  film:new THREE.MeshStandardMaterial({color:0xe8eef2,roughness:.16,metalness:0,transparent:true,opacity:.26,depthWrite:false,
+    envMapIntensity:.45,bumpMap:LOOK.filmBump,bumpScale:.0025})""")
+rep("plinth:std(PAL.plinth,.9,.02), wood:std(0xa9834f,.88,0),","plinth:worldMacro(std(PAL.plinth,.9,.02),{dirtY:1.2,dirtK:.3}), wood:std(0xffffff,.86,0,{map:LOOK.wood}),")
+rep("conc:std(0xdedcd4,.92,0),","conc:worldMacro(std(0xdedcd4,.92,0),{dirtY:1.6,dirtK:.28}),")
+rep("M.woodDark=std(0x8a6a40,.9,0);","M.woodDark=std(0xb7a07c,.9,0,{map:LOOK.wood});")
+
+rep("interior.position.set(24,40,21); scene.add(interior);","interior.position.set(24,40,21); scene.add(interior);\n"
+  "const LIGHT={sun:2.6,hemi:.30,inRoof:.40,inOpen:.12};                // баланс под HDR-окружение цеха\n"
+  "sun.intensity=LIGHT.sun; hemi.intensity=LIGHT.hemi; interior.intensity=LIGHT.inRoof;")
+rep("    if(l[0]==='roof') interior.intensity=inp.checked?1.25:0.22;","    if(l[0]==='roof') interior.intensity=inp.checked?LIGHT.inRoof:LIGHT.inOpen;")
+rep("  sun.intensity=evening?0.5:2.2;","  sun.intensity=evening?0.5:LIGHT.sun;")
+rep("  hemi.intensity=evening?0.26:0.5;","  hemi.intensity=evening?0.16:LIGHT.hemi;")
+
+# ---------- 12. машины и шины по реальным образцам ----------
+i=s.index("function tire(g,x,y,z,r,w,axis){"); j=s.index("\n}\n",i)+3
+s=s[:i]+part('trucks_base.js')+s[j:]
+i=s.index("/* ============================================================== МАШИНЫ */"); j=s.index("const TRK_L2=tag(flatTruck(-6.2,GATES[1].z",i)
+s=s[:i]+part('trucks.js')+"\n"+s[j:]
+rep("/* ========================================================= ОБОРУДОВАНИЕ */",part('cargo.js')+"\n"+part('rack.js')+"\n/* ========================================================= ОБОРУДОВАНИЕ */")
+
+rep("  sky.position.set(24,0,20.87); scene.add(sky);\n}","  sky.position.set(24,0,20.87); scene.add(sky);\n}\n"+part('backdrop.js'))
+
+# краска на полу — освещаемая (ложится в тень, ловит AO и блики), а не «наклейка»
+rep("""function paintMat(c,o){ return new THREE.MeshBasicMaterial({color:c,transparent:true,
+  opacity:o===undefined?1:o,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,toneMapped:false}); }""",
+"""function paintMat(c,o){ return new THREE.MeshStandardMaterial({color:c,transparent:true,roughness:.62,metalness:0,envMapIntensity:.6,
+  opacity:o===undefined?1:o,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2}); }""")
+rep("""  decal(w,w/4,new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,
+    polygonOffset:true,polygonOffsetFactor:-3,toneMapped:false}),x,z,0.019,rot||0);""",
+"""  decal(w,w/4,new THREE.MeshStandardMaterial({map:t,transparent:true,depthWrite:false,roughness:.62,metalness:0,envMapIntensity:.6,
+    polygonOffset:true,polygonOffsetFactor:-3}),x,z,0.019,rot||0);""")
+
+# ---------- 14. убрано по просьбе: паллетообмотчик, рольганги, гибкий конвейер ----------
+rep("tagEq(roller(3.6,9.3,5.5,false),6,[3.6,1.4,9.3],13);","tagEq(roller(3.6,9.3,5.5,false),6,[3.6,1.4,9.3],13).userData.removed=true;          // рольганг в кармане Л2 — убран")
+rep("tagEq(roller(38.5,15.0,6,false,0.85),6,[38.5,1.2,15.0],12);","tagEq(roller(38.5,15.0,6,false,0.85),6,[38.5,1.2,15.0],12).userData.removed=true;   // рольганг на магистрали — убран")
+rep("const eqEl=document.getElementById('eqlist');","delete EQ[3]; delete EQ[6];                                  // обмотчик и рольганг исключены из состава\nconst eqEl=document.getElementById('eqlist');")
+rep("const libItemsEl=document.getElementById('libitems'), libParamsEl=document.getElementById('libparams');",
+    "delete LIB.flex; delete LIB.wrap; delete LIB.roll;              // гибкий конвейер, обмотчик и рольганг убраны из каталога\nconst libItemsEl=document.getElementById('libitems'), libParamsEl=document.getElementById('libparams');")
+
+# ---------- 15. стоечные поддоны: зона, запас пустых, спецификация, каталог ----------
+rep("{id:'4', s:'Юнитизация', n:'Юнитизация', c:PAL.orange,","{id:'4', s:'Стойки', n:'Стоечные поддоны: запас пустых', c:PAL.orange,")
+rep("note:'Тяжёлое вниз, углозащита, обмотка от четырёх витков, паллета не выше 1,8 м. Выход прямо на магистраль.',\n   eq:'паллетообмотчик · запас поддонов · бандажные аппараты'},",
+    "note:'Пустые стоечные поддоны стоят здесь в два яруса и по одному подаются к концу ленты. Короба собираются сразу в стойку: тяжёлое вниз, лёгкое наверх, плёнка не нужна. Выход прямо на магистраль.',\n   eq:'стоечные поддоны 1500 × 1500 × 1600 · запас пустых'},")
+cut("{ const g=grp(14.4,0,12.3);\n  for(let i=0;i<9;i++) pallet(g,0,i*0.155,0);","person(12.2,9.2,-1.6,true,'ГРУЗЧИК-УПАКОВЩИК');",
+    "{ const g=grp(14.4,0,12.3);                                // запас пустых стоечных поддонов — два штабеля по два яруса\n"
+    "  for(const dx of [0,-1.85]) for(let i=0;i<2;i++) rackFrame(g,dx,i*RACK.PITCH,-0.4);\n"
+    "  g.userData.nm='Запас пустых стоечных поддонов';\n"
+    "  tagEq(g,20,[13.5,1.6,12.3],9);\n}\n")
+rep("E(13,'Термопринтеры ×2 и 2D-сканеры ×4'","E(20,'Стоечные поддоны штабелируемые','40 шт · 1500 × 1500 × 1600 мм · до 1 т · до 4 ярусов','巧固架 / 堆垛架 可折叠','350 – 800 / шт (ориентир)','2 000 – 4 500',\n"
+    "  'Заменяют паллету с обмоткой: короба собираются в стойку прямо у ленты, стойки несут верхний ярус, поэтому в ячейке два яруса вместо одного и груз не давится. Пустые складываются и штабелируются. Берутся вилами с двух сторон, клиренс 115 мм. Цены — ориентир по каталогам, уточнять у поставщика.');\nE(13,'Термопринтеры ×2 и 2D-сканеры ×4'")
+rep("delete LIB.flex; delete LIB.wrap; delete LIB.roll;              // гибкий конвейер, обмотчик и рольганг убраны из каталога",
+    "delete LIB.flex; delete LIB.wrap; delete LIB.roll;              // гибкий конвейер, обмотчик и рольганг убраны из каталога\n"
+    "LIB.rack={n:'Стоечный поддон',s:'штабелируется в ярусы · загрузка настраивается',\n"
+    "  d:{tiers:2,fill:1},\n"
+    "  p:[['tiers','Ярусов',1,3,1,'шт'],['fill','Загрузка верхнего яруса',0,1,0.1,'%']],\n"
+    "  make:o=>rackStack(null,Math.round(o.tiers),o.fill),\n"
+    "  sum:g=>'1500 × 1500 × 1600 мм · шаг яруса 1530 мм · штабель '+(g.userData.tiers.length*1.53+0.07).toFixed(2)+' м',\n"
+    "  info:EQ[20]};")
+
+
+# ---------- 16. проезды между секциями, казахский тандем на крытом посту, детали здания ----------
+rep("const SEC = [[1.2,15.3],[16.85,31.25],[32.85,46.85]];      // разрывы под колонны x=16,05 и 32,05",
+    "const SEC = [[1.2,15.3],[20.2,31.25],[36.2,46.85]];        // у линий колонн x=16,05 и 32,05 — проезды для погрузчика по 3,6 м")
+rep("stencil('РЯД A · С ЮЖНОЙ МАГИСТРАЛИ · 2 ПАЛЛЕТЫ В ГЛУБИНУ',24,19.2,15,'rgba(207,224,242,.55)');",
+    "stencil('РЯД A · С ЮЖНОЙ МАГИСТРАЛИ · СТОЙКИ В 2 ЯРУСА',25.7,20.45,9,'rgba(207,224,242,.55)');")
+rep("stencil('РЯД B · С СЕВЕРНОЙ МАГИСТРАЛИ · 3 ПАЛЛЕТЫ В ГЛУБИНУ',24,23.75,15,'rgba(207,224,242,.55)');",
+    "stencil('РЯД B · С СЕВЕРНОЙ МАГИСТРАЛИ · СТОЙКИ В 2 ЯРУСА',25.7,22.0,9,'rgba(207,224,242,.55)');")
+rep("stencil('КРЫТЫЙ ПОСТ РАЗГРУЗКИ · Л1 → П1',24,33.2,14,'rgba(242,183,5,.9)');",
+    "stencil('КРЫТЫЙ ПОСТ ПОГРУЗКИ · Л1 → П1',10,33.2,14,'rgba(242,183,5,.9)');\n"+part('details.js'))
+rep("{id:'В', s:'Крытый пост', n:'Крытый пост разгрузки Л1 → П1',","{id:'В', s:'Крытый пост', n:'Крытый пост погрузки Л1 → П1',")
+i=s.index("   note:'Сквозная полоса по проёму из SKP (z 32,05…35,55). Крана нет"); j=s.index("\n",i)
+s=s[:i]+"   note:'Сквозная полоса по проёму из SKP (z 32,05…35,55). Казахстанский автопоезд-тандем 145 м³ заезжает через Л1 и встаёт вдоль границы; правый борт открыт в зал, под шторой — каркас с проёмом в середине каждого кузова. Погрузчик приходит с северной магистрали по проездам у линий колонн, подаёт стоечный поддон в проём и держит его поднятым, пока грузчики внутри разбирают стойку по одному коробу. Выезд — через П1. Зимой это погрузка не на морозе.',"+s[j:]
+i=s.index("tag(flatTruck(24.05,GATES[0].z-0.4,12,1,false,0),"); j=s.index("const TRK_TANDEM=tag(tandem(51.8,GATES[1].z+4.5,-Math.PI/2),",i)
+s=s[:i]+"""const TRK_IN=tag(tandem145(28.6,GATES[0].z-0.4,Math.PI,{open:1,tall:1,plate:'248 KZA 13',lanes1:[-4.75,-2.6],lanes2:[-4.75,-2.6]}),
+  {t:'Казахстанский автопоезд-тандем 145 м³ на крытом посту',q:'грузовик + прицеп · 2 × 9,8 × 2,48 × 2,98 м · правый борт открыт, в середине каждого кузова — проём',
+   n:'Стоит внутри здания на сквозной полосе Л1 → П1. Под шторой — металлический каркас борта: стойки и обрешётка. В середине правого борта каждого кузова оставлен проём: погрузчик подаёт в него стоечный поддон и держит его на поднятых вилах, грузчики внутри берут короба по одному и раскладывают по дорожкам — каждому типу своё место. Сначала грузится кузов грузовика, затем прицеп. Под колёсами — противооткатные упоры. Фото кузова до закрытия штор обязательно. Размеры кузова в модели условные, уточнять по паспорту машины.',
+   k:'drawbar truck and centre-axle trailer 145 m3 / автопоезд тандем 145 кубов / 中置轴厢式列车 145方'});
+[[32.55,1],[32.55,-1],[23.5,1],[23.5,-1]].forEach(c=>wheelChock(c[0]+c[1]*1.32,GATES[0].z-0.4-1.03,-c[1]));
+{ const kzg=kzTruck({len:13.6,open:0.4,load:0.6,roof:1}); kzg.position.set(51.8,0,GATES[1].z-5.9); kzg.rotation.y=Math.PI/2; G.trucks.add(kzg); var KZ_SEMI=kzg; }
+"""+s[j:]
+cut("const TRK_TANDEM=tag(tandem(51.8,GATES[1].z+4.5,-Math.PI/2),","\n\n/* ========================================================= ПОТОК ГРУЗА */",
+    "const TRK_TANDEM=tag(KZ_SEMI,\n"
+    "  {t:'Казахская фура — шторный полуприцеп у ворот П2',q:'тягач + полуприцеп 13,6 м · снаружи, вдоль правой стены · борт к воротам приоткрыт',\n"
+    "   n:'Стандартная еврофура на 33 европаллеты стоит снаружи у П2 и грузится с полос стейджинга 1–4 через ворота. Тяжёлое — над осями и в переднюю треть, каждое место сканируется, 100 % сверка с планом. Фото кузова до закрытия — самое важное фото процесса.',\n"
+    "   k:'curtainsider semi trailer 13.6m / шторный полуприцеп еврофура / 侧帘半挂车'});")
+rep("for(const dx of [0,-1.85]) for(let i=0;i<2;i++) rackFrame(g,dx,i*RACK.PITCH,-0.4);","for(const dz of [-4.0,-2.3]) for(let i=0;i<2;i++) rackFrame(g,0.05,i*RACK.PITCH,dz);")
+rep("tagEq(g,20,[13.5,1.6,12.3],9);","tagEq(g,20,[14.4,1.6,9.2],9);")
+rep("const JACK_P2b=palletJack(45.9,17.0,-1.6,false); palletJack(31.4,15.0,0,false);","const JACK_P2b=palletJack(45.9,17.0,-1.6,false); const JACK_Sa=palletJack(31.4,13.9,0,false);")
+rep("palletJack(29.8,15.0,0,true);","const JACK_Sb=palletJack(29.8,13.9,0,true);")
+rep("person(21.5,31.0,-1.2,true,'ГРУЗЧИК');","const MAN_N1=person(21.5,30.2,-1.2,true,'ГРУЗЧИК');")
+rep("person(30.2,30.4,-1.9,false,'ВОДИТЕЛЬ ПОГРУЗЧИКА');","const MAN_N2=person(30.2,29.6,-1.9,false,'ВОДИТЕЛЬ ПОГРУЗЧИКА');")
+
+rep("const JACK_P2a=tagEq(palletJack(45.9,15.6,-1.6,false),10,[45.9,1,15.6],10);\nconst JACK_P2b=palletJack(45.9,17.0,-1.6,false);",
+    "const JACK_P2a=tagEq(palletJack(47.0,13.4,-1.6,false),10,[47.0,1,13.4],10);\nconst JACK_P2b=palletJack(47.0,12.2,-1.6,false);")   # тележки убраны с магистрали: там разворачивается погрузчик
+rep("[[15.6,26.5],[32.5,26.5],[15.6,31.1],[32.5,31.1]].forEach((p,i)=>{","[[16.05,28.85],[32.05,28.85],[15.6,30.5],[45.6,30.8]].forEach((p,i)=>{")   # зеркала на стойках: с линии движения погрузчика и из-под борта машины — к колоннам и к стоп-линии
+rep("if(i===0) tagEq(g,19,[15.6,2,26.5],12); else tag(g,EQ[19]);","if(i===0) tagEq(g,19,[16.05,2,28.85],12); else tag(g,EQ[19]);")
+rep("person(3.9,7.9,0.2,false,'ОХРАННИК');","person(3.1,7.5,0.5,false,'ОХРАННИК');")   # охранник стоял вплотную к упаковщику
+# ---------- 17. правка расстановки: новая версия хранилища, базовое положение объектов ----------
+rep("const EDKEY='sklad4.edit.v1';","const EDKEY='sklad4.edit.v2';                     // расстановка изменилась (проезды, машины) — правка от прежних версий не применяется")
+rep("/* восстановление сохранённой правки */","edMap.forEach(o=>{ o.userData.base=[o.position.x,o.position.y,o.position.z,o.rotation.y,o.visible]; });   // базовое положение: фильм идёт в базовой расстановке\n/* восстановление сохранённой правки */")
+
+# ---------- 18. автопоезд внутри у П2 (заезд через П2), стейджинг убран, автосохранение в файл ----------
+rep("const TRK_IN=tag(tandem145(28.6,GATES[0].z-0.4,Math.PI,{open:1,tall:1,plate:'248 KZA 13',lanes1:[-4.75,-2.6],lanes2:[-4.75,-2.6]}),",
+    "const TRK_IN=tag(tandem145(36.0,GATES[1].z,0,{open:1,tall:1,plate:'248 KZA 13',lanes1:[-4.75,-2.6],lanes2:[-4.75,-2.6]}),")
+cut("  {t:'Казахстанский автопоезд-тандем 145 м³ на крытом посту',","[[32.55,1],[32.55,-1],[23.5,1],[23.5,-1]].forEach(",
+    "  {t:'Казахстанский автопоезд-тандем 145 м³ на посту погрузки П2',q:'грузовик + прицеп · 2 × 9,8 × 2,48 × 2,98 м · заезд через П2 · правый борт открыт в зал, в середине каждого кузова — проём',\n"
+    "   n:'Заезжает передним ходом через ворота П2 и встаёт внутри здания вдоль южной магистрали. Под шторой — металлический каркас борта: стойки и обрешётка. В середине правого борта каждого кузова оставлен проём: погрузчик подаёт в него стоечный поддон и держит его на поднятых вилах, грузчики внутри берут короба по одному и раскладывают по дорожкам — каждому типу своё место. Ячейки ряда A стоят через магистраль от борта, плечо погрузчика — несколько метров. Сначала грузится кузов грузовика, затем прицеп. Под колёсами — противооткатные упоры. Фото кузова до закрытия штор обязательно. Выезд — задним ходом через П2. Размеры кузова в модели условные, уточнять по паспорту машины.',\n"
+    "   k:'drawbar truck and centre-axle trailer 145 m3 / автопоезд тандем 145 кубов / 中置轴厢式列车 145方'});\n")
+rep("[[32.55,1],[32.55,-1],[23.5,1],[23.5,-1]].forEach(c=>wheelChock(c[0]+c[1]*1.32,GATES[0].z-0.4-1.03,-c[1]));",
+    "[[32.05,1],[32.05,-1],[41.1,1],[41.1,-1]].forEach(c=>wheelChock(c[0]+c[1]*1.32,GATES[1].z+1.03,c[1]));")
+rep("kzg.position.set(51.8,0,GATES[1].z-5.9); kzg.rotation.y=Math.PI/2;","kzg.position.set(57.5,0,31.8); kzg.rotation.y=Math.PI/2;")
+cut("  {t:'Казахская фура — шторный полуприцеп у ворот П2',","\n\n/* ========================================================= ПОТОК ГРУЗА */",
+    "  {t:'Казахская фура — шторный полуприцеп на площадке',q:'тягач + полуприцеп 13,6 м · снаружи, ждёт очереди на пост П2',\n"
+    "   n:'Стандартная еврофура на 33 европаллеты стоит на площадке в стороне от ворот: проезд к П2 свободен для автопоезда. Заезжает на пост П2 после него. Тяжёлое — над осями и в переднюю треть, каждое место сканируется, 100 % сверка с планом.',\n"
+    "   k:'curtainsider semi trailer 13.6m / шторный полуприцеп еврофура / 侧帘半挂车'});")
+# зоны: стейджинг и карман П2 → пост погрузки П2
+cut("  {id:'S', s:'Стейджинг', n:'Стейджинг S1–S3 (по машинам)',","  {id:'A', s:'Ряд A',",
+    "  {id:'L', s:'Пост П2', n:'Пост погрузки П2 — автопоезд внутри', c:0xb08b4f, x0:21.4, x1:47.3, z0:9.1, z1:12.1, m2:78,\n"
+    "   note:'Автопоезд заезжает через П2 и встаёт вдоль южной магистрали правым бортом к ячейкам ряда A. Груз идёт из ячейки прямо в кузов: погрузчик подаёт стоечный поддон в проём борта и держит на вилах, грузчики раскладывают короба по дорожкам. Промежуточной выкладки на пол нет. 100 % сканирование против плана отправки и фото кузова до закрытия штор.',\n"
+    "   eq:'погрузчик 3 т · стоечные поддоны · сканеры · противооткатные упоры'},\n")
+cut("/* полосы стейджинга: вдоль x, смотрят на ворота П2 */","/* зелёные пешеходные дорожки */",
+    "/* пост погрузки П2: полоса автопоезда внутри здания */\n"
+    "paintRect(21.4,GATES[1].z-1.5,47.3,GATES[1].z+1.5,0xffffff,0.13,0.018);\n"
+    "for(const zz of [GATES[1].z-1.5,GATES[1].z+1.5]) decal(25.9,0.12,paintMat(PAL.yellow),34.35,zz,0.0165);\n"
+    "decal(0.3,3.0,paintMat(0xf2f2f2,.95),21.4,GATES[1].z,0.0172);\n"
+    "stencil('ПОСТ ПОГРУЗКИ П2 · АВТОПОЕЗД',27.2,GATES[1].z-2.2,9,'rgba(242,183,5,.8)');\n"
+    "const LANES=[];\n")
+cut("/* ---------- [S] стейджинг: полоса = машина ---------- */","tagEq(roller(38.5,15.0,6,false,0.85),6,[38.5,1.2,15.0],12).userData.removed=true;","")
+rep("stencil('П2 · ОТГРУЗКА',43,GATES[1].z-2.1,7,'rgba(242,183,5,.8)');","stencil('П2 · ЗАЕЗД АВТОПОЕЗДА',42.6,GATES[1].z-2.2,8,'rgba(242,183,5,.8)');")
+rep("const JACK_P2a=tagEq(palletJack(47.0,13.4,-1.6,false),10,[47.0,1,13.4],10);\nconst JACK_P2b=palletJack(47.0,12.2,-1.6,false);",
+    "const JACK_P2a=tagEq(palletJack(47.25,14.7,-1.6,false),10,[47.25,1,14.7],10);\nconst JACK_P2b=palletJack(47.25,16.1,-1.6,false);")
+rep("const JACK_P2b=palletJack(47.25,16.1,-1.6,false); const JACK_Sa=palletJack(31.4,13.9,0,false);","const JACK_P2b=palletJack(47.25,16.1,-1.6,false); const JACK_Sa=palletJack(24.0,13.8,0,false);")
+rep("const JACK_Sb=palletJack(29.8,13.9,0,true);","const JACK_Sb=palletJack(22.6,13.8,0,true);")
+rep("const MAN_S=person(43.0,11.2,-1.6,false,'ВОДИТЕЛЬ ПОГРУЗЧИКА');","const MAN_S=person(44.4,7.7,0.3,false,'ВОДИТЕЛЬ ПОГРУЗЧИКА');")
+rep("отсюда груз идёт прямо в полосу стейджинга.'}","отсюда груз идёт прямо в кузов автопоезда на посту П2.'}")
+rep("'Плечо приёмка → стейджинг стало 30–40 м поперёк трёх пролётов.","'Плечо приёмка → пост погрузки П2 — 30–40 м поперёк трёх пролётов.")
+cut("  ['5','Полоса стейджинга — очередь на погрузку, не хранение',","  ['6','Тяжёлое принимается только на поддоне',",
+    "  ['5','Из ячейки — прямо в кузов, без выкладки на пол',\n"
+    "   'Стейджинга нет: автопоезд стоит внутри у П2, стоечный поддон из ячейки подаётся прямо в проём кузова. Ячейка назначается под машину заранее и уходит целиком. Если груз пришлось поставить на пол у машины — это уже буфер без адреса, и он обязан вернуться в ячейку.'],\n")
+rep("30 ячеек буфера · 4 полосы · без крана</div>","30 ячеек буфера · пост погрузки П2 · без крана</div>")
+# северная сквозная полоса — свободна
+rep("stencil('КРЫТЫЙ ПОСТ ПОГРУЗКИ · Л1 → П1',10,33.2,14,'rgba(242,183,5,.9)');","stencil('СКВОЗНАЯ ПОЛОСА · Л1 → П1 · РЕЗЕРВ',10,33.2,14,'rgba(242,183,5,.9)');")
+cut("  {id:'В', s:'Крытый пост', n:'Крытый пост погрузки Л1 → П1',","   eq:'погрузчик 3 т · удлинители вил'},",
+    "  {id:'В', s:'Полоса Л1–П1', n:'Сквозная полоса Л1 → П1 — резерв', c:0xc9a227, x0:0.6, x1:47.4, z0:31.5, z1:34.9, m2:163,\n"
+    "   note:'Сквозная полоса по проёму из SKP (z 32,05…35,55). Сейчас свободна: погрузка автопоезда перенесена на пост П2. Резерв под вторую машину или негабарит; погрузчик попадает сюда по проездам у линий колонн.',\n")
+rep("  ['Крытый пост Л1',    {t:[24,2.5,31], r:24, phi:1.02, th:1.4}],","  ['Пост погрузки П2',  {t:[34,2.5,12], r:26, phi:1.02, th:-0.5}],")
+
+# ---------- 19. версия планировки, правка из файла, автосохранение в файл ----------
+rep("const EDKEY='sklad4.edit.v2';                     // расстановка изменилась (проезды, машины) — правка от прежних версий не применяется",
+    "const LAYOUT_VER='v3';                            // версия штатной планировки: правка от другой версии не применяется\nconst EDKEY='sklad4.edit.'+LAYOUT_VER;")
+rep("try{ const raw=localStorage.getItem(EDKEY); if(raw) edStore=Object.assign({m:{},c:[],h:[],a:[],seed:0},JSON.parse(raw)); }catch(err){}",
+    "try{ const raw=localStorage.getItem(EDKEY); if(raw) edStore=Object.assign({m:{},c:[],h:[],a:[],seed:0},JSON.parse(raw)); }catch(err){}\n"
+    "let FILE_TS=0;                                           // правка, записанная в сам файл: берётся, если она свежее той, что в браузере\n"
+    "try{ const el=document.getElementById('sklad4-saved'), j=el?JSON.parse(el.textContent||'{}'):null;\n"
+    "  if(j&&j.ver===LAYOUT_VER&&j.store){ FILE_TS=j.store.ts||0; if(FILE_TS>(edStore.ts||0)) edStore=Object.assign({m:{},c:[],h:[],a:[],seed:0},j.store); } }catch(err){}")
+rep("const edSave=()=>{ try{ localStorage.setItem(EDKEY,JSON.stringify(edStore)); }catch(err){} };",
+    "const edSave=()=>{ edStore.ts=Date.now(); try{ localStorage.setItem(EDKEY,JSON.stringify(edStore)); }catch(err){} if(FS_READY) fsQueue(); };")
+rep("  try{ localStorage.removeItem(EDKEY); }catch(err){} location.reload();\n};",
+    "  edStore={m:{},c:[],h:[],a:[],seed:0}; edSave();                 // пустая правка со свежей отметкой времени — чтобы запись из файла её не вернула\n"
+    "  clearTimeout(FS.t); (FS.on?fsWrite():Promise.resolve()).then(()=>location.reload());\n};")
+# базовое положение: до применения правки; запад ниже на 1 м — и в базе тоже
+rep("    o.position.y-=1.0;\n  });\n});","    o.position.y-=1.0;\n  });\n});\n"
+    "edMap.forEach(o=>{ const b=o.userData.base; if(b&&b[0]<-0.35&&b[1]>-0.5) b[1]-=1.0; });           // штатное положение — тоже на уровне площадки\n"+part('autosave.js')+part('batch.js'))
+rep('      <button class="edo" id="edreset" title="Вернуть исходную расстановку">Сброс</button>',
+    '      <button class="edo" id="edreset" title="Вернуть исходную расстановку">Сброс</button>\n'
+    '      <span class="sep edo"></span>\n'
+    '      <button class="edo" id="edfile">Автосохранение в файл</button>\n'
+    '      <button class="edo" id="eddl" title="Скачать копию этого файла с вашей расстановкой">Скачать</button>\n'
+    '      <span id="edsaved" class="edo" style="font:500 11px/1 \'IBM Plex Mono\',monospace;opacity:.75;white-space:nowrap"></span>')
+
+# ---------- 8. модуль фильма — после восстановления правки, до запуска цикла ----------
+rep("edUI(); libPanel();\n\nresize();",film()+"\nedUI(); libPanel();\n\nresize();")
+
+# ---------- 9. стили фильма ----------
+rep("  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}\n</style>",
+"""  #app.film #panel{display:none}
+  #app.film .bar,#app.film #edit,#app.film #hover,#app.film #pad,#app.film #toggle{display:none!important}
+  #app.film #view{background:#000}
+  #app.film #view canvas{position:absolute;inset:0;margin:auto;width:auto;height:auto;max-width:100%;max-height:100%;cursor:default}
+  #filmov{display:none;pointer-events:none}
+  #app.film #filmov{display:block;z-index:3}
+  #filmbar{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:9;display:none;gap:8px;align-items:center;
+    background:rgba(12,16,21,.86);border:1px solid #2f3742;border-radius:6px;padding:7px 10px;backdrop-filter:blur(6px);
+    width:min(760px,calc(100% - 28px))}
+  #filmbar.on{display:flex}
+  #filmbar button{background:#1d232b;color:#e9ecef;border:1px solid #2f3742;border-radius:4px;padding:7px 11px;font:600 13px var(--disp);
+    letter-spacing:.05em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+  #filmbar button:hover,#filmbar button.on{border-color:#f5c518;color:#f5c518}
+  #filmbar input{flex:1;min-width:60px;accent-color:#f5c518}
+  #filmbar .tc{font:500 12px var(--mono);color:#aab2ba;min-width:44px}
+  @media (max-width:640px){ #filmbar button{padding:6px 8px;font-size:11px} #filmbar [data-a=rec]{display:none} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>""")
+
+
+# ---------- 13. загрузчик glTF, клонирование скелетов и модель человека (встроены — работает офлайн) ----------
+import base64
+_gl=open(os.path.join(ROOT,'vendor','GLTFLoader.js'),encoding='utf-8').read()          # three r128, examples/js
+_su=open(os.path.join(ROOT,'vendor','SkeletonUtils.js'),encoding='utf-8').read()
+_rpm=base64.b64encode(open(os.path.join(ROOT,'assets','readyplayer.me.glb'),'rb').read()).decode()
+rep('<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>',
+    '<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>\n<script>'+_gl+'</script>\n<script>'+_su+'</script>\n'
+    '<script>/* модель человека: Ready Player Me (glb, скелет Mixamo) */\nconst RPM_GLB="'+_rpm+'";</script>')
+
+# ---------- 19b. поток груза убран; уклон конвейера; обход; живой процесс ----------
+cut("const g2=GATES[1].z;\n[\n  {mat:M.carton,size:[0.56,0.42,0.46]","/* ================================================================= UI */",
+    "/* схематичный «поток груза» (летящие короба по кривым) убран по замечанию заказчика: процесс показывают фильм и живой режим */\n\n/* ================================================================= UI */")
+rep("  ['dims','Размеры и оси',false],\n  ['flow','Поток груза A / C / D',!reduceMotion]\n];","  ['dims','Размеры и оси',false]\n];\nG.flow.visible=false;")
+# телескопический конвейер: голова (в кузове) выше основания — лента идёт с подъёмом к машине
+rep("  if(!t) edStore.a.push({i:'t-l2',k:'tele',p:[0.02,0,10.9],r:Math.PI,o:{lift:0.10,tilt:-5,ext:0.48}});",
+    "  if(!t) edStore.a.push({i:'t-l2',k:'tele',p:[0.02,0,10.9],r:Math.PI,o:{lift:0.0,tilt:3,ext:0.48,dir:-1}});")
+rep("    d:{lift:0.70,tilt:-2,ext:0.55,dir:1},","    d:{lift:0.0,tilt:3,ext:0.55,dir:-1},")
+# обход: скорость не зависит от частоты кадров, разрешение ниже — плавнее
+rep("  const dt=Math.min(Math.max((now-prev)/1000,0),0.05); prev=now;\n  if(FILM.on){ FILM.tick(dt); requestAnimationFrame(loop); return; }",
+    "  const dtRaw=Math.max((now-prev)/1000,0), dt=Math.min(dtRaw,0.05); prev=now;\n  if(FILM.on){ FILM.tick(dt); requestAnimationFrame(loop); return; }\n  if(typeof SIM!=='undefined'&&SIM.on){ SIM.tick(Math.min(dtRaw,0.25)); if((frame&7)===0&&SIM.ui) SIM.ui(); }")
+rep("  if(walk){ walkStep(dt); }","  if(walk){ walkStep(Math.min(dtRaw,0.25)); }")
+rep("  const run=keys.ShiftLeft||keys.ShiftRight, sp=(run?5.5:2.1)*dt;","  const run=keys.ShiftLeft||keys.ShiftRight, sp=(run?5.0:1.9)*dt;        // шаг 1,9 м/с, бег 5 м/с; dt — реальное время кадра")
+rep("    if(canvas.requestPointerLock) canvas.requestPointerLock();\n  } else {",
+    "    if(canvas.requestPointerLock) canvas.requestPointerLock();\n    saved_pr=renderer.getPixelRatio(); renderer.setPixelRatio(Math.min(saved_pr,1)); resize();   // в обходе — без удвоенного разрешения: плавнее на слабых ПК\n    if(typeof SIM!=='undefined'&&!SIM.on&&!FILM.on) SIM.enter();   // обход — по работающему складу: живой процесс включается сам\n    walkLbl=[G.labels.visible,G.addr.visible]; G.labels.visible=false; G.addr.visible=false;   // глазами человека: без висящих в воздухе подписей\n  } else {\n    if(saved_pr){ renderer.setPixelRatio(saved_pr); saved_pr=0; resize(); }\n    if(walkLbl){ G.labels.visible=walkLbl[0]; G.addr.visible=walkLbl[1]; walkLbl=null; }")
+rep("let walk=false, wYaw=0, wPitch=0;","let walk=false, wYaw=0, wPitch=0, saved_pr=0, walkLbl=null;")
+rep("    tipEl.innerHTML='<b>W A S D</b> идти · <b>мышь</b> смотреть<br><b>Shift</b> бегом · <b>Esc</b> выход';",
+    "    tipEl.innerHTML='<b>W A S D</b> идти · <b>мышь</b> смотреть<br><b>Shift</b> бегом · <b>Esc</b> выход<br>склад работает: живой процесс идёт';")
+rep("  if(!reduceMotion&&G.people.visible){ const tt=now/1000; for(const H of PEOPLE){ if(H.root.parent&&H.root.visible) HUM.pose(H,Object.assign({t:tt},H.base)); } }",
+    "  if(!reduceMotion&&G.people.visible){ const tt=now/1000; for(const H of PEOPLE){ if(H.root.parent&&H.root.visible&&!(typeof SIM!=='undefined'&&SIM.owns&&SIM.owns(H))) HUM.pose(H,Object.assign({t:tt},H.base)); } }")
+
+
+# ---------- 20. блок правки в файле и исходный текст файла для кнопки «Скачать» ----------
+i=s.index("<script>/* модель человека: Ready Player Me")
+s=s[:i]+'<script id="sklad4-saved" type="application/json">{}</script>\n'+s[i:]
+rep("</script>\n<script>\n/* ==========================================================================\n   СКЛАД №4, БЛОК 4-1",
+    "</script>\n<script>\nwindow.__SKLAD_SRC='<!DOCTYPE html>\\n'+document.documentElement.outerHTML;   // исходный текст файла — для кнопки «Скачать»\n/* ==========================================================================\n   СКЛАД №4, БЛОК 4-1")
+
+open(OUT,'w',encoding='utf-8').write(s)
+print('собрано', OUT, len(s), 'байт')

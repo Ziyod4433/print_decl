@@ -1,0 +1,18 @@
+{
+  "name": "sklad4-3d",
+  "version": "2026.10.10",
+  "private": true,
+  "description": "Склад №4, блок 4-1 (Buraq Logistics, Хоргос): 3D-модель в одном HTML, фильм процесса, живой процесс склада",
+  "scripts": {
+    "build": "python3 build.py",
+    "check:film": "node tools/ev.js Sklad4_realistic_film.html tools/checks/forklift_jumps.js",
+    "check:edits": "node tools/ev.js Sklad4_realistic_film.html tools/checks/user_edits_in_film.js",
+    "check:save": "node tools/test_save.js",
+    "check:walk": "node tools/walktest.js",
+    "check:sim": "node tools/simrun.js Sklad4_realistic_film.html 12000"
+  },
+  "dependencies": {
+    "puppeteer-core": "23.11.1",
+    "three": "0.128.0"
+  }
+}

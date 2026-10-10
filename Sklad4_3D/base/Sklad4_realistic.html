@@ -1,0 +1,2734 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buraq Logistics · Склад №4 блок 4-1 · Yuzhe Park Хоргос · 3D (реалистичный рендер)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#0f1318; --panel:#151a20; --panel2:#1d232b; --line:#29303a;
+    --ink:#e9ecef; --muted:#868e99; --yellow:#f5c518; --orange:#e8722a;
+    --disp:"Barlow Condensed","Roboto Condensed",system-ui,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);
+    font-family:var(--mono);font-size:13px;-webkit-font-smoothing:antialiased;overflow:hidden}
+  #app{display:flex;height:100%}
+  #view{flex:1;position:relative;min-width:0}
+  canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+  canvas.grabbing{cursor:grabbing}
+  #panel{width:340px;flex:none;background:var(--panel);border-left:1px solid var(--line);
+    display:flex;flex-direction:column;overflow:hidden}
+  .ph{padding:15px 16px 13px;border-bottom:1px solid var(--line)}
+  .ph .eyebrow{font-size:10px;letter-spacing:.2em;color:var(--yellow);text-transform:uppercase;margin:0 0 6px}
+  .ph h1{font-family:var(--disp);font-weight:700;font-size:22px;line-height:1.05;margin:0;text-transform:uppercase}
+  .ph .sub{color:var(--muted);font-size:11px;margin-top:7px;line-height:1.55}
+  .ph .sub b{color:var(--ink);font-weight:500}
+  .scroll{overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:#39414c transparent}
+  .scroll::-webkit-scrollbar{width:8px}
+  .scroll::-webkit-scrollbar-thumb{background:#39414c;border-radius:8px}
+  section{padding:13px 16px;border-bottom:1px solid var(--line)}
+  h2{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 9px;font-weight:500}
+  h2 span{color:#5b636d;letter-spacing:0;text-transform:none}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .grid2 .wide{grid-column:span 2}
+  button{font-family:var(--disp);font-size:14.5px;font-weight:600;letter-spacing:.04em;
+    text-transform:uppercase;background:var(--panel2);color:var(--ink);border:1px solid var(--line);
+    padding:8px 9px;border-radius:2px;cursor:pointer;transition:background .15s,border-color .15s}
+  button:hover{background:#262e38;border-color:#3d4652}
+  button:focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+  button.on{background:var(--yellow);color:#0f1318;border-color:var(--yellow)}
+  .lay{display:flex;align-items:center;gap:9px;padding:5px 6px;cursor:pointer;border-radius:2px;font-size:12px;user-select:none}
+  .lay:hover{background:var(--panel2)}
+  .lay input{appearance:none;width:13px;height:13px;border:1px solid #4b5560;border-radius:2px;
+    flex:none;margin:0;position:relative;cursor:pointer}
+  .lay input:checked{background:var(--yellow);border-color:var(--yellow)}
+  .lay input:checked::after{content:"";position:absolute;left:4px;top:1px;width:3px;height:7px;
+    border:solid #0f1318;border-width:0 2px 2px 0;transform:rotate(42deg)}
+  .row{display:grid;gap:9px;align-items:center;padding:6px 7px;cursor:pointer;border-radius:2px;border:1px solid transparent}
+  .row:hover{background:var(--panel2);border-color:var(--line)}
+  .zone{grid-template-columns:13px 1fr auto}
+  .zone .chip{width:13px;height:13px;border-radius:2px}
+  .zone b{font-family:var(--disp);font-size:14px;letter-spacing:.04em;display:block}
+  .zone span{color:var(--muted);font-size:11px}
+  .zone .m2{font-size:11px;color:var(--muted);white-space:nowrap}
+  .eq{grid-template-columns:24px 1fr auto}
+  .eq .no{font-family:var(--disp);font-size:15px;font-weight:700;color:var(--yellow);text-align:right}
+  .eq .t{font-size:11.5px;line-height:1.3}
+  .eq .p{font-size:10.5px;color:var(--muted);white-space:nowrap}
+  #info .ttl{font-family:var(--disp);font-size:19px;font-weight:700;text-transform:uppercase;line-height:1.1;margin-bottom:3px}
+  #info .qty{color:var(--yellow);font-size:11px;letter-spacing:.09em;margin-bottom:8px}
+  #info .price{display:flex;gap:14px;margin:0 0 10px;font-size:11px}
+  #info .price div{color:var(--muted)}
+  #info .price b{color:var(--ink);font-weight:500;display:block;font-size:13px;font-family:var(--disp);letter-spacing:.03em}
+  #info .note{font-size:12px;line-height:1.55;color:#c3c9d0}
+  #info .kw{margin-top:11px;padding-top:10px;border-top:1px dashed var(--line);font-size:11px;color:var(--muted);line-height:1.6;word-break:break-word}
+  #info .kw b{color:#9aa4ae;font-weight:500;display:block;font-size:10px;letter-spacing:.15em;text-transform:uppercase;margin-bottom:4px}
+  #info .empty{color:var(--muted);font-size:12px;line-height:1.55}
+  .warn{background:#241c12;border:1px solid #4a3a1c;color:#d8c59a;padding:9px 11px;border-radius:2px;
+    font-size:11px;line-height:1.55;margin-top:10px}
+  .foot{padding:12px 16px 18px;color:#5b636d;font-size:10.5px;line-height:1.6}
+  .bar{position:absolute;background:rgba(15,19,24,.84);border:1px solid var(--line);padding:7px 10px;
+    border-radius:2px;font-size:10.5px;color:var(--muted);letter-spacing:.05em;backdrop-filter:blur(6px)}
+  #hud{left:14px;bottom:14px} #hud b{color:var(--ink);font-weight:500}
+  #tip{right:14px;top:14px;max-width:200px;text-align:right;line-height:1.7;pointer-events:none}
+  #tip b{color:var(--ink);font-weight:500}
+  #hover{position:absolute;pointer-events:none;background:rgba(15,19,24,.92);border:1px solid #3b434e;
+    color:var(--ink);font-family:var(--disp);font-size:14px;letter-spacing:.03em;text-transform:uppercase;
+    padding:4px 9px;border-radius:2px;display:none;transform:translate(12px,-50%);white-space:nowrap;z-index:5}
+  #load{position:absolute;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;
+    flex-direction:column;gap:12px;z-index:9;font-family:var(--disp);text-transform:uppercase;letter-spacing:.16em;font-size:15px}
+  #load i{width:130px;height:2px;background:#252c35;position:relative;overflow:hidden;display:block}
+  #load i::after{content:"";position:absolute;inset:0;background:var(--yellow);transform:translateX(-100%);
+    animation:sl 1.1s ease-in-out infinite}
+  @keyframes sl{to{transform:translateX(100%)}}
+  #pad{display:none;position:absolute;left:14px;bottom:60px;z-index:6;
+    grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px}
+  #pad.on{display:grid}
+  #pad button{font-size:20px;padding:0;background:rgba(15,19,24,.78);backdrop-filter:blur(6px);border-color:#3b434e;
+    touch-action:none;user-select:none}
+  #pad button[data-k="KeyW"]{grid-column:2;grid-row:1}
+  #pad button[data-k="KeyA"]{grid-column:1;grid-row:2}
+  #pad button[data-k="KeyS"]{grid-column:2;grid-row:2}
+  #pad button[data-k="KeyD"]{grid-column:3;grid-row:2}
+  #pad button.run{grid-column:3;grid-row:1;font-size:12px;letter-spacing:.1em}
+  #pad button.exit{grid-column:1;grid-row:1;font-size:16px}
+  #toggle{display:none}
+  @media (max-width:880px){
+    #app{flex-direction:column}
+    #panel{width:100%;height:46%;border-left:none;border-top:1px solid var(--line)}
+    #view{height:54%}
+    #tip{display:none}
+    #toggle{display:block;position:absolute;right:12px;top:12px;z-index:6}
+    #app.max #panel{height:0;border:none}
+    #app.max #view{height:100%}
+  }
+  #edit{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:8;display:flex;gap:6px;
+    align-items:center;flex-wrap:wrap;justify-content:center;max-width:calc(100% - 28px);
+    background:rgba(15,19,24,.9);border:1px solid var(--line);border-radius:4px;padding:6px 8px;
+    backdrop-filter:blur(6px);font-size:10.5px;letter-spacing:.05em}
+  #edit button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:3px;
+    padding:6px 9px;font:inherit;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;line-height:1}
+  #edit button:hover{border-color:var(--yellow);color:var(--yellow)}
+  #edit button.on{border-color:var(--yellow);color:var(--yellow)}
+  #edit .edo{display:none}
+  #edit.on .edo{display:inline-flex}
+  #edit .sep{width:1px;height:18px;background:var(--line)}
+  #edname{color:var(--muted);max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #edname b{color:var(--ink);font-weight:500}
+  #libitems{display:flex;flex-direction:column;gap:4px}
+  #libitems button{display:block;width:100%;text-align:left;background:var(--panel2);color:var(--ink);
+    border:1px solid var(--line);border-radius:3px;padding:8px 10px;font:inherit;font-size:11px;cursor:pointer;line-height:1.35}
+  #libitems button span{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+  #libitems button:hover{border-color:var(--yellow);color:var(--yellow)}
+  #libparams{margin-top:10px}
+  #libparams .ph{color:var(--yellow);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px}
+  #libparams .pr{margin-bottom:9px}
+  #libparams .pr label{display:flex;justify-content:space-between;gap:8px;color:var(--muted);
+    font-size:10px;margin-bottom:4px}
+  #libparams .pr label b{color:var(--ink);font-weight:500}
+  #libparams input[type=range]{width:100%;height:16px;margin:0;background:transparent;-webkit-appearance:none;appearance:none;cursor:pointer}
+  #libparams input[type=range]::-webkit-slider-runnable-track{height:3px;background:#333b45;border-radius:2px}
+  #libparams input[type=range]::-moz-range-track{height:3px;background:#333b45;border-radius:2px}
+  #libparams input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;
+    border-radius:50%;background:var(--yellow);margin-top:-4.5px;border:0}
+  #libparams input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--yellow);border:0}
+  #libparams .sum{color:var(--muted);font-size:10px;line-height:1.6;margin-top:2px}
+  #libparams .empty{color:#5f6873;font-size:10px;line-height:1.6}
+  @media (max-width:880px){ #edit{bottom:8px;font-size:10px} #edit button{padding:5px 7px} #edname{max-width:120px} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div id="app">
+  <div id="view">
+    <div id="load"><span>Сборка модели</span><i></i></div>
+    <button id="toggle">Развернуть</button>
+    <div class="bar" id="tip"><b>ЛКМ</b> поворот · <b>ПКМ</b> сдвиг<br><b>Колесо</b> зум · <b>Клик</b> карточка</div>
+    <div class="bar" id="hud">ДИСТАНЦИЯ <b id="hdist">—</b> · ЧЕЛОВЕК <b>1,75 м</b></div>
+    <div id="pad"><button data-k="KeyW">▲</button><button data-k="KeyA">◀</button><button data-k="KeyS">▼</button><button data-k="KeyD">▶</button><button data-k="ShiftLeft" class="run">БЕГ</button><button data-k="Escape" class="exit">✕</button></div>
+    <div id="hover"></div>
+    <div id="edit">
+      <button id="edtoggle">Редактор</button>
+      <span class="sep edo"></span>
+      <span id="edname" class="edo">выберите объект</span>
+      <span class="sep edo"></span>
+      <button class="edo" id="edrl" title="Повернуть влево (Q)">↺</button>
+      <button class="edo" id="edrr" title="Повернуть вправо (E)">↻</button>
+      <button class="edo" id="eddup" title="Дубликат (Ctrl+D)">Копия</button>
+      <button class="edo" id="eddel" title="Удалить (Del)">Убрать</button>
+      <span class="sep edo"></span>
+      <button class="edo" id="edsnap" title="Привязка к сетке 0,25 м">Сетка</button>
+      <button class="edo" id="edundo" title="Отменить (Ctrl+Z)">Отмена</button>
+      <button class="edo" id="edreset" title="Вернуть исходную расстановку">Сброс</button>
+    </div>
+  </div>
+  <aside id="panel">
+    <div class="ph">
+      <p class="eyebrow">Yuzhe International Logistics Park · Хоргос</p>
+      <h1>Склад №4<br>блок 4-1 · по SKP</h1>
+      <div class="sub"><b>Геометрия из SketchUp-модели</b> · зал 48,05 × 76,05 м<br>
+        Наша часть до ограждения 35,5 м = 1 705 м² · колонны 16,05 / 32,05, шаг 7,05<br>
+        Карниз 8,8 · конёк 10,0 · 30 ячеек буфера · 4 полосы · без крана</div>
+    </div>
+    <div class="scroll">
+      <section><h2>Камера</h2><div class="grid2" id="views"></div></section>
+      <section><h2>Слои</h2><div id="layers"></div></section>
+      <section><h2>Сцена</h2><div class="grid2" id="scenebtns"></div></section>
+      <section><h2>Библиотека <span>— клик ставит объект в центр вида</span></h2>
+        <div id="libitems"></div><div id="libparams"></div>
+      </section>
+      <section><h2>Правила FIFO <span>— висят на стене смены</span></h2><div id="rules"></div></section>
+      <section><h2>Адресация буфера</h2><div id="bands"></div>
+        <div class="warn">Ёмкость буфера — 30 ячеек, ≈ 180 паллет в основании и до 360 в два яруса, это 6–8 машин. Обещание «буфер до 5 суток» при 5 машинах в сутки в худшем случае требует 25 машин ёмкости. Либо буфер по факту будет короче 5 суток, либо на этап 2 нужны стеллажи.</div>
+      </section>
+      <section><h2>Зоны — поток слева направо</h2><div id="zones"></div></section>
+      <section><h2>Смета этапа 1 <span>— клик наводит камеру</span></h2><div id="eqlist"></div>
+        <div class="warn">Мостовой кран исключён из проекта. Место тяжелее тонны принимается только на поддоне под вилы погрузчика 3 т — иначе не принимается. Телескопических конвейеров нет намеренно — этап 3.</div>
+      </section>
+      <section id="info"><div class="empty" id="infoBody">Наведите курсор на объект — появится название. Клик открывает карточку: назначение, количество, цена завода в ¥ и «под ключ» в $, ключ для поиска на 1688.</div></section>
+      <div class="foot">Из SKP прочитаны: габарит зала, линии и шаг колонн, высоты, проём Л1 (z 32,05–35,55) и плоскость ограждения на 35,5. НЕ найдены в SKP и взяты из рулеточного чертежа: ворота Л2/П2 (поставлены в чистый пролёт 7,05–14,1) и зеркальный проём П1. Проверить: реальна ли высота проёма Л1 4,0 м для бортовой машины, и есть ли вторые ворота на каждой стене.</div>
+    </div>
+  </aside>
+</div>
+
+<script>window.addEventListener('error',e=>{const l=document.getElementById('load');if(l){l.style.zIndex=99;l.innerHTML='<span style="max-width:600px;text-transform:none;letter-spacing:0;font-size:13px">'+(e.message||'')+' @ '+(e.filename||'')+':'+(e.lineno||'')+'</span>';}});</script>
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<script>
+/* ==========================================================================
+   СКЛАД №4, БЛОК 4-1 · YUZHE PARK · ХОРГОС · по черновым замерам (iPhone)
+   X: 0…48.00 (ширина). Z: 0…41.74 (длина). НАША часть: z 0…35.00.
+   z 35.00…41.74 — соседний «белый склад», граница без стены.
+   Колонны: линии x=16 и x=32, внутренние на z = 9.4 / 16.9 / 24.4 / 31.9.
+   Ворота: по 2 на боковых стенах (x=0 и x=48): центры z = 28.15 и 6.70.
+   Кран: подкрановые пути по линиям колонн, ПРОЛЁТ 16.0 м, ход вдоль z.
+   Поток: Л (запад, Китай) → П (восток, Казахстан).
+   ========================================================================== */
+const W = 48.05, D = 76.05, OUR = 35.5;           // зал целиком по SKP; наша часть до ограждения на 35,5
+const WALL_H = 8.0, EAVE = 8.8, RIDGE = 10.0;     // панель стены 8,0 · верх колонн 8,8 · конёк 10,0
+const COLX = [16.05, 32.05];
+const PITCH = 7.05;                               // шаг колонн по длине из SKP
+const FR = Array.from({length:10},(_,i)=>+(PITCH*(i+1)).toFixed(2));   // 7.05 … 70.5
+const COLZ = FR.filter(z=>z<OUR+0.3);             // 7.05 14.1 21.15 28.2 35.25 — в нашей части
+const GATE_H = 4.0;
+const GATES = [{z:32.80, w:3.5}, {z:10.58, w:3.5}];   // Л1/П1 — проём сдвинут на 1 м от решётки (31,05…34,55); Л2/П2 — по рулетке, в чистом пролёте
+
+const PAL = {
+  concrete:0x9a9ea3, steel:0x707880, steelDark:0x3f4650, wall:0xd3d7da, plinth:0x8e939a,
+  roof:0x6c757e, yellow:0xf2b705, orange:0xe0691f, green:0x2f8f5b, red:0xbf3b32,
+  blue:0x3f76ad, violet:0x6f61c9, carton:0xbb8f5b, vest:0xf07a22,
+  tyre:0x1c1f24, glass:0x2b3a48, rubber:0x2a2e33
+};
+
+const ZONES = [
+  {id:'R', s:'Карман', n:'Карман приёма — должен пустеть', c:PAL.blue, x0:1.2, x1:6.6, z0:7.6, z1:13.0, m2:29,
+   note:'Всё, что снято с машины у Л2, ложится сюда и только сюда. Карман пуст до прихода следующей машины — единственная защита от превращения приёмки в свалку.',
+   eq:'рольганг · мобильная рампа · телескопический конвейер (опция)'},
+  {id:'3', s:'Контроль', n:'Контроль, весы, этикетки', c:PAL.yellow, x0:7.2, x1:11.0, z0:7.6, z1:13.0, m2:21,
+   note:'Взвешивание каждого места, сверка с packing list, этикетка с номером отправки, АДРЕСОМ ЯЧЕЙКИ и ЦВЕТОМ ДНЯ.',
+   eq:'термопринтеры ×2 · сканеры ×4'},
+  {id:'4', s:'Юнитизация', n:'Юнитизация', c:PAL.orange, x0:11.6, x1:15.3, z0:7.4, z1:13.0, m2:21,
+   note:'Тяжёлое вниз, углозащита, обмотка от четырёх витков, паллета не выше 1,8 м. Выход прямо на магистраль.',
+   eq:'паллетообмотчик · запас поддонов · бандажные аппараты'},
+  {id:'О', s:'Охрана', n:'Здание охраны и бытовой блок', c:0x7c8794, x0:1.2, x1:30.0, z0:0.8, z1:6.6, m2:167,
+   note:'Существующее низкое здание вдоль южной стены, высота около 2 м, длина 29 м. Пост охраны у входа, дальше комната отдыха смены и щитовая. Занимает то место, где раньше стояли резерв и длинномер, — оба перенесены.',
+   eq:'пост охраны · LPR-монитор · комната смены · щитовая'},
+  {id:'6', s:'Брак', n:'Брак / карантин', c:PAL.red, x0:33.4, x1:37.4, z0:0.9, z1:3.9, m2:12,
+   note:'Сетка и замок в сервисном блоке среднего пролёта. Повреждённое отделяется физически, фото с рулеткой, акт.',
+   eq:'решётчатая клетка · акты · рулетка'},
+  {id:'8', s:'Упаковка', n:'Упаковочные материалы', c:0x8a7f66, x0:33.4, x1:37.6, z0:4.3, z1:6.5, m2:9,
+   note:'Стрейч, ПЭТ-лента, уголки, плёнка, распорные балки, надувные мешки — рядом с юнитизацией через магистраль.',
+   eq:'стеллаж расходников · бандажные аппараты'},
+  {id:'9', s:'АКБ', n:'Зарядка АКБ', c:0x4f8f7a, x0:38.0, x1:42.0, z0:0.9, z1:3.9, m2:12,
+   note:'Отдельная вентилируемая зона с огнетушителем. Ключ погрузчика вынимается при выходе оператора.',
+   eq:'зарядные станции Li-ion · огнетушитель · журнал'},
+  {id:'П', s:'Доски', n:'План-доска ячеек — «бумажная WMS»', c:0x5b8f7a, x0:38.2, x1:44.6, z0:4.3, z1:6.5, m2:14,
+   note:'Магнитная план-доска и красная доска старения лицом к магистрали: мимо них проходит каждый рейс погрузчика.',
+   eq:'доска 3,6 × 1,9 м · карточки · маркеры по цветам дней'},
+  {id:'S', s:'Стейджинг', n:'Стейджинг S1–S3 (по машинам)', c:PAL.violet, x0:33.2, x1:44.2, z0:6.7, z1:13.4, m2:73,
+   note:'Одна полоса — одна исходящая машина, набирается только в день отгрузки. Полоса занята дольше суток — это уже буфер, груз возвращается в ячейку.',
+   eq:'3 полосы ~24 м² · рольганг подачи'},
+  {id:'L', s:'Погрузка', n:'Карман погрузки П2', c:0xb08b4f, x0:44.7, x1:47.3, z0:7.6, z1:13.0, m2:14,
+   note:'Последние два метра перед воротами: 100 % сканирование против плана отправки и фото кузова до закрытия.',
+   eq:'сканеры · ремни и распорные балки'},
+  {id:'A', s:'Ряд A', n:'Буфер, ряд A (A1–A15)', c:0x4b7bb5, x0:1.2, x1:46.85, z0:17.5, z1:20.9, m2:155,
+   note:'Пятнадцать лёгких ячеек с южной магистрали, две паллеты в глубину.',
+   eq:'15 ячеек 2,8 × 3,4 м'},
+  {id:'B', s:'Ряд B', n:'Буфер, ряд B (B1–B15)', c:0x3f6699, x0:1.2, x1:46.85, z0:21.5, z1:26.0, m2:214,
+   note:'Ряд-близнец с северной магистрали, глубже на метр — три паллеты в глубину. Пятнадцать ячеек, та же адресация.',
+   eq:'15 ячеек 2,8 × 4,5 м'},
+  {id:'В', s:'Крытый пост', n:'Крытый пост разгрузки Л1 → П1', c:0xc9a227, x0:0.6, x1:47.4, z0:31.5, z1:34.9, m2:163,
+   note:'Сквозная полоса по проёму из SKP (z 32,05…35,55). Крана нет — машина заезжает через Л1, встаёт вдоль границы, погрузчик снимает груз с южного борта, работая с северной магистрали. Зимой это единственная разгрузка не на морозе. Место тяжелее тонны принимается только на поддоне, под вилы, — иначе не принимается.',
+   eq:'погрузчик 3 т · удлинители вил'},
+  {id:'С', n:'Соседний «белый склад»', c:0x596069, x0:0, x1:48.05, z0:35.5, z1:76.05, m2:1948,
+   note:'В SKP зал смоделирован целиком: 76,05 м, из них наша часть — до ограждения на 35,5 м. Дальше 40,5 м соседа под той же кровлей и с теми же колоннами.',
+   eq:'ограждение зелёной решёткой по z = 35,5'}
+];
+
+const SEC = [[1.2,15.3],[16.85,31.25],[32.85,46.85]];      // разрывы под колонны x=16,05 и 32,05
+const ROWS = [{k:'A',z0:17.5,z1:20.9},{k:'B',z0:21.5,z1:26.0}];
+const CELLS = [], TCELLS = [];
+ROWS.forEach(r=>{
+  let n=0;
+  SEC.forEach((sec,si)=>{
+    const w=(sec[1]-sec[0])/5;
+    for(let i=0;i<5;i++){
+      n++;
+      CELLS.push({id:r.k+n, x0:sec[0]+i*w+0.09, x1:sec[0]+(i+1)*w-0.09, z0:r.z0, z1:r.z1, band:si, row:r.k});
+    }
+  });
+});
+const BANDS = [
+  {t:'ХОЛОДНАЯ · 3–5 суток', c:0x3f76ad,
+   n:'Ячейки 1–5, западная секция у приёмки. Груз, у которого дата отгрузки не подтверждена. Один переезд в горячую зону допускается, когда машина назначена.'},
+  {t:'СРЕДНЯЯ · 2–3 суток', c:0xe0691f,
+   n:'Ячейки 6–10, средняя секция. Дата известна, но не ближайшие сутки. Отсюда одинаково близко и до приёмки, и до отгрузки.'},
+  {t:'ГОРЯЧАЯ · сегодня-завтра', c:0xbf3b32,
+   n:'Ячейки 11–15, восточная секция, ближе всего к П2. Всё, у чего машина уже назначена: отсюда груз идёт прямо в полосу стейджинга.'}
+];
+
+const EQ = {};
+function E(no,t,q,cn,cny,usd,note){ EQ[no]={no,t,q,k:cn,cny,usd,n:note}; return EQ[no]; }
+E(1,'Мостовой кран — ИСКЛЮЧЁН','0 шт · решение от 05.09.2026','—','—','0 (было 12 000 – 25 000)',
+  'Кран из проекта убран: не подошёл под здание и режим работы. Следствия для операций: место тяжелее тонны принимается только на поддоне под вилы погрузчика 3 т, иначе не принимается вовсе; крытый пост разгрузки Л1 → П1 остаётся — машину внутри разгружает погрузчик с северной магистрали. Освободившиеся 12–25 тыс. $ логично направить на второй погрузчик и стеллажи этапа 2.');
+E(2,'Мобильная гидравлическая рампа','1 шт · 8–10 т','移动式登车桥','18 000 – 35 000','6 000 – 12 000',
+  'Доков нет, погрузка с земли у боковых стен. Рампа с регулировкой: у китайских и казахстанских машин разная высота борта.');
+E(3,'Паллетообмотчик полуавтомат','1 шт · стол 2 т','半自动缠绕机 托盘','8 000 – 15 000','1 500 – 3 500',
+  'Обмотка с постоянным натяжением, четыре витка внизу. Стандарт, который идёт в продажу как часть УТП «минимум повреждений».');
+E(4,'Электротележка 2 т, Li-ion','2 шт','电动搬运车 锂电 2吨','6 000 – 13 000 / шт','3 000 – 6 000',
+  'Плечо приёмка → стейджинг стало 30–40 м поперёк трёх пролётов. Самоходная тележка тут вдвое быстрее ручной роклы.');
+E(6,'Гравитационный рольганг','4 секции по 3 м','无动力滚筒输送线','600 – 1 500 / секция','800 – 1 500',
+  'Единственный разрешённый «конвейер»: без электричества, для класса A от борта в зону приёма. Руками — не дальше трёх метров.');
+E(8,'Удлинители вил','1 пара · 1,8–2,4 м','叉车加长货叉套','800 – 2 000','110 – 280',
+  'Подача длинномера к машине и работа вне зоны крана. Без них шестиметровый профиль поднимают вдвоём вручную.');
+E(10,'Ручные рохли 3 т','4 шт','手动液压搬运车 3吨','800 – 1 500 / шт','450 – 850',
+  'Базовый инструмент перемещения паллеты: дёшево, ремонтопригодно, без зарядки.');
+'расходка','1 500 – 3 000',
+E(13,'Термопринтеры ×2 и 2D-сканеры ×4','—','热敏标签打印机 / 无线二维扫描枪','500–1 500 и 300–800 / шт','1 200 – 2 000',
+  'Штрихкод на каждое место, 100 % сверка при погрузке. Учётный контур этапа 0 — без WMS.');
+E(14,'LPR-камера на въезд и выезд','2 шт · у Л2 и П2','车牌识别一体机','1 500 – 3 000 / шт','400 – 850',
+  'Журнал «кто когда заехал и выехал» на обеих сторонах — теперь въезд и выезд на разных стенах здания.');
+E(15,'AI-NVR 16 каналов и 8–12 камер','1 комплект · архив 30–60 суток','AI功能 NVR 行为分析','12 000 – 30 000','1 700 – 4 200',
+  'Рекламации, каски-жилеты, маркетинг. Внимание: камеры не должны смотреть на территорию соседа за границей — уточнить при монтаже.');
+E(17,'Wi-Fi покрытие, 3–4 точки','—','工业级AP 无线覆盖','500 – 1 500 / шт','250 – 850',
+  'Точки на внутренних колоннах x=16/32 закрывают все три пролёта.');
+E(18,'Тепловые завесы на ворота','3–4 шт · Л1, Л2, П1, П2','工业热风幕 门口','2 000 – 6 000 / шт','850 – 2 500',
+  'Ворот стало четыре вместо трёх пар — пересчитать количество. Зимой без завес зона перегруза нерабочая.');
+E(19,'Разметка, отбойники, защита колонн, зеркала','комплект','仓库地面标线漆 / 防撞护角','2 000 – 4 000 + 100–300 / шт','1 000 – 2 000',
+  'Плюс к стандартной схеме: пунктирная линия границы с соседом и таблички «чужая территория». Защита колонн x=16/32 обязательна — мимо них ездит всё.');
+
+/* ------------------------------------------------------------- renderer */
+const view = document.getElementById('view');
+const isSmall = Math.min(innerWidth, innerHeight) < 700 || innerWidth < 880;
+const renderer = new THREE.WebGLRenderer({antialias:true, preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, isSmall ? 1.6 : 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.shadowMap.enabled = !isSmall;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;
+view.appendChild(renderer.domElement);
+const ANISO = renderer.capabilities.getMaxAnisotropy();
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x9fb2c6, 220, 1900);
+const camera = new THREE.PerspectiveCamera(45, 1, 0.4, 6000);
+const target = new THREE.Vector3(24, 3, 18);
+const sph = new THREE.Spherical(78, 0.9, -0.6);
+const desired = {t:target.clone(), r:sph.radius, phi:sph.phi, th:sph.theta};
+
+/* ------------------------------------------------------------- textures */
+function cnv(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
+function T(c,rx,ry,srgb){
+  const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(rx||1,ry||1); t.anisotropy=ANISO;
+  if(srgb!==false) t.encoding=THREE.sRGBEncoding; return t;
+}
+function noise(g,w,h,n,a){
+  for(let i=0;i<n;i++){ const v=Math.random()*255|0;
+    g.fillStyle=`rgba(${v},${v},${v},${a})`;
+    g.fillRect(Math.random()*w|0,Math.random()*h|0,1+Math.random()*2|0,1+Math.random()*2|0); }
+}
+const concreteCanvas=(()=>{
+  const s=512,c=cnv(s,s),g=c.getContext('2d');
+  g.fillStyle='#9da2a7'; g.fillRect(0,0,s,s);
+  for(let i=0;i<70;i++){
+    const r=20+Math.random()*90;
+    const gr=g.createRadialGradient(Math.random()*s,Math.random()*s,0,Math.random()*s,Math.random()*s,r);
+    gr.addColorStop(0,`rgba(${140+Math.random()*40|0},${142+Math.random()*40|0},${146+Math.random()*40|0},.16)`);
+    gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.fillRect(0,0,s,s);
+  }
+  noise(g,s,s,26000,.06);
+  g.strokeStyle='rgba(70,74,79,.55)'; g.lineWidth=3;
+  g.beginPath(); g.moveTo(0,1.5); g.lineTo(s,1.5); g.moveTo(1.5,0); g.lineTo(1.5,s); g.stroke();
+  return c;
+})();
+const corrCanvas=(()=>{
+  const c=cnv(96,8),g=c.getContext('2d');
+  const gr=g.createLinearGradient(0,0,96,0);
+  gr.addColorStop(0,'#8e949a'); gr.addColorStop(.16,'#c9ced3'); gr.addColorStop(.36,'#eef1f3');
+  gr.addColorStop(.60,'#c2c8cd'); gr.addColorStop(.84,'#8a9096'); gr.addColorStop(1,'#8e949a');
+  g.fillStyle=gr; g.fillRect(0,0,96,8); return c;
+})();
+function corrMat(len){
+  return new THREE.MeshStandardMaterial({color:PAL.wall, map:T(corrCanvas,len/0.32,1),
+    bumpMap:T(corrCanvas,len/0.32,1,false), bumpScale:0.05, roughness:0.55, metalness:0.32, envMapIntensity:0.8});
+}
+const cartonMap=(()=>{
+  const s=256,c=cnv(s,s),g=c.getContext('2d');
+  g.fillStyle='#bd9160'; g.fillRect(0,0,s,s);
+  for(let i=0;i<900;i++){
+    g.strokeStyle=`rgba(${120+Math.random()*70|0},${90+Math.random()*50|0},${55+Math.random()*40|0},.25)`;
+    g.lineWidth=.8; g.beginPath(); const x=Math.random()*s,y=Math.random()*s;
+    g.moveTo(x,y); g.lineTo(x+(Math.random()*22-11),y+(Math.random()*5-2.5)); g.stroke();
+  }
+  noise(g,s,s,7000,.05);
+  g.strokeStyle='rgba(90,66,40,.35)'; g.lineWidth=5; g.strokeRect(2.5,2.5,s-5,s-5);
+  return T(c,1,1);
+})();
+const asphaltMap=(()=>{
+  const s=256,c=cnv(s,s),g=c.getContext('2d');
+  g.fillStyle='#2b2f34'; g.fillRect(0,0,s,s); noise(g,s,s,30000,.16); return T(c,208,208);
+})();
+const hazardCanvas=(()=>{
+  const c=cnv(64,64),g=c.getContext('2d');
+  g.fillStyle='#f2b705'; g.fillRect(0,0,64,64);
+  g.strokeStyle='#191b1f'; g.lineWidth=17;
+  for(let i=-64;i<128;i+=34){ g.beginPath(); g.moveTo(i,0); g.lineTo(i+64,64); g.stroke(); }
+  return c;
+})();
+
+/* --------------------------------------------------------- environment */
+{
+  const s=new THREE.Scene(); s.background=new THREE.Color(0x9fb4ca);
+  const put=(col,w,h,d,x,y,z)=>{ const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),
+    new THREE.MeshBasicMaterial({color:col})); m.position.set(x,y,z); s.add(m); };
+  put(0xffffff,9,.1,9,3.5,6.5,-2); put(0xcfe0f2,14,.1,14,-4,7.5,4);
+  put(0x6d6353,26,.1,26,0,-5,0); put(0xdde8f5,.1,10,14,-8,2,0);
+  const pm=new THREE.PMREMGenerator(renderer);
+  scene.environment=pm.fromScene(s,0.03).texture; pm.dispose();
+}
+{
+  const c=cnv(4,256),g=c.getContext('2d');
+  const gr=g.createLinearGradient(0,0,0,256);
+  gr.addColorStop(0,'#5f89bd'); gr.addColorStop(.42,'#9db8d3');
+  gr.addColorStop(.62,'#cdd8e2'); gr.addColorStop(1,'#7d858d');
+  g.fillStyle=gr; g.fillRect(0,0,4,256);
+  const sky=new THREE.Mesh(new THREE.SphereGeometry(2600,40,24),
+    new THREE.MeshBasicMaterial({map:T(c,1,1),side:THREE.BackSide,fog:false,toneMapped:false}));
+  sky.position.set(24,0,20.87); scene.add(sky);
+}
+const hemi=new THREE.HemisphereLight(0xa8c4e0,0x5b5347,0.55); scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff2dd,2.2);
+sun.position.set(72,96,-46); sun.castShadow=renderer.shadowMap.enabled;
+sun.shadow.mapSize.set(isSmall?2048:4096,isSmall?2048:4096);
+sun.shadow.camera.near=20; sun.shadow.camera.far=260;
+sun.shadow.camera.left=-62; sun.shadow.camera.right=62;
+sun.shadow.camera.top=62; sun.shadow.camera.bottom=-62;
+sun.shadow.bias=-0.0007; sun.shadow.normalBias=0.045;
+sun.target.position.set(24,0,20.87); scene.add(sun,sun.target);
+const interior=new THREE.DirectionalLight(0xf3f7ff,0.22);
+interior.position.set(24,40,21); scene.add(interior);
+
+/* --------------------------------------------------------------- groups */
+const G={};
+['struct','walls','roof','guard','fence','floorgfx','addr','equip','trucks','people','labels','roles','dims','flow']
+  .forEach(k=>{ G[k]=new THREE.Group(); scene.add(G[k]); });
+const pickables=[];
+function tag(o,info){ o.userData.info=info; pickables.push(o); return o; }
+function tagEq(o,no,focus,r){ const rec=EQ[no];
+  if(focus){ rec.focus=focus; rec.r=r||16; } return tag(o,rec); }
+
+/* -------------------------------------------------------------- helpers */
+function std(c,r,m,x){ return new THREE.MeshStandardMaterial(Object.assign(
+  {color:c,roughness:r===undefined?0.72:r,metalness:m===undefined?0.05:m,envMapIntensity:0.75},x||{})); }
+const M={
+  steel:std(PAL.steel,.48,.72), steelDark:std(PAL.steelDark,.55,.65), galv:std(0xa9b1b8,.42,.8),
+  yellow:std(PAL.yellow,.55,.15), orange:std(PAL.orange,.5,.2), green:std(PAL.green,.55,.2),
+  red:std(PAL.red,.55,.15), blue:std(PAL.blue,.5,.2), white:std(0xe9ecef,.6,.05),
+  plinth:std(PAL.plinth,.9,.02), wood:std(0xa9834f,.88,0), tyre:std(PAL.tyre,.94,0),
+  rubber:std(PAL.rubber,.95,0), glass:std(PAL.glass,.12,.5,{envMapIntensity:1.6}),
+  dark:std(0x23282e,.7,.2), vest:std(PAL.vest,.75,0), skin:std(0xd0a583,.85,0),
+  cloth:std(0x2f3540,.9,0), tarp:std(0xd8dcdf,.86,0), alu:std(0xb6bdc4,.35,.85),
+  crate:std(0x8d6a41,.9,0), mesh:std(0xb9c1c8,.6,.5,{transparent:true,opacity:.4,side:THREE.DoubleSide}),
+  conc:std(0xdedcd4,.92,0), concBase:std(0x2b2e33,.85,0),
+  netGreen:std(0x2f9e44,.72,.1,{transparent:true,opacity:.5,side:THREE.DoubleSide}),
+  carton:new THREE.MeshStandardMaterial({map:cartonMap,roughness:.92,metalness:0,envMapIntensity:.5}),
+  film:new THREE.MeshStandardMaterial({color:0xd9e6ee,roughness:.25,metalness:0,
+    transparent:true,opacity:.34,envMapIntensity:1.2})
+};
+function mesh(geo,mat,x,y,z,p){ const m=new THREE.Mesh(geo,mat); m.position.set(x||0,y||0,z||0);
+  m.castShadow=true; m.receiveShadow=true; (p||G.equip).add(m); return m; }
+const bg=(w,h,d)=>new THREE.BoxGeometry(w,h,d);
+function box(w,h,d,mat,x,y,z,p){ return mesh(bg(w,h,d),mat,x,y,z,p); }
+function cyl(r,h,mat,x,y,z,p,s){ return mesh(new THREE.CylinderGeometry(r,r,h,s||16),mat,x,y,z,p); }
+function grp(x,y,z,p){ const g=new THREE.Group(); g.position.set(x||0,y||0,z||0); (p||G.equip).add(g); return g; }
+
+/* -------- реализм: скруглённые формы, шины, контактные тени, следы -------- */
+function rrect(w,h,r){ const s=new THREE.Shape(),x=-w/2,y=-h/2; r=Math.min(r,w/2,h/2);
+  s.moveTo(x+r,y); s.lineTo(x+w-r,y); s.quadraticCurveTo(x+w,y,x+w,y+r); s.lineTo(x+w,y+h-r);
+  s.quadraticCurveTo(x+w,y+h,x+w-r,y+h); s.lineTo(x+r,y+h); s.quadraticCurveTo(x,y+h,x,y+h-r);
+  s.lineTo(x,y+r); s.quadraticCurveTo(x,y,x+r,y); return s; }
+function rbox(w,h,d,r,mat,x,y,z,p){
+  const b=Math.min(r*0.5,0.03,d/4);
+  const geo=new THREE.ExtrudeGeometry(rrect(w-2*b,h-2*b,r),{depth:d-2*b,bevelEnabled:true,bevelThickness:b,bevelSize:b,bevelSegments:2,curveSegments:6});
+  geo.translate(0,0,-(d-2*b)/2); return mesh(geo,mat,x,y,z,p); }
+const aoTex=(()=>{ const c=cnv(128,128),g=c.getContext('2d');
+  const gr=g.createRadialGradient(64,64,8,64,64,64);
+  gr.addColorStop(0,'rgba(0,0,0,.62)'); gr.addColorStop(.55,'rgba(0,0,0,.28)'); gr.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=gr; g.fillRect(0,0,128,128); return new THREE.CanvasTexture(c); })();
+const aoMat=new THREE.MeshBasicMaterial({map:aoTex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,toneMapped:false});
+function ao(w,d,x,z,p,y){ const m=new THREE.Mesh(new THREE.PlaneGeometry(w*1.4,d*1.4),aoMat);
+  m.rotation.x=-Math.PI/2; m.position.set(x||0,y===undefined?0.021:y,z||0); (p||G.equip).add(m); return m; }
+const treadCanvas=(()=>{ const c=cnv(32,64),g=c.getContext('2d');
+  g.fillStyle='#22262b'; g.fillRect(0,0,32,64);
+  g.fillStyle='#0f1114'; g.fillRect(0,0,32,7); g.fillRect(0,32,32,7); g.fillRect(14,7,4,25); g.fillRect(14,39,4,25);
+  return c; })();
+const skidCanvas=(()=>{ const c=cnv(512,128),g=c.getContext('2d');
+  for(let i=0;i<14;i++){ const y=10+Math.random()*108, w=3+Math.random()*7;
+    const gr=g.createLinearGradient(0,0,512,0);
+    gr.addColorStop(0,'rgba(20,22,26,0)'); gr.addColorStop(.3,`rgba(20,22,26,${.25+Math.random()*.3})`);
+    gr.addColorStop(.7,`rgba(20,22,26,${.2+Math.random()*.3})`); gr.addColorStop(1,'rgba(20,22,26,0)');
+    g.fillStyle=gr; g.fillRect(0,y,512,w); }
+  return c; })();
+function skid(x0,x1,z,d){ const t=new THREE.CanvasTexture(skidCanvas); t.wrapS=THREE.RepeatWrapping; t.repeat.set((x1-x0)/12,1); t.anisotropy=ANISO;
+  decal(x1-x0,d,new THREE.MeshBasicMaterial({map:t,transparent:true,opacity:.55,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,toneMapped:false}),(x0+x1)/2,z,0.0135); }
+M.tread=new THREE.MeshStandardMaterial({map:T(treadCanvas,26,1),bumpMap:T(treadCanvas,26,1,false),bumpScale:.025,roughness:.96,metalness:0});
+M.hazard=new THREE.MeshStandardMaterial({map:T(hazardCanvas,4,1),roughness:.6,metalness:.1});
+M.woodDark=std(0x8a6a40,.9,0); M.tape=std(0x7a5a38,.7,0); M.paper=std(0xf4f2ea,.7,0);
+M.pants=std(0x2a3140,.9,0); M.reflect=std(0xe8ecef,.4,.2,{emissive:0x9aa4ae,emissiveIntensity:.25});
+M.amber=std(0xffa020,.3,0,{emissive:0xff8a00,emissiveIntensity:1.6});
+M.redLight=std(0xd23b2c,.3,.1,{emissive:0xb01f1f,emissiveIntensity:.7});
+M.headLight=std(0xfff6dc,.25,.1,{emissive:0xfff1c8,emissiveIntensity:1.0});
+M.cabPaint=std(0xdfe4e8,.4,.4); M.chrome=std(0xd8dde2,.2,1.0); M.fenderM=std(0x2f353c,.7,.2,{side:THREE.DoubleSide});
+function tire(g,x,y,z,r,w,axis){
+  const t=new THREE.Mesh(new THREE.CylinderGeometry(r,r,w,28),[M.tread,M.tyre,M.tyre]);
+  t.castShadow=t.receiveShadow=true; t.position.set(x,y,z); g.add(t);
+  const rim=cyl(r*0.56,w+0.02,M.galv,x,y,z,g,20);
+  const hub=cyl(r*0.18,w+0.12,M.steelDark,x,y,z,g,12);
+  const nuts=[];
+  for(let i=0;i<6;i++){ const a=i/6*Math.PI*2, u=Math.cos(a)*r*0.36, v=Math.sin(a)*r*0.36;
+    nuts.push(cyl(0.022,w+0.06,M.dark, axis==='z'?x+u:x, y+v, axis==='z'?z:z+u, g,6)); }
+  [t,rim,hub,...nuts].forEach(m=>{ if(axis==='z') m.rotation.x=Math.PI/2; else m.rotation.z=Math.PI/2; });
+  return t;
+}
+
+const allLabels=[];
+function paintLabel(s){
+  const p=s.userData.lp,px=p.px;
+  const c=cnv(8,8),g=c.getContext('2d');
+  const font=`700 ${px}px "Barlow Condensed","Roboto Condensed",sans-serif`;
+  g.font=font; c.width=Math.ceil(g.measureText(p.text).width)+px*0.72; c.height=Math.round(px*1.5);
+  const x=c.getContext('2d'); x.font=font; x.textBaseline='middle';
+  x.fillStyle='rgba(13,17,22,.78)'; x.fillRect(0,0,c.width,c.height);
+  x.fillStyle='rgba(255,255,255,.10)'; x.fillRect(0,0,c.width,2);
+  x.fillStyle=p.color; x.fillText(p.text,px*0.36,c.height/2+2);
+  const t=new THREE.CanvasTexture(c); t.minFilter=THREE.LinearFilter; t.encoding=THREE.sRGBEncoding;
+  if(s.material.map) s.material.map.dispose();
+  s.material.map=t; s.material.needsUpdate=true;
+  s.scale.set(c.width/px*1.02*p.scale,1.5*p.scale,1);
+}
+function makeLabel(text,color,px,scale){
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true,depthTest:false,toneMapped:false}));
+  s.userData.lp={text,color:color||'#e9ecef',px:px||52,scale:scale||1};
+  s.renderOrder=999; paintLabel(s); allLabels.push(s); return s;
+}
+function label(text,x,y,z,color,px,scale,parent){
+  const s=makeLabel(text,color,px,scale); s.position.set(x,y,z); (parent||G.labels).add(s); return s;
+}
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>allLabels.forEach(paintLabel));
+
+function decal(w,d,mat,x,z,y,rot){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),mat);
+  m.rotation.x=-Math.PI/2; if(rot) m.rotation.z=rot;
+  m.position.set(x,y===undefined?0.014:y,z); m.receiveShadow=false; G.floorgfx.add(m); return m;
+}
+function paintMat(c,o){ return new THREE.MeshBasicMaterial({color:c,transparent:true,
+  opacity:o===undefined?1:o,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,toneMapped:false}); }
+function paintRect(x0,z0,x1,z1,color,wdt,y){
+  const w=wdt||0.12,m=paintMat(color),yy=y||0.016;
+  decal(x1-x0,w,m,(x0+x1)/2,z0,yy); decal(x1-x0,w,m,(x0+x1)/2,z1,yy);
+  decal(w,z1-z0,m,x0,(z0+z1)/2,yy); decal(w,z1-z0,m,x1,(z0+z1)/2,yy);
+}
+function stencil(text,x,z,w,color,rot){
+  const c=cnv(1024,256),g=c.getContext('2d');
+  g.fillStyle=color||'rgba(255,255,255,.92)';
+  let px=164; g.font=`700 ${px}px "Barlow Condensed","Roboto Condensed",sans-serif`;
+  const tw=g.measureText(text).width;                       // длинные надписи ужимаем, а не режем
+  if(tw>960){ px=Math.floor(px*960/tw); g.font=`700 ${px}px "Barlow Condensed","Roboto Condensed",sans-serif`; }
+  g.textAlign='center'; g.textBaseline='middle'; g.fillText(text,512,140);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=ANISO;
+  decal(w,w/4,new THREE.MeshBasicMaterial({map:t,transparent:true,depthWrite:false,
+    polygonOffset:true,polygonOffsetFactor:-3,toneMapped:false}),x,z,0.019,rot||0);
+}
+
+/* ============================================================ ПЛОЩАДКА */
+{
+  const yMat=new THREE.MeshStandardMaterial({map:asphaltMap,roughness:.95,metalness:0,envMapIntensity:.4});
+  const yard=mesh(new THREE.PlaneGeometry(2400,2400),yMat,1199.7,-0.06,20.87,G.struct);
+  yard.rotation.x=-Math.PI/2; yard.castShadow=false;      // площадка со стороны П1/П2 — в уровень пола
+  const yardW=mesh(new THREE.PlaneGeometry(1200,2400),yMat,-600.3,-1.06,20.87,G.struct);
+  yardW.rotation.x=-Math.PI/2; yardW.castShadow=false;    // сторона Л1/Л2 — на 1 м ниже
+  box(0.34,1.05,2400,M.conc,-0.13,-0.53,20.87,G.struct);  // подпорная стенка перепада
+  box(0.44,0.09,2400,M.plinth,-0.16,-1.01,20.87,G.struct).castShadow=false;
+  const pm=paintMat(0xb9b096,.55);                       // манёвровые полосы у боковых стен
+  for(let z=-14;z<=52;z+=6){
+    const a=new THREE.Mesh(new THREE.PlaneGeometry(22,0.14),pm);
+    a.rotation.x=-Math.PI/2; a.position.set(-19,-0.03,z); G.struct.add(a);
+    const b=a.clone(); b.position.set(67,-0.03,z); G.struct.add(b);
+  }
+  for(let s=0;s<2;s++){
+    const x=s?74:-26;
+    box(0.4,0.35,150,M.white,x,0.17,20,G.struct).castShadow=false;
+    for(let z=-46;z<=90;z+=14) box(0.14,2.4,0.14,M.galv,x,1.2,z,G.struct);
+  }
+  [[-16,-8],[-16,46],[64,-8],[64,46]].forEach(p=>{
+    const g=grp(p[0],0,p[1],G.struct);
+    cyl(0.16,12,M.galv,0,6,0,g,10);
+    box(2.2,0.25,0.6,M.steelDark,0.9,12.0,0,g);
+    box(1.8,0.12,0.5,std(0xfff4dc,.4,0,{emissive:0xfff0d0,emissiveIntensity:.5}),0.9,11.85,0,g);
+  });
+}
+
+/* ============================================================== КАРКАС */
+const roofY = x => EAVE + (RIDGE-EAVE)*(1 - Math.abs(x - W/2)/(W/2));   // карниз 8,8 → конёк 10,0 по оси x=24,05
+{
+  const f=mesh(new THREE.PlaneGeometry(W,D),new THREE.MeshStandardMaterial({
+    map:T(concreteCanvas,W/6,D/6),bumpMap:T(concreteCanvas,W/6,D/6,false),bumpScale:.02,
+    roughnessMap:T(concreteCanvas,W/6,D/6,false),roughness:1.0,metalness:.02,envMapIntensity:.6}),W/2,0,D/2,G.struct);
+  f.rotation.x=-Math.PI/2; f.castShadow=false;
+  box(W+0.6,0.5,D+0.6,M.plinth,W/2,-0.26,D/2,G.struct).castShadow=false;
+}
+/* внутренние колонны по замерам + защита */
+COLX.forEach(x=>FR.forEach(z=>{                   // бетонные колонны по всему залу: белый ствол, чёрный цоколь
+  const g=grp(x,0,z,G.struct);
+  box(0.5,roofY(x)-0.3,0.5,M.conc,0,(roofY(x)-0.3)/2,0,g);
+  box(0.64,0.5,0.64,M.conc,0,roofY(x)-0.55,0,g);
+  box(0.58,0.62,0.58,M.concBase,0,0.31,0,g);
+  box(0.9,0.09,0.9,M.concBase,0,0.045,0,g);
+  ao(1.1,1.1,0,0,g,0.0215);
+  for(let s=-1;s<=1;s+=2){                        // отбойники — поз. 19 сметы
+    box(0.08,0.42,0.72,M.yellow,s*0.32,0.9,0,g);
+    box(0.72,0.42,0.08,M.yellow,0,0.9,s*0.32,g);
+  }
+}));
+/* пилястры в стенах по осям рам */
+FR.forEach(z=>{ [0,W].forEach(x=>{
+  const inGate = GATES.some(gt=>Math.abs(z-gt.z)<gt.w/2+0.4);
+  if(!inGate){ box(0.5,EAVE-0.3,0.5,M.conc,x,(EAVE-0.3)/2,z,G.struct);
+    box(0.56,0.6,0.56,M.concBase,x,0.3,z,G.struct); }
+});});
+[0,16.05,32.05,48.05].forEach(x=>{ [0,D].forEach(z=>{
+  box(0.5,EAVE-0.4,0.5,M.conc,x,(EAVE-0.4)/2,z,G.struct);
+  box(0.56,0.6,0.56,M.concBase,x,0.3,z,G.struct); });});
+/* рамы: стропила вдоль X на каждой оси z */
+FR.concat([0.25,D-0.25]).forEach(z=>{
+  const g=grp(0,0,z,G.struct);
+  const seg=2.6,n=Math.ceil(W/seg);
+  for(let i=0;i<n;i++){
+    const x0=i*seg,x1=Math.min(W,(i+1)*seg);
+    const y0=roofY(x0),y1=roofY(x1),L=Math.hypot(x1-x0,y1-y0);
+    const top=box(L,0.16,0.24,M.steelDark,(x0+x1)/2,(y0+y1)/2,0,g);
+    top.rotation.z=Math.atan2(y1-y0,x1-x0);
+    const bot=box(L,0.14,0.2,M.steelDark,(x0+x1)/2,(y0+y1)/2-0.95,0,g);
+    bot.rotation.z=top.rotation.z;
+    box(0.1,0.95,0.1,M.steelDark,x0,(y0+y1)/2-0.48,0,g);
+    const dg=box(0.08,1.35,0.08,M.steelDark,(x0+x1)/2,(y0+y1)/2-0.48,0,g);
+    dg.rotation.z=i%2?0.62:-0.62;
+  }
+});
+/* прогоны вдоль z */
+for(let x=1.2;x<W;x+=2.1) box(0.1,0.14,D,M.galv,x,roofY(x)-0.06,D/2,G.struct);
+/* кровля: два ската, конёк вдоль z на x=24 */
+{
+  const panel=(x0,x1)=>{
+    const y0=roofY(x0),y1=roofY(x1),L=Math.hypot(x1-x0,y1-y0);
+    const m=box(L,0.14,D+1.0,std(PAL.roof,.6,.5),(x0+x1)/2,(y0+y1)/2+0.06,D/2,G.roof);
+    m.rotation.z=Math.atan2(y1-y0,x1-x0);
+  };
+  panel(-0.5,W/2); panel(W/2,W+0.5);
+  box(0.5,0.2,D+1.2,M.galv,W/2,RIDGE+0.16,D/2,G.roof);
+  const skyM=std(0xdfeaf5,.3,0,{emissive:0xcfe0f0,emissiveIntensity:.35,transparent:true,opacity:.85});
+  [8,20,28,40].forEach(x=>{
+    const m=box(2.0,0.16,D-8,skyM,x,roofY(x)+0.07,D/2,G.roof);
+    m.rotation.z=Math.atan2(roofY(x+1)-roofY(x-1),2); m.castShadow=false;
+  });
+  const lampM=std(0xfff8e8,.35,0,{emissive:0xfff2d4,emissiveIntensity:1.5});
+  for(let x=5;x<W;x+=7.5) for(let z=4;z<D;z+=5.5){
+    const g=grp(x,0,z,G.roof);
+    box(0.08,0.8,0.08,M.steelDark,0,roofY(x)-1.4,0,g);
+    mesh(new THREE.CylinderGeometry(0.34,0.20,0.22,14),M.galv,0,roofY(x)-1.85,0,g);
+    mesh(new THREE.CylinderGeometry(0.30,0.30,0.05,14),lampM,0,roofY(x)-1.97,0,g).castShadow=false;
+  }
+}
+/* боковые стены x=0 и x=48 — с двумя воротами каждая */
+function wallSide(xFix, inwardSign){
+  const cuts=GATES.map(g=>[g.z-g.w/2,g.z+g.w/2]).sort((a,b)=>a[0]-b[0]);
+  let cur=0;
+  const seg=(z0,z1)=>{ const d=z1-z0; if(d<=0.01) return;
+    box(0.28,WALL_H-1.0,d,corrMat(d),xFix,1.0+(WALL_H-1.0)/2,(z0+z1)/2,G.walls);
+    box(0.34,1.0,d,M.plinth,xFix,0.5,(z0+z1)/2,G.walls);
+    const gl=box(0.12,EAVE-WALL_H-0.1,d,M.glass,xFix,WALL_H+(EAVE-WALL_H)/2,(z0+z1)/2,G.walls);   // световая лента
+    gl.castShadow=false; };
+  cuts.forEach(c=>{ seg(cur,c[0]); cur=c[1]; });
+  seg(cur,D);
+  cuts.forEach(c=>{
+    const cz=(c[0]+c[1])/2,gw=c[1]-c[0];
+    box(0.28,WALL_H-GATE_H,gw+0.4,corrMat(gw+0.4),xFix,GATE_H+(WALL_H-GATE_H)/2,cz,G.walls);
+    box(0.12,EAVE-WALL_H-0.1,gw+0.4,M.glass,xFix,WALL_H+(EAVE-WALL_H)/2,cz,G.walls).castShadow=false;
+    box(0.42,0.26,gw+0.5,M.yellow,xFix,GATE_H+0.13,cz,G.walls);
+    for(let s=-1;s<=1;s+=2){
+      box(0.42,GATE_H,0.22,M.galv,xFix,GATE_H/2,cz+s*(gw/2+0.11),G.walls);
+      box(0.5,0.45,0.5,M.rubber,xFix+inwardSign*0.35,1.15,cz+s*(gw/2+0.5),G.walls);
+    }
+    for(let i=0;i<4;i++)
+      box(0.12,0.42,gw-0.1,M.white,xFix+inwardSign*0.24,GATE_H-0.28-i*0.46,cz,G.walls);
+  });
+}
+wallSide(0,+1); wallSide(W,-1);
+/* торцевые стены z=0 и z=41.74 — глухие, со щипцом под конёк */
+[0,D].forEach(z=>{
+  const g=grp(0,0,z,G.walls),n=8,step=W/n;
+  for(let i=0;i<n;i++){
+    const xm=i*step+step/2;
+    box(step,WALL_H-1.0,0.28,corrMat(step),xm,1.0+(WALL_H-1.0)/2,z,g);
+    box(step,1.0,0.34,M.plinth,xm,0.5,z,g);
+    box(step,0.7,0.12,M.glass,xm,WALL_H+0.4,z,g).castShadow=false;
+    box(step,roofY(xm)-EAVE+0.1,0.26,corrMat(step),xm,EAVE+(roofY(xm)-EAVE)/2,z,g);
+  }
+});
+/* ---------- бетонные разгрузочные платформы снаружи у Л1 и Л2 (по фото) ---------- */
+function dockPad(gz,gw,idx){
+  const PH=1.0, PD=3.4, PW=gw+5.2;                       // верх платформы в уровень цоколя стены
+  const g=grp(0,0,0,G.struct);
+  box(PD,PH,PW,M.conc,-PD/2,-PH/2,gz,g);                                             // тело плиты: верх на 0
+  box(PD-0.24,0.05,PW-0.24,std(0xe7e5dd,.9,0),-PD/2,0.025,gz,g).castShadow=false;    // затёртая поверхность
+  box(PD+0.08,0.09,PW+0.08,M.plinth,-PD/2,-PH+0.045,gz,g);                           // подливка у земли
+  box(0.09,0.1,PW,std(0xc8c4b6,.95,0),-PD-0.02,-0.06,gz,g).castShadow=false;         // потёки по краю
+  for(let i=0;i<Math.floor(PW/1.2);i++)                                              // жёлтая кромка перепада
+    box(0.10,0.05,0.55,M.yellow,-PD-0.05,0.03,gz-PW/2+0.6+i*1.2,g).castShadow=false;
+  /* козырёк над проёмом */
+  const CY=GATE_H+0.95, CD=2.6, CW=gw+3.2;
+  box(CD,0.1,CW,M.white,-CD/2,CY,gz,g);
+  box(CD,0.3,0.09,M.white,-CD/2,CY+0.2,gz+CW/2,g);
+  box(CD,0.3,0.09,M.white,-CD/2,CY+0.2,gz-CW/2,g);
+  box(0.09,0.3,CW,M.white,-CD+0.045,CY+0.2,gz,g);
+  [-1,1].forEach(s=>{ const b=box(0.08,0.08,2.5,M.galv,-CD*0.55,CY-0.62,gz+s*CW*0.42,g);
+    b.rotation.x=s*0.62; });
+  tag(g,{t:'Бетонная разгрузочная платформа',q:`снаружи у ворот ${idx} · ${PD.toFixed(1)} × ${PW.toFixed(1)} м · верх вровень с полом зала`,
+    n:'Существующая монолитная платформа вдоль западной стены: верх в уровень цоколя и пола зала, борт открытый без отбойников. Машина встаёт бортом к платформе — груз идёт с кузова на платформу и через проём внутрь без мостика. Кромка без ограждения: нужна жёлто-чёрная разметка по всему периметру и колёсоотбойный брус, иначе погрузчик сходит с края.',
+    k:'concrete loading platform / бетонная разгрузочная платформа / 混凝土装卸平台'});
+}
+dockPad(GATES[0].z,GATES[0].w,'Л1');
+dockPad(GATES[1].z,GATES[1].w,'Л2');
+/* подписи ворот */
+label('Л1', 1.7, 6.3, GATES[0].z-2.6, '#f2b705', 42, 1.0);
+label('Л2', 1.7, 6.3, GATES[1].z-2.9, '#f2b705', 42, 1.0);
+label('П1', W-1.7, 6.3, GATES[0].z-2.6, '#f2b705', 42, 1.0);
+label('П2', W-1.7, 6.3, GATES[1].z-2.9, '#f2b705', 42, 1.0);
+stencil('Л1 · ВЪЕЗД ПОД КРАН · ПРОЁМ 3,5 м ПО SKP',9,GATES[0].z-1.2,12,'rgba(242,183,5,.8)');
+stencil('Л2 · ПРИЁМ',4.4,GATES[1].z-2.1,5.5,'rgba(242,183,5,.8)');
+stencil('П1 · ВЫЕЗД',42.5,GATES[0].z-1.2,6,'rgba(242,183,5,.8)');
+stencil('П2 · ОТГРУЗКА',43,GATES[1].z-2.1,7,'rgba(242,183,5,.8)');
+/* тепловые завесы над всеми четырьмя воротами — поз.18 */
+[[0.55,GATES[0].z],[0.55,GATES[1].z],[W-0.55,GATES[0].z],[W-0.55,GATES[1].z]].forEach((p,i)=>{
+  const g=grp(p[0],0,p[1],G.walls); g.rotation.y=Math.PI/2;
+  box(4.4,0.42,0.5,M.white,0,GATE_H+0.55,0,g);
+  for(let j=0;j<10;j++) box(0.34,0.06,0.42,M.dark,-1.9+j*0.42,GATE_H+0.35,0,g);
+  box(0.5,0.3,0.3,M.steelDark,2.4,GATE_H+0.55,0,g);
+  if(i===0) tagEq(g,18,[2,4,GATES[0].z],14); else tag(g,EQ[18]);
+});
+
+/* ============================== ГРАНИЦА С СОСЕДНИМ СКЛАДОМ (z = 35) */
+{
+  // серый ковёр чужой территории
+  decal(W,D-OUR,paintMat(0x596069,.4),W/2,(OUR+D)/2,0.011);
+  // пунктирная линия границы
+  for(let x=0.6;x<W;x+=2.0) decal(1.1,0.16,paintMat(0xe9ecef,.95),x+0.55,OUR,0.02);
+  stencil('ГРАНИЦА С СОСЕДНИМ СКЛАДОМ · z = 35,5 м',W/2,OUR+1.3,16,'rgba(233,236,239,.85)');
+  stencil('«БЕЛЫЙ СКЛАД» · 40,5 м ДО ТОРЦА · НЕ НАША ТЕРРИТОРИЯ',W/2,OUR+12,22,'rgba(233,236,239,.5)');
+  label('СОСЕДНИЙ «БЕЛЫЙ СКЛАД» · 48 × 40,5 м',W/2,3.4,OUR+20,'#aab2ba',44,1.0);
+  // зелёная решётка по границе — как на объекте
+  const PW=2.95, PN=Math.round(W/PW);
+  for(let i=0;i<PN;i++){
+    const x0=i*(W/PN), x1=(i+1)*(W/PN), cxp=(x0+x1)/2, pw=(x1-x0)-0.16;
+    const p=box(pw,2.0,0.03,M.netGreen,cxp,1.28,OUR,G.fence);
+    p.castShadow=false; p.receiveShadow=false;
+    box(pw,0.07,0.07,M.green,cxp,2.30,OUR,G.fence);        // верхняя обвязка
+    box(pw,0.06,0.06,M.green,cxp,1.72,OUR,G.fence);        // рёбра жёсткости
+    box(pw,0.06,0.06,M.green,cxp,1.14,OUR,G.fence);
+    box(pw,0.06,0.06,M.green,cxp,0.56,OUR,G.fence);
+    box(0.09,2.45,0.09,M.green,x0+0.04,1.22,OUR,G.fence);  // стойка
+    box(0.28,0.10,0.28,M.dark,x0+0.04,0.05,OUR,G.fence);   // пятка стойки
+  }
+  box(0.09,2.45,0.09,M.green,W-0.04,1.22,OUR,G.fence);
+  box(0.28,0.10,0.28,M.dark,W-0.04,0.05,OUR,G.fence);
+  tag(G.fence,{t:'Зелёная решётка по границе с соседом',q:'48 м · панели 2,95 × 2,0 м · 16 секций',
+    q2:'',x:0,
+    n:'Такие же секции, как уже стоят у вас на объекте: зелёная сварная панель с рёбрами жёсткости на стойках с пяткой, без бетонирования — переставляется, если границу подвинут. Шестнадцать секций по 2,95 м закрывают все 48 м. Оставьте одну секцию съёмной как калитку. Без перегородки их люди и техника оказываются в вашей зоне, видеоархив снимает чужой груз, а пропажа на стыке недоказуема.',
+    k:'warehouse wire mesh partition / сетчатая перегородка складская / 仓库隔离网'});
+}
+
+/* ==================================================== НАПОЛЬНАЯ ГРАФИКА */
+ZONES.forEach(z=>{
+  const w=z.x1-z.x0,d=z.z1-z.z0,cx=(z.x0+z.x1)/2,cz=(z.z0+z.z1)/2;
+  z.center=new THREE.Vector3(cx,1.5,cz);
+  if(z.id==='С') return;
+  if(z.id==='A'||z.id==='B') return;                // ряды буфера рисуются поячеечно
+  decal(w,d,paintMat(z.c,0.17),cx,cz,0.012);
+  paintRect(z.x0+0.06,z.z0+0.06,z.x1-0.06,z.z1-0.06,z.id==='6'?PAL.red:z.c,0.14);
+  label(`[${z.id}] ${(z.s||z.n).toUpperCase()}`,cx,3.4,cz,'#ffffff',44,0.78);
+});
+
+/* ---------- адресные ячейки буфера ---------- */
+CELLS.forEach(c=>{
+  const w=c.x1-c.x0,d=c.z1-c.z0,cx=(c.x0+c.x1)/2,cz=(c.z0+c.z1)/2;
+  c.center=new THREE.Vector3(cx,1.2,cz);
+  decal(w,d,paintMat(BANDS[c.band].c,0.15),cx,cz,0.0122);
+  paintRect(c.x0,c.z0,c.x1,c.z1,0xffffff,0.11,0.0165);          // белая рамка ячейки
+  stencil(c.id,cx,c.z0+0.75,2.0);                                // адрес на полу у входа
+  const s2=makeLabel(c.id,'#ffffff',46,0.62);                    // адрес в воздухе
+  s2.position.set(cx,1.75,cz); G.addr.add(s2);
+  tag(decal(w,d,paintMat(0xffffff,0.001),cx,cz,0.0121),{
+    t:'Ячейка '+c.id, q:BANDS[c.band].t+' · '+w.toFixed(1)+' × '+d.toFixed(1)+' м',
+    n:BANDS[c.band].n+' Правило одно для всех ячеек: одна ячейка — одна отправка. Две разные отправки в одной ячейке запрещены даже если место осталось: именно смешение партий, а не глубина хранения, ломает FIFO.',
+    k:'Адрес печатается на этикетке каждого места'});
+});
+stencil('РЯД A · С ЮЖНОЙ МАГИСТРАЛИ · 2 ПАЛЛЕТЫ В ГЛУБИНУ',24,19.2,15,'rgba(207,224,242,.55)');
+stencil('РЯД B · С СЕВЕРНОЙ МАГИСТРАЛИ · 3 ПАЛЛЕТЫ В ГЛУБИНУ',24,23.75,15,'rgba(207,224,242,.55)');
+
+
+/* ---------- проезды ---------- */
+/* магистраль ЮГ: приёмка → буфер → стейджинг */
+paintRect(0.9,13.2,47.1,17.2,PAL.yellow,0.16,0.015);
+stencil('МАГИСТРАЛЬ ЮГ · 4,0 м',7.5,15.2,10,'rgba(242,183,5,.9)');
+stencil('МАГИСТРАЛЬ ЮГ · 4,0 м',40,15.2,10,'rgba(242,183,5,.9)');
+paintRect(0.9,26.3,47.1,30.9,PAL.yellow,0.16,0.015);
+stencil('МАГИСТРАЛЬ СЕВЕР · 4,6 м',7.5,28.6,10,'rgba(242,183,5,.9)');
+stencil('МАГИСТРАЛЬ СЕВЕР · 4,6 м',40,28.6,10,'rgba(242,183,5,.9)');
+/* северный сквозной проезд Л1 → П1 */
+paintRect(0,31.5,W,34.9,PAL.yellow,0.16,0.015);
+stencil('КРЫТЫЙ ПОСТ РАЗГРУЗКИ · Л1 → П1',24,33.2,14,'rgba(242,183,5,.9)');
+/* подходы к воротам Л2 и П2 */
+paintRect(0,GATES[1].z-1.75,1.2,GATES[1].z+1.75,PAL.yellow,0.14,0.015);
+paintRect(W-1.2,GATES[1].z-1.75,W,GATES[1].z+1.75,PAL.yellow,0.14,0.015);
+/* следы шин и пятна на проездах */
+skid(1.5,46.5,15.2,3.4); skid(1.5,46.5,28.6,4.0); skid(0.5,47.5,33.2,2.8);
+[[6,15.6],[19,14.6],[34,15.9],[12,28.2],[27,29.1],[41,28.0],[4.5,10.6],[43.5,10.6]]
+  .forEach(p=>ao(1.4+Math.random(),1.0+Math.random()*0.6,p[0],p[1],G.floorgfx,0.0134));
+
+/* полосы стейджинга: вдоль x, смотрят на ворота П2 */
+const LANES=[[33.4,6.9,44.0,8.9],[33.4,9.1,44.0,11.1],[33.4,11.3,44.0,13.3]];
+LANES.forEach((l,i)=>{
+  paintRect(l[0],l[1],l[2],l[3],0xffffff,0.13,0.018);
+  stencil('S'+(i+1),l[0]+1.4,(l[1]+l[3])/2,2.4);
+  stencil('ОДНА ПОЛОСА — ОДНА МАШИНА',l[2]-4.6,(l[1]+l[3])/2,7.5,'rgba(255,255,255,.6)');
+});
+/* зелёные пешеходные дорожки */
+function walkway(x0,z0,x1,z1){
+  const len=Math.hypot(x1-x0,z1-z0);
+  decal(0.9,len,paintMat(0x2f8f5b,.85),(x0+x1)/2,(z0+z1)/2,0.017,-Math.atan2(x1-x0,z1-z0));
+}
+walkway(0.7,1.0,47.3,1.0);
+walkway(0.7,1.2,0.7,31.2); walkway(47.3,1.2,47.3,31.2);
+/* следы машин снаружи */
+paintRect(-6.6,GATES[1].z-6.3,-1.4,GATES[1].z+6.3,0xd8d2bb,0.16);
+paintRect(W+1.4,GATES[1].z-8,W+6.8,GATES[1].z+13,0xd8d2bb,0.16);
+
+/* размеры и оси */
+{
+  const dm=paintMat(0xf2b705,.9);
+  const dim=(x0,z0,x1,z1,text)=>{
+    const len=Math.hypot(x1-x0,z1-z0);
+    const l=new THREE.Mesh(new THREE.PlaneGeometry(0.1,len),dm);
+    l.rotation.x=-Math.PI/2; l.rotation.z=-Math.atan2(x1-x0,z1-z0);
+    l.position.set((x0+x1)/2,0.02,(z0+z1)/2); G.dims.add(l);
+    [[x0,z0],[x1,z1]].forEach(p=>{
+      const t=new THREE.Mesh(new THREE.PlaneGeometry(1.4,0.1),dm);
+      t.rotation.x=-Math.PI/2; t.rotation.z=-Math.atan2(x1-x0,z1-z0)+Math.PI/2;
+      t.position.set(p[0],0.02,p[1]); G.dims.add(t);
+    });
+    label(text,(x0+x1)/2,0.9,(z0+z1)/2,'#f2b705',44,1.05,G.dims);
+  };
+  dim(0,-6.5,16.05,-6.5,'16,05 м'); dim(16.05,-6.5,32.05,-6.5,'16,0 м'); dim(32.05,-6.5,48.05,-6.5,'16,0 м');
+  dim(0,-9.5,48.05,-9.5,'48,05 м (ширина, SKP)');
+  dim(52.5,0,52.5,OUR,'35,5 м — наша часть');
+  dim(52.5,OUR,52.5,D,'40,55 м — сосед');
+  dim(55.5,0,55.5,D,'76,05 м (зал целиком, SKP)');
+  dim(-4.2,COLZ[0],-4.2,COLZ[1],'шаг 7,05 м');
+  label('ЛИНИЯ КОЛОНН x=16,05',16.05,7.6,20.6,'#c9ced3',38,0.85,G.dims);
+  label('ЛИНИЯ КОЛОНН x=32,05',32.05,7.6,20.6,'#c9ced3',38,0.85,G.dims);
+}
+
+/* ========================================================= ОБОРУДОВАНИЕ */
+function pallet(p,x,y,z){                                  // EUR 1200×800: 5 досок, 3 поперечины, 9 шашек
+  const g=grp(x,y||0,z,p||G.equip); g.userData.nm='Поддон EUR 1200 × 800';
+  [[-0.3275,0.145],[-0.15,0.1],[0,0.145],[0.15,0.1],[0.3275,0.145]].forEach(b=>box(1.2,0.022,b[1],M.wood,0,0.133,b[0],g));
+  for(let i=-1;i<=1;i++){ box(0.145,0.022,0.8,M.wood,i*0.5275,0.111,0,g);
+    for(let j=-1;j<=1;j++) box(0.145,0.078,0.1,M.woodDark,i*0.5275,0.061,j*0.35,g); }
+  [[-0.35,0.1],[0,0.145],[0.35,0.1]].forEach(b=>box(1.2,0.022,b[1],M.wood,0,0.011,b[0],g));
+  return g;
+}
+function stack(x,z,layers,rot,wrapped,p){
+  const g=grp(x,0,z,p||G.equip); g.rotation.y=rot||0;
+  g.userData.nm='Паллета с коробами · '+(layers||1)+' яруса';
+  ao(1.3,0.9,0,0,g);
+  pallet(g,0,0,0);
+  for(let i=0;i<layers;i++){
+    const h=0.36+Math.random()*0.06, y=0.15+i*0.40;
+    for(let k=-1;k<=1;k+=2){
+      box(0.55,h,0.74,M.carton,k*0.285,y+h/2,0,g).rotation.y=(Math.random()-0.5)*0.03;
+      box(0.05,0.004,0.75,M.tape,k*0.285,y+h+0.002,0,g);
+    }
+    box(0.26,0.15,0.004,M.paper,0.28,y+h*0.55,0.372,g);
+  }
+  if(wrapped!==false) box(1.2,layers*0.40+0.05,0.84,M.film,0,0.15+layers*0.20,0,g).castShadow=false;
+  return g;
+}
+function roller(x,z,len,vertical,h){
+  h=h||0.72; const g=grp(x,0,z),wdt=0.8;
+  for(let s=-1;s<=1;s+=2)
+    box(vertical?0.09:len,0.14,vertical?len:0.09,M.galv,vertical?s*wdt/2:0,h,vertical?0:s*wdt/2,g);
+  const n=Math.max(2,Math.round(len/0.28));
+  const im=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.05,0.05,wdt-0.04,10),M.alu,n);
+  im.castShadow=true;
+  const d=new THREE.Object3D();
+  for(let i=0;i<n;i++){
+    const t=-len/2+(i+0.5)*(len/n);
+    d.position.set(vertical?0:t,h+0.09,vertical?t:0); d.rotation.set(0,0,0);
+    if(vertical) d.rotation.z=Math.PI/2; else d.rotation.x=Math.PI/2;
+    d.updateMatrix(); im.setMatrixAt(i,d.matrix);
+  }
+  g.add(im);
+  const legs=Math.max(2,Math.round(len/2.4));
+  for(let i=0;i<=legs;i++){ const t=-len/2+i*(len/legs);
+    for(let s=-1;s<=1;s+=2) box(0.07,h,0.07,M.steelDark,vertical?s*wdt/2:t,h/2,vertical?t:s*wdt/2,g); }
+  return g;
+}
+function cantilever(x,z,len,rotY){
+  const g=grp(x,0,z),n=Math.max(2,Math.round(len/2.4)+1);
+  g.rotation.y=rotY||0; ao(2.8,len+0.6,-0.6,0,g);
+  for(let i=0;i<n;i++){
+    const t=-len/2+i*(len/(n-1));
+    box(0.26,3.6,0.14,M.blue,0,1.8,t,g);
+    box(1.5,0.16,0.9,M.blue,-0.7,0.1,t,g);
+    [0.95,1.95,2.95].forEach(y=>{ box(1.55,0.14,0.13,M.blue,-0.78,y,t,g);
+      box(0.1,0.22,0.13,M.yellow,-1.5,y+0.15,t,g); });
+  }
+  [0.99,1.99].forEach((y,k)=>{ for(let j=0;j<4;j++)
+    cyl(0.065,len*0.92,k?M.galv:M.alu,-0.45-j*0.28,y+0.08,0,g,8).rotation.x=Math.PI/2; });
+  return g;
+}
+function aFrame(x,z,rotY){
+  const g=grp(x,0,z); g.rotation.y=rotY||0;
+  box(1.9,0.14,0.9,M.green,0,0.09,0,g);
+  for(let s=-1;s<=1;s+=2){
+    box(0.13,3.1,0.13,M.green,s*0.6,1.6,0,g).rotation.z=s*0.30;
+    box(0.11,0.35,0.8,M.green,s*0.98,0.32,0,g);
+  }
+  box(1.5,0.11,0.11,M.green,0,1.2,0,g);
+  for(let j=0;j<5;j++) box(0.09,3.3,0.09,M.alu,-0.82+j*0.13,1.75,0.18,g).rotation.z=-0.27;
+  return g;
+}
+function forklift(x,z,rot){
+  const g=grp(x,0,z); g.rotation.y=rot||0;
+  ao(1.7,3.0,0,0.2,g);
+  rbox(1.15,0.5,1.75,0.1,M.orange,0,0.6,-0.05,g);                       // корпус
+  box(1.0,0.14,1.55,M.steelDark,0,0.3,-0.05,g);                        // рама
+  rbox(1.1,0.8,0.6,0.2,M.orange,0,0.7,-1.05,g);                        // противовес
+  box(1.0,0.1,0.02,M.hazard,0,0.42,-1.36,g);
+  for(let s=-1;s<=1;s+=2) box(0.14,0.08,0.03,M.redLight,s*0.4,0.98,-1.36,g);
+  box(0.95,0.05,1.1,M.dark,0,0.87,0.1,g);                              // пол кабины
+  box(0.5,0.12,0.45,M.dark,0,1.0,-0.4,g); rbox(0.5,0.55,0.12,0.05,M.dark,0,1.34,-0.64,g);   // сиденье
+  rbox(0.7,0.3,0.14,0.05,M.dark,0,1.25,0.45,g);                        // панель
+  cyl(0.025,0.45,M.steelDark,0,1.3,0.3,g,8).rotation.x=0.5;
+  mesh(new THREE.TorusGeometry(0.16,0.02,8,20),M.dark,0,1.5,0.18,g).rotation.x=1.07;
+  for(let s=-1;s<=1;s+=2){ cyl(0.035,1.45,M.steelDark,s*0.5,1.72,0.5,g,8);   // защитная крыша
+    cyl(0.035,1.45,M.steelDark,s*0.5,1.72,-0.7,g,8);
+    box(0.06,0.06,1.25,M.steelDark,s*0.52,2.45,-0.1,g); }
+  box(1.1,0.06,0.06,M.steelDark,0,2.45,0.5,g); box(1.1,0.06,0.06,M.steelDark,0,2.45,-0.7,g);
+  for(let i=0;i<5;i++) box(1.06,0.03,0.05,M.steelDark,0,2.46,-0.5+i*0.22,g);
+  for(let s=-1;s<=1;s+=2){ box(0.14,2.9,0.16,M.steel,s*0.44,1.5,1.05,g);       // мачта
+    box(0.08,2.5,0.1,M.steelDark,s*0.3,1.35,1.02,g);
+    cyl(0.04,1.1,M.steelDark,s*0.55,1.15,0.72,g,8).rotation.x=-0.32;          // цилиндры наклона
+    cyl(0.018,2.1,M.dark,s*0.14,1.6,1.14,g,6); }                               // цепи
+  box(1.0,0.16,0.1,M.steelDark,0,0.72,1.12,g); box(1.0,0.12,0.12,M.steelDark,0,2.92,1.05,g);
+  box(0.95,0.45,0.06,M.steelDark,0,0.55,1.17,g);                                // каретка
+  for(let i=0;i<4;i++) box(0.9,0.035,0.035,M.steelDark,0,0.9+i*0.28,1.19,g);   // спинка
+  for(let k=-1;k<=1;k++) box(0.035,1.15,0.035,M.steelDark,k*0.42,1.3,1.19,g);
+  for(let s=-1;s<=1;s+=2){ box(0.13,0.045,1.05,M.galv,s*0.3,0.085,1.72,g);     // вилы
+    box(0.13,0.5,0.08,M.galv,s*0.3,0.34,1.23,g);
+    box(0.12,0.12,0.06,M.headLight,s*0.45,2.35,0.62,g); }                      // фары
+  box(0.9,0.12,0.1,M.yellow,0,2.46,0.55,g);
+  cyl(0.07,0.14,M.amber,-0.4,2.55,-0.55,g,12);                                 // маячок
+  box(0.03,0.15,0.1,M.dark,0.58,2.1,0.5,g);                                     // зеркало
+  tire(g,-0.62,0.4,0.62,0.4,0.26,'x'); tire(g,0.62,0.4,0.62,0.4,0.26,'x');
+  tire(g,-0.5,0.26,-0.95,0.26,0.2,'x'); tire(g,0.5,0.26,-0.95,0.26,0.2,'x');
+  return g;
+}
+function palletJack(x,z,rot,electric){
+  const g=grp(x,0,z); g.rotation.y=rot||0; const mat=electric?M.green:M.red;
+  ao(0.8,1.9,0,0.1,g);
+  rbox(0.62,0.42,0.55,0.08,mat,0,0.34,-0.5,g);
+  if(electric) box(0.5,0.1,0.4,M.dark,0,0.58,-0.5,g);
+  const h=grp(0,0.55,-0.72,g); h.rotation.x=-0.32;
+  cyl(0.03,1.05,M.steelDark,0,0.5,0,h,10);
+  rbox(0.46,0.14,0.1,0.05,M.dark,0,1.02,0,h);
+  cyl(0.02,0.4,M.dark,0,1.02,0,h,8).rotation.z=Math.PI/2;
+  for(let s=-1;s<=1;s+=2){ box(0.17,0.07,1.15,mat,s*0.22,0.1,0.42,g);
+    box(0.17,0.04,0.12,mat,s*0.22,0.15,-0.12,g);
+    cyl(0.045,0.06,M.rubber,s*0.22,0.05,0.9,g,12).rotation.z=Math.PI/2; }
+  for(let s=-1;s<=1;s+=2) cyl(0.09,0.06,M.rubber,s*0.07,0.09,-0.72,g,14).rotation.z=Math.PI/2;
+  return g;
+}
+function trolleyCart(x,z,rot){
+  const g=grp(x,0,z); g.rotation.y=rot||0;
+  box(1.0,0.06,0.62,M.wood,0,0.35,0,g);
+  box(0.06,0.9,0.62,M.galv,-0.47,0.8,0,g);
+  for(let sx=-1;sx<=1;sx+=2) for(let sz=-1;sz<=1;sz+=2)
+    cyl(0.09,0.05,M.dark,sx*0.42,0.09,sz*0.24,g,10).rotation.z=Math.PI/2;
+  return g;
+}
+function bench(x,z,w,d){
+  const g=grp(x,0,z); ao(w,d,0,0,g);
+  box(w,0.08,d,M.wood,0,0.9,0,g); box(w-0.2,0.04,d-0.2,M.galv,0,0.5,0,g);
+  for(let sx=-1;sx<=1;sx+=2) for(let sz=-1;sz<=1;sz+=2)
+    box(0.07,0.9,0.07,M.steelDark,sx*(w/2-0.12),0.45,sz*(d/2-0.12),g);
+  return g;
+}
+function podium(x,z,rot){
+  const g=grp(x,0,z); g.rotation.y=rot||0; ao(2.6,1.8,0,0.3,g);
+  box(2.4,0.14,1.5,M.galv,0,1.92,0,g);
+  for(let sx=-1;sx<=1;sx+=2) for(let sz=-1;sz<=1;sz+=2)
+    box(0.09,1.92,0.09,M.yellow,sx*1.1,0.96,sz*0.68,g);
+  for(let sz=-1;sz<=1;sz+=2){ box(2.4,0.07,0.07,M.yellow,0,2.95,sz*0.72,g);
+    box(2.4,0.07,0.07,M.yellow,0,2.45,sz*0.72,g); }
+  box(0.07,0.07,1.5,M.yellow,-1.16,2.95,0,g);
+  for(let i=0;i<7;i++) box(1.0,0.05,0.26,M.galv,0,0.28+i*0.26,0.9+i*0.2,g);
+  for(let sx=-1;sx<=1;sx+=2) cyl(0.11,0.09,M.dark,sx*1.05,0.11,-0.62,g,10).rotation.z=Math.PI/2;
+  return g;
+}
+function person(x,z,rot,pose,role,p){
+  const g=grp(x,0,z,p||G.people); g.rotation.y=rot||0;
+  g.userData.nm=role||'Человек'; g.userData.role=role||'';
+  ao(0.55,0.55,0,0,g);
+  for(let s=-1;s<=1;s+=2){ cyl(0.08,0.8,M.pants,s*0.11,0.42,0,g,12);
+    box(0.15,0.09,0.27,M.dark,s*0.11,0.045,0.04,g); }
+  cyl(0.2,0.5,M.vest,0,1.1,0,g,18).scale.z=0.62;
+  mesh(new THREE.SphereGeometry(0.2,18,10),M.vest,0,1.35,0,g).scale.set(1,0.4,0.62);
+  [0.98,1.2].forEach(y=>{ cyl(0.206,0.045,M.reflect,0,y,0,g,18).scale.z=0.62; });
+  box(0.04,0.5,0.03,M.reflect,0,1.1,0.13,g);
+  for(let s=-1;s<=1;s+=2){
+    const a=grp(s*0.27,1.34,0,g); a.rotation.x=pose?-0.9:-0.1;
+    cyl(0.055,0.5,M.cloth,0,-0.25,0,a,10);
+    mesh(new THREE.SphereGeometry(0.06,10,8),M.skin,0,-0.53,0,a);
+  }
+  cyl(0.055,0.12,M.skin,0,1.42,0,g,10);
+  mesh(new THREE.SphereGeometry(0.115,16,12),M.skin,0,1.56,0,g);
+  mesh(new THREE.SphereGeometry(0.135,16,12),M.yellow,0,1.6,0,g).scale.y=0.8;
+  cyl(0.175,0.02,M.yellow,0,1.56,0,g,18);
+  if(role) label(role,x,2.35,z,'#f2b705',38,0.85,G.roles);
+  return g;
+}
+
+/* ============================== ЗДАНИЕ ОХРАНЫ · южная стена, h ≈ 2,3 м ============================== */
+function signPlate(text,w,h,x,y,z,rotY,bgc,fgc,px){
+  const c=cnv(1024,256),g=c.getContext('2d');
+  g.fillStyle=bgc||'#1d232b'; g.fillRect(0,0,1024,256);
+  g.fillStyle=fgc||'#f2b705'; g.fillRect(0,0,1024,10); g.fillRect(0,246,1024,10);
+  let fs=px||150; g.font=`700 ${fs}px "Barlow Condensed","Roboto Condensed",sans-serif`;
+  const tw=g.measureText(text).width; if(tw>940){ fs=Math.floor(fs*940/tw); g.font=`700 ${fs}px "Barlow Condensed","Roboto Condensed",sans-serif`; }
+  g.textAlign='center'; g.textBaseline='middle'; g.fillText(text,512,132);
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=ANISO;
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:t,roughness:.6,metalness:.05,side:THREE.DoubleSide}));
+  m.position.set(x,y,z); m.rotation.y=rotY||0; m.castShadow=false; return m;
+}
+{
+  const GX0=1.2, GX1=30.0, GZ0=0.8, GZ1=6.6, H=2.3;
+  const G0=grp(0,0,0,G.guard);
+  const M_pan=std(0xe4e7ea,.55,.12), M_panDark=std(0x9aa3ad,.7,.1), M_frame=std(0xf5f6f7,.35,.2),
+        M_door=std(0x2c4a6b,.5,.25), M_roof=std(0x3a3f46,.85,.05), M_trim=std(0x5b636d,.5,.4),
+        M_glassG=std(0x8fb3cc,.08,.6,{transparent:true,opacity:.42,envMapIntensity:1.8,side:THREE.DoubleSide}),
+        M_ac=std(0xd9dcdf,.6,.3), M_lamp=std(0xfff3d6,.3,0,{emissive:0xffe9b8,emissiveIntensity:1.1});
+  const cx=(GX0+GX1)/2, cz=(GZ0+GZ1)/2, L=GX1-GX0, Dd=GZ1-GZ0;
+  box(L+0.3,0.12,Dd+0.3,std(0xb9bec4,.9,0),cx,0.06,cz,G0);                 // плита
+  box(L,H,0.12,M_pan,cx,0.12+H/2,GZ0,G0);                                  // южная стена (глухая)
+  for(const x of [GX0,GX1]) box(0.12,H,Dd,M_pan,x,0.12+H/2,cz,G0);          // торцы
+  box(L,0.28,0.13,M_panDark,cx,0.26,GZ0-0.005,G0);                         // цокольная лента
+  for(const x of [GX0,GX1]) box(0.13,0.28,Dd,M_panDark,x,0.26,cz,G0);
+  /* северная стена с проёмами: двери и окна */
+  const OPEN=[ {x:3.6,w:1.05,h:2.1,door:'ОХРАНА'}, {x:6.4,w:1.6,h:1.15,win:1}, {x:9.4,w:1.6,h:1.15,win:1},
+               {x:12.4,w:1.6,h:1.15,win:1}, {x:15.4,w:1.6,h:1.15,win:1}, {x:18.4,w:1.6,h:1.15,win:1},
+               {x:21.4,w:1.05,h:2.1,door:'КОМНАТА СМЕНЫ'}, {x:24.4,w:1.6,h:1.15,win:1}, {x:27.6,w:1.05,h:2.1,door:'ЩИТОВАЯ'} ];
+  let cur=GX0;
+  const seg=(x0,x1)=>{ const w=x1-x0; if(w<0.02) return; box(w,H,0.12,M_pan,(x0+x1)/2,0.12+H/2,GZ1,G0);
+    box(w,0.28,0.13,M_panDark,(x0+x1)/2,0.26,GZ1+0.005,G0); };
+  OPEN.forEach(o=>{
+    const x0=o.x-o.w/2, x1=o.x+o.w/2, sill=o.door?0.12:1.0, top=sill+o.h;
+    seg(cur,x0); cur=x1;
+    box(o.w,H+0.12-top,0.12,M_pan,o.x,top+(H+0.12-top)/2,GZ1,G0);        // над проёмом
+    if(!o.door) box(o.w,sill-0.12,0.12,M_pan,o.x,0.12+(sill-0.12)/2,GZ1,G0); // под окном
+    if(!o.door){ box(o.w+0.02,sill-0.12,0.13,M_panDark,o.x,0.26,GZ1+0.005,G0); }
+    /* рама */
+    const fr=0.06;
+    box(o.w+0.1,fr,0.16,M_frame,o.x,top+fr/2,GZ1,G0); box(o.w+0.1,fr,0.16,M_frame,o.x,sill+fr/2,GZ1,G0);
+    box(fr,o.h,0.16,M_frame,x0+fr/2,sill+o.h/2,GZ1,G0); box(fr,o.h,0.16,M_frame,x1-fr/2,sill+o.h/2,GZ1,G0);
+    if(o.door){
+      const leaf=box(o.w-0.12,o.h-0.08,0.05,M_door,o.x,sill+o.h/2,GZ1,G0);
+      box(0.32,0.32,0.02,M_glassG,o.x,sill+o.h-0.4,GZ1+0.035,G0).castShadow=false;    // окошко в двери
+      box(0.03,0.16,0.08,M_frame,o.x+o.w/2-0.18,sill+1.05,GZ1+0.06,G0);            // ручка
+      box(o.w+0.7,0.08,0.7,M_trim,o.x,top+0.32,GZ1+0.35,G0);                        // козырёк
+      box(0.05,0.26,0.05,M_trim,o.x-o.w/2-0.3,top+0.2,GZ1+0.62,G0); box(0.05,0.26,0.05,M_trim,o.x+o.w/2+0.3,top+0.2,GZ1+0.62,G0);
+      mesh(new THREE.CylinderGeometry(0.06,0.06,0.05,12),M_lamp,o.x,top+0.27,GZ1+0.5,G0).castShadow=false;
+      G0.add(signPlate(o.door,o.w+0.9,0.34,o.x,top+0.62,GZ1+0.09,0,o.door==='ОХРАНА'?'#1d232b':'#e9ecef',o.door==='ОХРАНА'?'#f2b705':'#1d232b'));
+      box(o.w+0.5,0.05,0.7,std(0xa9adb2,.8,0),o.x,0.09,GZ1+0.4,G0);                  // порожек
+    } else {
+      box(o.w-0.12,o.h-0.12,0.02,M_glassG,o.x,sill+o.h/2,GZ1,G0).castShadow=false;
+      box(0.04,o.h-0.12,0.1,M_frame,o.x,sill+o.h/2,GZ1,G0);                          // импост
+      box(o.w-0.12,0.04,0.1,M_frame,o.x,sill+o.h*0.62,GZ1,G0);
+      box(o.w+0.16,0.05,0.22,M_frame,o.x,sill-0.02,GZ1+0.06,G0);                    // отлив
+    }
+  });
+  seg(cur,GX1);
+  /* кровля с парапетом */
+  box(L+0.3,0.16,Dd+0.3,M_roof,cx,0.12+H+0.08,cz,G0);
+  box(L+0.36,0.14,0.08,M_trim,cx,0.12+H+0.2,GZ1+0.14,G0); box(L+0.36,0.14,0.08,M_trim,cx,0.12+H+0.2,GZ0-0.14,G0);
+  box(0.08,0.14,Dd+0.36,M_trim,GX0-0.14,0.12+H+0.2,cz,G0); box(0.08,0.14,Dd+0.36,M_trim,GX1+0.14,0.12+H+0.2,cz,G0);
+  /* кондиционеры, антенна, водосток, камера */
+  [[8.2,3.6],[22.6,3.6]].forEach(p=>{ const a=grp(p[0],0.12+H+0.18,p[1],G0);
+    box(0.85,0.55,0.32,M_ac,0,0.28,0,a); box(0.8,0.04,0.3,M_trim,0,0.02,0,a);
+    mesh(new THREE.CylinderGeometry(0.2,0.2,0.05,20),M_trim,0,0.3,0.17,a).rotation.x=Math.PI/2; });
+  cyl(0.02,1.6,M_trim,2.0,0.12+H+0.9,1.3,G0,8);
+  for(const x of [GX0+0.2,GX1-0.2]) cyl(0.05,H,M_trim,x,0.12+H/2,GZ1+0.14,G0,10);
+  { const c=grp(GX1-0.05,2.25,GZ1+0.06,G0); c.rotation.y=-2.3;
+    box(0.1,0.1,0.34,M.dark,0,0,0.1,c); cyl(0.07,0.24,M.dark,0,0,0.36,c,12).rotation.x=Math.PI/2; }
+  /* мелочи у входа: скамья, огнетушитель, урна, табличка */
+  { const b=grp(5.4,0,GZ1+0.9,G0); box(1.5,0.06,0.42,M.wood,0,0.46,0,b);
+    for(let sx=-1;sx<=1;sx+=2) box(0.06,0.44,0.4,M_trim,sx*0.65,0.22,0,b); }
+  cyl(0.09,0.5,std(0xd23b2c,.5,.2),2.0,0.37,GZ1+0.3,G0,12);
+  cyl(0.16,0.55,M_trim,7.0,0.4,GZ1+0.6,G0,14);
+  G0.add(signPlate('ЗДАНИЕ ОХРАНЫ · SECURITY · 安保',6.0,0.62,15.6,1.75,GZ1+0.075,0,'#e9ecef','#1d232b',120));
+  label('[О] ЗДАНИЕ ОХРАНЫ · h ≈ 2,3 м · 29 × 5,8 м',cx,3.6,cz,'#ffffff',44,0.8);
+  tag(G0,{t:'Здание охраны и бытовой блок',q:'существующее · 28,8 × 5,8 м · высота ≈ 2,3 м',
+    n:'Низкое здание вдоль южной стены. У западного входа — пост охраны с окном на ворота Л2 и монитором LPR; дальше комната отдыха смены с бытовкой и щитовая. Оно заняло место резерва и длинномера: длинномер уехал к южной стене третьего пролёта, резерв порожних поддонов — в юнитизацию.',
+    k:'security guard cabin / пост охраны модульный / 门卫室'});
+}
+person(3.9,7.9,0.2,false,'ОХРАННИК');
+
+/* ---------- [R] карман приёма у ворот Л2 (z 8,83–12,33) ---------- */
+tagEq(roller(3.6,9.3,5.5,false),6,[3.6,1.4,9.3],13);
+person(3.8,8.2,3.1,true,'ГРУЗЧИК-УПАКОВЩИК');
+
+/* ---------- телескопический ленточный конвейер: опция к рольгангу ---------- */
+const beltRuns=[], beltCargo=[];
+function beltStripe(){                                     // бегущая насечка ленты
+  const c=document.createElement('canvas'); c.width=96; c.height=8;
+  const x=c.getContext('2d');
+  x.fillStyle='#20242a'; x.fillRect(0,0,96,8);
+  x.fillStyle='#39414a'; x.fillRect(0,0,9,8); x.fillRect(48,0,9,8);
+  const t=new THREE.CanvasTexture(c);
+  t.encoding=THREE.sRGBEncoding;
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  return {t,m:std(0xffffff,.9,.02,{map:t})};
+}
+function telescopicConveyor(x,z,rotY,lift,tilt,ext,dir){
+  const g=grp(x,0,z,G.equip); g.rotation.y=rotY||0;
+  lift=lift===undefined?0.70:lift;
+  tilt=tilt===undefined?0:tilt;                                 // уклон стрелы, градусы (+ вверх)
+  ext =ext===undefined?1:ext;                                   // выдвижение секций 0…1
+  dir =(dir===undefined?1:dir)<0?-1:1;                          // направление хода коробов
+  ao(11.0,1.7,-0.4,0,g);
+  const OR=std(0xf05500,.46,.14), YL=std(0xffc400,.46,.10);     // оранжевая сталь и жёлтая площадка
+  const V3=(a,b,c)=>new THREE.Vector3(a,b,c);
+  const T=tilt*Math.PI/180, PX=-4.30, PY=0.90+lift;             // шарнир стрелы над задней опорой
+  const boom=grp(PX,PY,0,g); boom.rotation.z=T;
+  const bp=(px,py)=>[px-PX,py-PY];
+  const rotPt=(px,py)=>{ const dx=px-PX,dy=py-PY,c=Math.cos(T),si=Math.sin(T);
+    return V3(PX+dx*c-dy*si, PY+dx*si+dy*c, 0); };
+  const st8=(a,b,th,mat,par)=>{ const d=b.clone().sub(a),L=d.length(); if(L<1e-4) return null;
+    const m=box(L,th,th,mat,0,0,0,par||g);
+    m.position.copy(a).addScaledVector(d,0.5);
+    m.quaternion.setFromUnitVectors(V3(1,0,0),d.clone().normalize()); return m; };
+  const BW=0.80;
+  /* три вложенные секции: длина постоянна, выдвигается передний край */
+  const midX1=0.00+4.50*ext, tipX1=0.10+9.00*ext;      // выдвижная часть — до 9 м за базу
+  const SEC=[[-4.60,0.00,1.18,0.34,1.10+lift],
+             [midX1-4.90,midX1,1.02,0.29,1.055+lift],
+             [tipX1-4.70,tipX1,0.88,0.24,1.015+lift]];
+  SEC.forEach((s,i)=>{
+    const x0=s[0],x1=s[1],fw=s[2],dep=s[3],top=s[4],L=x1-x0,cx=(x0+x1)/2,bw=BW-i*0.07;
+    const [ccx,ct]=bp(cx,top);
+    for(const sg of [-1,1]){
+      box(L,dep,0.055,OR,ccx,ct-dep/2-0.03,sg*fw/2,boom);
+      box(L,0.05,0.10,OR,ccx,ct-0.025,sg*(fw/2-0.04),boom);
+      box(L-0.2,0.03,0.16,M.galv,ccx,ct-0.005,sg*(bw/2+0.10),boom).castShadow=false;
+    }
+    box(L,0.03,fw-0.16,OR,ccx,ct-dep-0.02,0,boom);
+    box(L-0.10,0.06,bw,M.dark,ccx,ct-0.03,0,boom);
+    const stp=beltStripe();
+    const sp=box(L-0.30,0.008,bw-0.06,stp.m,ccx,ct+0.004,0,boom); sp.castShadow=false;
+    stp.t.repeat.set(Math.max(2,Math.round(L*1.4)),1);
+    beltRuns.push({tex:stp.t,sp:0.5*dir});
+    cyl(0.055,bw+0.03,M.galv,bp(x1-0.07,top)[0],ct-0.03,0,boom,16).rotation.x=Math.PI/2;
+    cyl(0.035,bw,M.galv,bp(x0+0.12,top)[0],ct-dep+0.06,0,boom,12).rotation.x=Math.PI/2;
+  });
+  /* приводной барабан и мотор-редуктор на хвосте стрелы */
+  const [dx0,dy0]=bp(-4.30,1.07+lift);
+  cyl(0.075,BW+0.06,M.galv,dx0,dy0,0,boom,18).rotation.x=Math.PI/2;
+  const [mx,my]=bp(-4.24,0.66+lift);
+  box(0.30,0.28,0.24,M.steelDark,mx,my,0.74,boom);
+  cyl(0.085,0.26,M.steelDark,mx,my,0.98,boom,14).rotation.x=Math.PI/2;
+  box(0.12,0.12,0.14,M.steelDark,mx,my+0.18,0.74,boom);
+  /* задняя опора базы */
+  for(const sg of [-1,1]){
+    st8(V3(-4.20,0,sg*0.66),V3(-4.08,PY-0.14,sg*0.60),0.085,OR);
+    box(0.26,0.035,0.26,OR,-4.20,0.018,sg*0.66,g);
+  }
+  box(0.09,0.09,1.24,OR,-4.10,0.30,0,g);
+  /* передняя опора-гидроцилиндр: длина следует за уклоном */
+  {
+    const topPt=rotPt(-1.35,0.90+lift-0.30);
+    for(const sg of [-1,1]){
+      const a=V3(-1.35,0.05,sg*0.62), b=V3(topPt.x,topPt.y,sg*0.60);
+      st8(a,b,0.11,M.steelDark);                                  // корпус цилиндра
+      st8(a.clone().lerp(b,0.55),b,0.062,M.galv);                 // шток
+      box(0.26,0.035,0.26,OR,-1.35,0.018,sg*0.66,g);
+    }
+    box(0.09,0.09,1.24,OR,-1.35,0.26,0,g);
+    st8(V3(-4.05,0.26,0.62),V3(-1.42,0.26,0.62),0.06,OR);
+    st8(V3(-4.05,0.26,-0.62),V3(-1.42,0.26,-0.62),0.06,OR);
+  }
+  /* площадка оператора на выдвижном конце */
+  {
+    const PYd=0.46+lift, pw=0.98, pd=0.86;
+    const [plx,ply]=bp(tipX1-0.68,PYd);
+    const pl=grp(plx,ply,-0.92,boom);
+    const pb=(w,hh,d,mat,px,py,pz)=>box(w,hh,d,mat,px,py,pz,pl);
+    pb(pw,0.05,pd,YL,0,0,0);
+    pb(pw-0.10,0.012,pd-0.10,M.galv,0,0.032,0).castShadow=false;
+    pb(pw,0.09,0.09,YL,0,-0.07,-pd/2+0.05);
+    pb(0.09,0.09,pd,YL,-pw/2+0.05,-0.07,0);
+    const RH=1.02;
+    [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([sx,sz])=>
+      pb(0.055,RH,0.055,YL,sx*(pw/2-0.05),RH/2,sz*(pd/2-0.05)));
+    [RH,RH*0.55].forEach(hh=>{
+      pb(pw-0.10,0.05,0.05,YL,0,hh,-pd/2+0.05);
+      pb(0.05,0.05,pd-0.10,YL,-pw/2+0.05,hh,0);
+      pb(0.05,0.05,pd-0.10,YL, pw/2-0.05,hh,0);
+    });
+    for(const sx of [-1,1]){
+      pb(0.07,0.07,0.56,OR,sx*(pw/2-0.16),-0.07,pd/2+0.22);
+      pb(0.05,0.37,0.05,OR,sx*(pw/2-0.16),0.12,pd/2+0.47);
+    }
+    pb(0.05,0.62,0.05,YL,-pw/2+0.05,0.31,pd/2-0.30);
+    pb(0.15,0.24,0.13,M.alu,-pw/2+0.02,0.58,pd/2-0.30);
+    pb(0.03,0.05,0.05,M.green,-pw/2-0.06,0.62,pd/2-0.30);
+  }
+  /* короба на ленте — едут в системе координат стрелы, уклон отрабатывается сам */
+  {
+    const yBase=bp(0,1.10+lift)[1]+0.17, yTip=bp(0,1.015+lift)[1]+0.17;
+    const cx0=bp(-4.10,0)[0], cx1=bp(tipX1-0.35,0)[0];
+    for(let i=0;i<3;i++){
+      const c=box(0.52,0.34,0.44,M.carton,cx0,yBase,0,boom);
+      box(0.54,0.03,0.10,M.dark,0,0.17,0,c).castShadow=false;
+      beltCargo.push(dir>0?{o:c,x0:cx0,x1:cx1,t:i/3,sp:0.075,y0:yBase,y1:yTip}
+                          :{o:c,x0:cx1,x1:cx0,t:i/3,sp:0.075,y0:yTip,y1:yBase});
+    }
+  }
+  g.userData.teleExt=ext;
+  return g;
+}
+/* штатный конвейер у Л2 ставится через каталог — см. секцию «Библиотека» ниже */
+
+/* ---------- [3] контроль, весы, печать адреса ---------- */
+person(9.2,12.4,2.4,true,'СТАРШИЙ СМЕНЫ');
+
+/* ---------- [4] юнитизация ---------- */
+{
+  const g=grp(13.4,0,10.6);
+  cyl(0.88,0.18,M.steelDark,0,0.09,0,g,24); cyl(0.82,0.06,M.galv,0,0.2,0,g,24);
+  box(0.3,2.7,0.3,M.orange,-1.2,1.35,0,g);
+  box(0.42,0.55,0.5,M.dark,-0.96,1.05,0,g);
+  cyl(0.13,0.5,M.film,-0.84,1.05,0,g,14);
+  box(0.55,0.16,0.55,M.steelDark,-1.2,0.08,0,g);
+  pallet(g,0,0.24,0);
+  for(let i=0;i<3;i++) box(1.1,0.38,0.72,M.carton,0,0.6+i*0.4,0,g);
+  box(1.2,1.25,0.84,M.film,0,0.98,0,g).castShadow=false;
+  tagEq(g,3,[13.4,1.4,10.6],11);
+}
+{ const g=grp(14.4,0,12.3);
+  for(let i=0;i<9;i++) pallet(g,0,i*0.155,0);
+  tag(g,{t:'Запас поддонов на юнитизацию',q:'зона [4]',
+    n:'Поддоны в шаге от обмотчика: груз должен перестать быть коробкой в первые 15 минут после приёмки.',
+    k:'euro pallet 1200x800 / поддон 1200х800 / 欧标托盘'});
+}
+person(12.2,9.2,-1.6,true,'ГРУЗЧИК-УПАКОВЩИК');
+
+/* ---------- [8] упаковочные материалы (третий пролёт, бывший длинномер) ---------- */
+{
+  const g=grp(35.5,0,4.8);
+  for(let i=0;i<4;i++) box(2.3,0.07,0.62,M.steelDark,0,0.42+i*0.55,0,g);
+  for(let sx=-1;sx<=1;sx+=2) box(0.07,2.3,0.62,M.steelDark,sx*1.11,1.15,0,g);
+  for(let i=0;i<3;i++) for(let j=0;j<3;j++)
+    box(0.6,0.36,0.5,i%2?std(0xa9865c,.9,0):M.carton,-0.72+j*0.72,0.64+i*0.55,0,g);
+  cyl(0.16,0.55,M.film,0.75,2.2,0,g,12).rotation.z=Math.PI/2;
+  tag(g,{t:'Стеллаж расходных материалов',q:'зона [8] · северная полоса',
+    n:'Стрейч, ПЭТ-лента, уголки, плёнка, распорные балки, надувные мешки. Вынесены к границе: расходка нужна раз в партию, ей незачем стоять у проездов.',
+    k:'paper edge protector / защитный уголок картонный / 纸护角'});
+}
+
+/* ---------- удлинители вил: восточный угол южной стены ---------- */
+{
+  const g=grp(45.6,0,2.6);
+  for(let s2=-1;s2<=1;s2+=2) box(0.16,0.09,1.9,M.galv,s2*0.32,0.6,0,g);
+  box(0.9,0.3,0.28,M.orange,0,0.6,-0.85,g);
+  tagEq(g,8,[45.6,1,2.6],9);
+}
+person(21.5,31.0,-1.2,true,'ГРУЗЧИК');
+tag(forklift(27.5,28.6,-Math.PI/2),{t:'Электропогрузчик 3 т — имеющаяся техника',q:'1 шт · работает с крытого поста',
+  n:'Единственная механизация сегодня. После отказа от крана — главный инструмент для класса C: место до 3 т берётся только на поддоне. Второй погрузчик — этап 2 на деньги, освободившиеся от крана.',
+  k:'electric forklift 3 ton / электропогрузчик 3 т / 电动叉车3吨（锂电）'});
+person(30.2,30.4,-1.9,false,'ВОДИТЕЛЬ ПОГРУЗЧИКА');
+
+/* ---------- ЦВЕТ ДНЯ: наполнение адресных ячеек ---------- */
+const DAYC=[0xd23b2c,0xe08a1f,0xf2c94c,0x4caf50,0x3f76ad,0x8e6bc9,0xf07aa8];
+const DAYN=['ПН','ВТ','СР','ЧТ','ПТ','СБ','ВС'];
+function dayTag(p,x,y,z,d){
+  const g=grp(x,y,z,p||G.equip);
+  box(0.36,0.26,0.02,M.dark,0,0,-0.02,g);
+  box(0.32,0.22,0.03,std(DAYC[d],.62,0),0,0,0,g);
+  return g;
+}
+function cellStack(c,layers,day){
+  const cx=(c.x0+c.x1)/2, cz=(c.z0+c.z1)/2;
+  const g=stack(cx,cz,layers,0,true);
+  dayTag(g,0,0.2+layers*0.40,0.44,day);
+  tag(g,{t:'Отправка в ячейке '+c.id, q:'бирка дня приёмки: '+DAYN[day],
+    n:'Каждое место получает бирку цвета того дня, когда оно принято. Правило смены в одну строку: сначала уезжает самый старый цвет. Никаких сверок с журналом — нарушение FIFO видно с десяти метров, просто когда идёшь по магистрали. Цифровая дата на той же бирке нужна только для спора.',
+    k:'Семь цветов = семь дней недели · цвет + дата на одной бирке'});
+  return g;
+}
+[[0,3,0],[1,2,1],[3,4,2],[5,2,3],[6,3,1],[8,2,4],[10,3,5],[11,2,6],[13,3,0],[14,2,2],
+ [15,3,4],[17,2,3],[18,3,1],[20,2,5],[22,3,2],[24,2,0]]
+  .forEach(p=>{ const c=CELLS[p[0]]; if(c) cellStack(c,p[1],p[2]); });
+
+/* тяжёлые места в ячейках T */
+[[0,0],[2,3]].forEach(p=>{
+  const c=TCELLS[p[0]]; if(!c) return;
+  const cx=(c.x0+c.x1)/2, cz=(c.z0+c.z1)/2;
+  const g=grp(cx,0,cz);
+  for(let i=0;i<2;i++) box(2.6,0.14,0.14,M.wood,0,0.07,-0.6+i*1.2,g);
+  box(2.4,1.5,2.0,M.crate,0,0.89,0,g);
+  for(let i=-1;i<=1;i+=2){ box(0.12,1.55,2.04,M.wood,i*1.05,0.89,0,g);
+    box(2.44,0.12,0.14,M.wood,0,1.55,i*0.95,g); }
+  box(1.1,0.45,0.02,M.white,0,1.1,1.02,g);
+  dayTag(g,0.75,1.7,1.02,p[1]);
+  tag(g,{t:'Тяжёлое место в ячейке '+c.id, q:'класс C · ставит и берёт только кран',
+    n:'Ящик стоит на подкладных брусьях: без них стропы под него не завести, и следующий подъём начнётся с ломания дна. Бирка цвета дня стоит и здесь — для тяжёлых FIFO работает ровно так же, как для картона.',
+    k:'dunnage timber / подкладной брус такелажный / 垫木'});
+});
+
+/* ---------- [S] стейджинг: полоса = машина ---------- */
+LANES.forEach((l,i)=>{
+  const cz=(l[1]+l[3])/2;
+  if(i===2) return;                                   // S3 держим пустой — резерв под срыв графика
+  for(let k=0;k<4;k++) stack(l[0]+3.0+k*1.9,cz,2+((i+k)%3));
+});
+tagEq(roller(38.5,15.0,6,false,0.85),6,[38.5,1.2,15.0],12);
+tagEq(palletJack(45.9,15.6,-1.6,false),10,[45.9,1,15.6],10);
+palletJack(45.9,17.0,-1.6,false); palletJack(31.4,15.0,0,false);
+tagEq(palletJack(45.9,28.0,-1.6,true),4,[45.9,1,28.0],10);
+palletJack(29.8,15.0,0,true);
+person(43.0,11.2,-1.6,false,'ВОДИТЕЛЬ ПОГРУЗЧИКА');
+
+/* ---------- ПЛАН-ДОСКА ЯЧЕЕК: «бумажная WMS» ---------- */
+{
+  const g=grp(40.2,0,5.0);                             // лицом на север, к полосам стейджинга
+  for(let s2=-1;s2<=1;s2+=2) box(0.12,2.3,0.12,M.steelDark,s2*1.7,1.15,0,g);
+  box(3.6,1.9,0.09,std(0xf2f2ef,.85,.02),0,1.85,0,g);
+  box(3.7,0.13,0.12,M.steelDark,0,2.86,0,g);
+  box(3.4,0.2,0.03,M.yellow,0,2.68,0.055,g);
+  for(let r=0;r<2;r++) for(let i=0;i<15;i++){
+    const cc=[0x3f76ad,r?0x9c6b2f:0xe0691f,0xbf3b32][Math.floor(i/5)];
+    box(0.19,0.28,0.02,std(cc,.75,0),-1.58+i*0.226,2.34-r*0.36,0.055,g);
+  }
+  for(let i=0;i<6;i++) box(0.34,0.28,0.02,std(0x9c6b2f,.75,0),-1.5+i*0.62,1.60,0.055,g);
+  for(let i=0;i<4;i++) box(0.5,0.28,0.02,std(0x6f61c9,.75,0),-1.35+i*0.9,1.22,0.055,g);
+  for(let i=0;i<7;i++) box(0.2,0.2,0.02,std(DAYC[i],.62,0),-1.5+i*0.28,0.99,0.055,g);
+  
+  tag(g,{t:'План-доска ячеек — вся система управления складом',q:'магнитная доска 3,6 × 1,9 м · ~200 $',
+    n:'Двойник плана склада: тридцать клеток буфера по цветам зон, шесть тяжёлых, четыре полосы отгрузки и линейка семи цветов дня внизу. В клетке карточка: номер отправки, дата прихода, цвет, плановая машина. При пяти машинах в сутки эта доска даёт ровно то же, что дал бы WMS, и обходится в двести долларов. WMS покупается тогда, когда доски перестаёт хватать — по практике это около пятнадцати машин в сутки, а не раньше.',
+    k:'magnetic planning board / доска планирования магнитная / 磁性看板'});
+}
+{
+  const g=grp(43.6,0,5.0);
+  for(let s2=-1;s2<=1;s2+=2) box(0.1,2.1,0.1,M.steelDark,s2*1.0,1.05,0,g);
+  box(2.1,1.4,0.07,std(0x1d232b,.8,.05),0,1.75,0,g);
+  box(1.95,0.18,0.03,M.red,0,2.32,0.05,g);
+  for(let i=0;i<5;i++) box(1.85,0.1,0.03,std(0x9aa4ae,.8,0),0,2.02-i*0.26,0.05,g);
+  
+  tag(g,{t:'Доска старения: что лежит дольше пяти суток',q:'разбирается каждое утро, пять минут',
+    n:'Отдельная красная доска только под просроченное. Место старше пяти суток попадает на неё и висит с фамилией ответственного, пока не уедет. Без такой доски буфер тихо превращается в склад: через полгода вы платите аренду за чужой мёртвый груз и уже не помните, чей он.',
+    k:'aging report board / доска складского старения / 库龄看板'});
+}
+
+/* ---------- [6] брак и [9] зарядка (третий пролёт, бывший длинномер) ---------- */
+{
+  const g=grp(35.4,0,2.4),bar=std(0xb03a30,.7,.2);
+  for(let i=0;i<=5;i++) box(0.06,2.3,0.06,bar,-2.0+i*0.8,1.15,-1.5,g);
+  for(let i=0;i<=3;i++) box(0.06,2.3,0.06,bar,-2.0,1.15,-1.5+i*1.0,g);
+  for(let y=0.5;y<2.4;y+=0.6){ box(4.1,0.05,0.05,bar,0.05,y,-1.5,g);
+    box(0.05,0.05,3.0,bar,-2.0,y,0,g); }
+  box(4.1,0.07,0.07,bar,0.05,2.3,-1.5,g);
+  stack(-0.4,0.3,2,0.1,false,g);
+  box(0.75,0.55,0.02,M.white,0.05,1.5,-1.53,g);
+  tag(g,{t:'Клетка брака и карантина',q:'зона [6] · сетка и замок',
+    n:'Повреждённое отделяется физически и под замком, фото с рулеткой, акт по единой форме.',
+    k:'security cage pallet rack / клетка карантина / 仓库隔离笼'});
+}
+{
+  const g=grp(40.0,0,2.4);
+  for(let i=0;i<2;i++){
+    box(0.85,1.6,0.55,M.green,i*1.4,0.8,0,g);
+    box(0.5,0.3,0.06,M.dark,i*1.4,1.2,0.3,g);
+    box(0.34,0.12,0.03,std(0x8ff0a8,.3,0,{emissive:0x53d16f,emissiveIntensity:1.0}),i*1.4,1.42,0.3,g);
+  }
+  box(1.0,0.5,0.3,M.galv,0.7,2.6,-0.3,g);
+  cyl(0.22,1.6,M.galv,0.7,3.6,-0.3,g,12);
+  box(0.9,1.5,0.35,M.red,-1.6,0.75,0,g);
+  for(let i=0;i<2;i++) cyl(0.11,0.6,std(0xd23b2c,.5,.2),-1.8+i*0.4,0.55,0.28,g,12);
+  tag(g,{t:'Зарядка АКБ, вентиляция и огнетушители',q:'зона [9]',
+    n:'Отдельная вентилируемая зона с огнетушителем — требование раздела безопасности.',
+    k:'lithium battery charging station / зарядная станция для АКБ / 锂电池充电站'});
+}
+
+/* ---------- рампа, LPR, камеры, Wi-Fi, зеркала ---------- */
+{
+  const g=grp(-7.6,0,GATES[1].z+6.2); g.rotation.y=Math.PI/2;
+  const w=box(3.0,0.22,8.4,M.galv,0,0.86,0,g); w.rotation.x=0.155;
+  for(let s=-1;s<=1;s+=2) box(0.1,0.85,8.4,M.yellow,s*1.52,0.62,0,g).rotation.x=0.155;
+  cyl(0.32,0.22,M.tyre,-1.4,0.32,-3.6,g,14).rotation.z=Math.PI/2;
+  cyl(0.32,0.22,M.tyre,1.4,0.32,-3.6,g,14).rotation.z=Math.PI/2;
+  tagEq(g,2,[-7,1.5,GATES[1].z+6.2],14);
+}
+[[-6.2,GATES[1].z-5.2,0],[W+6.2,GATES[1].z+8.5,Math.PI]].forEach((p,i)=>{
+  const g=grp(p[0],0,p[1],G.equip);
+  cyl(0.11,4.2,M.galv,0,2.1,0,g,10);
+  box(1.2,0.12,0.12,M.galv,0.6,4.15,0,g);
+  const h=grp(1.2,4.05,0,g); h.rotation.y=p[2];
+  box(0.42,0.2,0.24,M.dark,0,0,0,h);
+  box(0.3,0.12,0.03,std(0x2b3a48,.2,.6),0,0,0.14,h);
+  box(0.5,0.35,0.06,M.white,-0.2,-0.7,0,h);
+  if(i===0) tagEq(g,14,[-6.2,2.5,GATES[1].z-5.2],14); else tag(g,EQ[14]);
+});
+[[0.7,6.4,3,0.7],[0.7,6.4,30,2.4],[47.3,6.4,3,-0.7],[47.3,6.4,30,-2.4],
+ [16.45,6.2,7.05,0.5],[16.45,6.2,21.15,2.6],[31.65,6.2,14.1,-0.5],[31.65,6.2,28.2,-2.6]]
+ .forEach((p,i)=>{
+  const g=grp(p[0],0,p[2],G.equip); g.rotation.y=p[3];
+  const h=grp(0,p[1],0,g);
+  box(0.11,0.11,0.42,M.dark,0,0,0.1,h);
+  cyl(0.085,0.3,M.dark,0,0,0.4,h,12).rotation.x=Math.PI/2;
+  cyl(0.075,0.05,M.glass,0,0,0.56,h,12).rotation.x=Math.PI/2;
+  box(0.05,0.4,0.05,M.dark,0,0.2,-0.1,h);
+  if(i===0) tagEq(g,15,[12,4,18],26); else tag(g,EQ[15]);
+});
+[[16.45,5.6,14.1],[32.45,5.6,7.05],[16.45,5.6,28.2],[32.45,5.6,21.15]].forEach((p,i)=>{
+  const g=grp(p[0],0,p[2],G.equip);
+  box(0.3,0.3,0.09,M.white,0,p[1],0,g);
+  for(let s=-1;s<=1;s+=2) box(0.03,0.22,0.03,M.dark,s*0.09,p[1]+0.25,0,g);
+  if(i===0) tagEq(g,17,[16.4,4,16.9],13); else tag(g,EQ[17]);
+});
+[[15.6,26.5],[32.5,26.5],[15.6,31.1],[32.5,31.1]].forEach((p,i)=>{
+  const g=grp(p[0],0,p[1],G.equip);
+  box(0.08,2.6,0.08,M.galv,0,1.3,0,g);
+  mesh(new THREE.SphereGeometry(0.3,14,10),std(0xc8d2d9,.18,.9),0,2.5,0,g).scale.set(1,1,0.35);
+  if(i===0) tagEq(g,19,[15.6,2,26.5],12); else tag(g,EQ[19]);
+});
+
+/* ============================================================== МАШИНЫ */
+function wheel(g,x,z,r,dual){
+  const mk=zz=>tire(g,x,r,zz,r,0.3,'z');
+  mk(z-(dual?0.74:0.92)); mk(z+(dual?0.74:0.92));
+  if(dual){ mk(z-1.08); mk(z+1.08); }        // наружная кромка шины 1,23 м — в габарите борта
+}
+function fender(g,x,z,r,w){
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(r+0.10,r+0.10,w||0.78,18,1,true,Math.PI/2,Math.PI),M.fenderM);
+  m.rotation.x=Math.PI/2; m.position.set(x,r,z); m.castShadow=m.receiveShadow=true; g.add(m); return m; }
+function cab(g,cx,dir,sleeper){                          // кабина: локально смотрит в -x
+  const c=grp(cx,0,0,g); if(dir>0) c.rotation.y=Math.PI;
+  const H=sleeper?2.5:1.95, y0=0.7;
+  rbox(2.4,H,2.45,0.14,M.cabPaint,0,y0+H/2,0,c);
+  if(sleeper) rbox(2.0,0.7,2.3,0.12,M.cabPaint,0.1,y0+H+0.33,0,c);
+  const ws=box(0.04,0.95,2.15,M.glass,-1.2,y0+H-0.6,0,c); ws.rotation.z=-0.1; ws.castShadow=false;
+  for(let s=-1;s<=1;s+=2){
+    box(1.1,0.7,0.03,M.glass,-0.25,y0+H-0.55,s*1.225,c).castShadow=false;
+    box(0.05,0.35,0.2,M.dark,-1.05,y0+H-0.35,s*1.42,c);
+    box(0.03,0.04,0.32,M.steelDark,-1.05,y0+H-0.15,s*1.32,c);
+    box(0.06,0.22,0.36,M.headLight,-1.24,y0+0.35,s*1.0,c);
+    box(0.05,0.1,0.14,M.amber,-1.24,y0+0.6,s*1.15,c);
+    box(0.5,0.04,0.45,M.galv,-0.3,0.5,s*1.2,c);
+    box(0.06,0.06,0.06,M.amber,-1.0,y0+H+0.02,s*0.8,c);
+  }
+  box(0.06,0.45,1.5,M.dark,-1.22,y0+0.55,0,c);
+  for(let i=0;i<3;i++) box(0.03,0.04,1.4,M.chrome,-1.245,y0+0.4+i*0.14,0,c);
+  box(0.28,0.32,2.5,M.steelDark,-1.16,0.55,0,c);
+  box(0.5,0.05,2.35,M.cabPaint,-1.15,y0+H-0.02,0,c);
+  cyl(0.06,H-0.2,M.alu,1.1,y0+H/2,-1.1,c,10);
+  return c;
+}
+function flatTruck(x,z,len,dir,heavy,rotY,load){
+  dir=dir||-1; load=load===undefined?1:load;
+  const g=grp(x,0,z,G.trucks); g.rotation.y=rotY||0;
+  box(len,0.28,1.0,M.steelDark,0,0.92,0,g);
+  box(len,0.16,2.5,M.wood,0,1.16,0,g);
+  for(let s=-1;s<=1;s+=2){
+    box(len,0.14,0.1,M.green,0,1.3,s*1.25,g);
+    if(!heavy) box(len,0.12,0.1,M.green,0,2.18,s*1.25,g);
+    for(let i=0;i<=Math.floor(len/1.3);i++)
+      box(0.1,heavy?0.5:0.95,0.1,M.green,-len/2+i*1.3,heavy?1.5:1.75,s*1.25,g);
+    if(!heavy) for(let i=0;i<Math.floor(len/0.95);i++)
+      box(0.05,0.85,0.05,std(0x3f7f57,.7,.3),-len/2+0.45+i*0.95,1.75,s*1.25,g);
+  }
+  if(heavy){
+    const cr=grp(0,0,0,g);
+    box(2.6,1.7,2.2,M.crate,0,2.1,0,cr);
+    for(let i=-1;i<=1;i+=2){ box(0.12,1.75,2.24,M.wood,i*1.15,2.1,0,cr);
+      box(2.64,0.12,0.14,M.wood,0,2.85,i*1.05,cr); }
+    box(1.2,0.5,0.02,M.white,0,2.3,1.12,cr);
+    for(let s=-1;s<=1;s+=2) for(let k=-1;k<=1;k+=2){
+      const a=box(0.06,1.95,0.06,std(0x3f76ad,.85,0),s*1.05,3.85,k*0.82,cr);
+      a.rotation.z=s*0.30; a.rotation.x=-k*0.24;
+    }
+    for(let i=0;i<2;i++) box(1.3,0.9,2.0,M.carton,-len/2+1.4+i*1.5,1.7,0,g);
+  } else {
+    for(let i=0;load&&i<Math.floor(len/1.35);i++){
+      const h=0.75+Math.random()*0.35;
+      box(1.16,h,2.1,M.carton,-len/2+0.75+i*1.35,1.24+h/2,0,g);
+      box(0.05,h+0.03,2.14,M.dark,-len/2+0.75+i*1.35,1.24+h/2,0,g);        // стяжной ремень
+    }
+  }
+  const cx=dir*(len/2+1.55);
+  ao(len+3.6,3.4,dir*1.5,0,g);
+  cab(g,cx,dir,false);
+  box(len,0.2,0.6,M.steelDark,0,0.7,0,g);
+  box(0.06,0.3,2.5,M.steelDark,-dir*(len/2+0.05),0.75,0,g);
+  for(let s=-1;s<=1;s+=2) box(0.03,0.1,0.3,M.redLight,-dir*(len/2+0.08),0.85,s*1.05,g);
+  box(0.02,0.14,0.5,M.white,-dir*(len/2+0.08),1.0,0,g);
+  for(let s=-1;s<=1;s+=2){                                    // рулевая ось: колея как у задней тележки
+    tire(g,cx-dir*0.15,0.52,s*1.05,0.52,0.30,'z');
+    fender(g,cx-dir*0.15,s*1.05,0.52,0.46);
+  }
+  for(let i=0;i<3;i++){ const wx=-len/2+2.2+i*(len/3.6); wheel(g,wx,0,0.52,true);
+    for(let s=-1;s<=1;s+=2) fender(g,wx,s*0.91,0.52,0.70); }
+  for(let s=-1;s<=1;s+=2){                                    // брызговики за тележкой и перед ней
+    box(0.03,0.40,0.60,M.dark,-len/2+1.1,0.28,s*1.20,g).castShadow=false;
+    box(0.03,0.40,0.60,M.dark,-len/2+2.2+2*(len/3.6)+1.0,0.28,s*1.20,g).castShadow=false;
+  }
+  for(let i=0;i<Math.round(len/2.0);i++) for(let s=-1;s<=1;s+=2)  // габаритные огни по борту
+    box(0.09,0.05,0.03,M.amber,-len/2+0.6+i*2.0,heavy?1.95:2.20,s*1.32,g).castShadow=false;
+  box(0.12,0.15,2.20,M.steelDark,-dir*(len/2+0.22),0.50,0,g);   // противоподкатный брус
+  for(let s=-1;s<=1;s+=2) box(0.09,0.30,0.09,M.steelDark,-dir*(len/2+0.18),0.70,s*0.72,g);
+  return g;
+}
+function tandem(x,z,rotY){
+  const g=grp(x,0,z,G.trucks); g.rotation.y=rotY||0;
+  const trailer=(off,len)=>{
+    box(len,0.3,2.5,M.steelDark,off,1.15,0,g);
+    box(len,0.14,2.55,M.wood,off,1.35,0,g);
+    for(let s=-1;s<=1;s+=2){
+      box(len,0.12,0.1,M.blue,off,1.48,s*1.28,g);
+      for(let i=0;i<=Math.floor(len/1.5);i++)
+        box(0.1,2.4,0.1,M.galv,off-len/2+i*1.5,2.6,s*1.28,g);
+    }
+    rbox(len+0.06,2.35,2.6,0.12,M.tarp,off,2.62,0,g);
+    box(len+0.1,0.14,2.7,M.blue,off,3.85,0,g);
+    box(len+0.1,0.12,2.68,M.blue,off,1.52,0,g);
+    for(let i=0;i<=Math.floor(len/1.5);i++)
+      box(0.07,2.3,2.66,std(0xc9ced3,.9,0),off-len/2+i*1.5,2.62,0,g);
+    box(len*0.86,0.5,0.06,M.white,off,2.3,1.33,g);
+    wheel(g,off-len/4,0,0.54,true); wheel(g,off+len/4,0,0.54,true);
+    for(const wx of [off-len/4,off+len/4]) for(let s=-1;s<=1;s+=2) fender(g,wx,s*0.91,0.54,0.70);
+    box(0.06,0.12,2.4,M.steelDark,off+len/2+0.05,0.8,0,g);
+    for(let s=-1;s<=1;s+=2) box(0.03,0.12,0.3,M.redLight,off+len/2+0.06,1.3,s*1.1,g);
+  };
+  ao(28,3.6,-2.5,0,g);
+  trailer(-5.8,8.2); trailer(4.6,8.2);
+  box(1.6,0.22,0.5,M.steelDark,-0.6,0.85,0,g);
+  const cx=-12.4;
+  cab(g,cx,-1,true);
+  box(3.2,0.22,0.7,M.steelDark,cx+0.4,0.75,0,g);
+  cyl(0.28,1.0,M.alu,cx+0.3,0.7,-1.1,g,14).rotation.z=Math.PI/2;      // топливный бак
+  wheel(g,cx-0.7,0,0.55); wheel(g,cx+1.4,0,0.55,true);
+  return g;
+}
+tag(flatTruck(-6.2,GATES[1].z,11,-1,false,Math.PI/2),
+  {t:'Китайская машина у ворот Л2 · классы A, B, D',q:'приёмный пост, стоит вдоль левой стены',
+   n:'Разгрузка сбоку с земли: класс A на рольганг, класс B погрузчиком через мобильную рампу, класс D — с удлинителями вил на консольный стеллаж.',
+   k:'flatbed lattice truck / бортовая машина с решётчатыми бортами / 栏板货车'});
+tag(flatTruck(-6.2,25.5,11,-1,false,Math.PI/2),
+  {t:'Китайская машина в очереди на Л1',q:'ожидает въезда под кран',
+   n:'Машина с местом тяжелее 1 т ждёт освобождения сквозной полосы. Цель: от заезда до начала выгрузки ≤ 15 минут.',
+   k:'flatbed lattice truck / бортовая машина / 栏板货车'});
+tag(flatTruck(24.05,GATES[0].z-0.4,12,1,false,0),
+  {t:'Машина на крытом посту разгрузки',q:'въезд Л1 → полоса вдоль границы → выезд П1',
+   n:'Машина заезжает через проём Л1 из SKP — 3,5 м у самой границы, — встаёт вдоль неё, погрузчик снимает груз с южного борта с северной магистрали, машина выезжает через П1. Проём 3,5 м и высота 4,0 м впритык для бортовой машины: проверить на месте. Место тяжелее 1 т снимается краном напрямую. Под грузом не находится никто, команду даёт один человек.',
+   k:'overhead crane loading / перегрузка мостовым краном / 桥式起重机装卸'});
+tag(tandem(51.8,GATES[1].z+4.5,-Math.PI/2),
+  {t:'Казахстанский тандем у ворот П2',q:'загрузка с полос стейджинга 1–4',
+   n:'Стоит вдоль правой стены. Тяжёлое над осями и в переднюю треть, каждое место сканируется — 100 % сверка с планом. Фото кузова до закрытия — самое важное фото процесса.',
+   k:'tandem trailer truck 17.5m / автопоезд тандем 17,5 м / 17.5米中置轴列车'});
+
+/* ========================================================= ПОТОК ГРУЗА */
+const flowMeshes=[];
+const g2=GATES[1].z;
+[
+  {mat:M.carton,size:[0.56,0.42,0.46],n:11,sp:0.024,pts:[
+    [-3.2,1.7,g2],[0.6,1.3,g2],[3.6,1.0,g2],[6.6,0.95,g2],[8.5,0.9,11.5],[11.5,0.9,11.5],[13.4,0.9,12.5],
+    [14.6,0.85,15.2],[20,0.85,15.2],[28,0.85,15.2],[36,0.8,14.0],[38.5,0.8,9.0],[41,0.8,g2],[45.5,0.9,g2],[48.6,1.6,g2],[52,2.3,g2]]},
+  {mat:M.crate,size:[1.5,1.05,1.3],n:2,sp:0.011,pts:[
+    [22,1.9,33.4],[22,1.3,31.2],[24,1.0,28.6],[32,1.0,28.6],[40,0.95,28.6],[45.6,0.95,24],[45.6,0.95,16],
+    [44,0.9,12.5],[48.6,1.6,g2],[52,2.3,g2]]},
+  {mat:M.alu,size:[0.14,0.14,5.6],n:3,sp:0.016,pts:[
+    [-3.2,1.6,g2-2],[1,1.4,g2],[6,1.3,13.2],[16,1.3,15.2],[30,1.3,15.2],[38,1.3,8],[40,1.35,2.6]]}
+].forEach(fc=>{
+  const curve=new THREE.CatmullRomCurve3(fc.pts.map(p=>new THREE.Vector3(p[0],p[1],p[2])));
+  G.flow.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(curve.getPoints(160)),
+    new THREE.LineBasicMaterial({color:0xf2b705,transparent:true,opacity:.3,toneMapped:false})));
+  for(let i=0;i<fc.n;i++){
+    const m=new THREE.Mesh(bg(fc.size[0],fc.size[1],fc.size[2]),fc.mat);
+    m.userData={t:i/fc.n,curve,sp:fc.sp};
+    G.flow.add(m); flowMeshes.push(m);
+  }
+});
+
+/* ================================================================= UI */
+const VIEWS=[
+  ['План · наша часть', {t:[24,1,18],   r:58, phi:0.05, th:0}],
+  ['Изометрия',         {t:[24,2.5,20], r:78, phi:0.95, th:-0.62}],
+  ['Здание охраны',     {t:[15,1.6,5],  r:22, phi:1.12, th:0.3}],
+  ['Крытый пост Л1',    {t:[24,2.5,31], r:24, phi:1.02, th:1.4}],
+  ['Приёмка Л2',        {t:[7,1.6,10.6],r:17, phi:1.22, th:-2.2}],
+  ['Весь зал 76 м',     {t:[24,2,38],   r:110,phi:0.85, th:-0.7}]
+];
+const viewsEl=document.getElementById('views');
+VIEWS.forEach((v,i)=>{ const b=document.createElement('button');
+  b.textContent=v[0]; if(i<2) b.className='wide'; b.onclick=()=>{ if(walk) toggleWalk(); flyTo(v[1]); }; viewsEl.appendChild(b); });
+
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const LAYERS=[
+  ['struct','Каркас, пол, площадка',true],
+  ['walls','Стены, ворота, завесы',true],
+  ['guard','Здание охраны',true],
+  ['fence','Сетка по границе (рекоменд.)',true],
+  ['roof','Кровля, фонари, свет',false],
+  ['floorgfx','Зоны и разметка',true],
+  ['equip','Оборудование',true],
+  ['people','Люди',true],
+  ['roles','Роли в смене',true],
+  ['trucks','Машины',true],
+  ['labels','Подписи зон',true],
+  ['addr','Адреса ячеек',true],
+  ['dims','Размеры и оси',false],
+  ['flow','Поток груза A / C / D',!reduceMotion]
+];
+const layersEl=document.getElementById('layers');
+LAYERS.forEach(l=>{
+  G[l[0]].visible=l[2];
+  const lab=document.createElement('label'); lab.className='lay';
+  const inp=document.createElement('input'); inp.type='checkbox'; inp.checked=l[2];
+  inp.onchange=()=>{ G[l[0]].visible=inp.checked;
+    if(l[0]==='roof') interior.intensity=inp.checked?1.25:0.22;
+    renderer.shadowMap.needsUpdate=true; };
+  const sp=document.createElement('span'); sp.textContent=l[1];
+  lab.append(inp,sp); layersEl.appendChild(lab);
+});
+
+const sceneBtns=document.getElementById('scenebtns');
+function mkBtn(t,wide,fn,on){ const b=document.createElement('button');
+  b.textContent=t; if(wide) b.className='wide'; if(on) b.classList.add('on');
+  b.onclick=()=>fn(b); sceneBtns.appendChild(b); return b; }
+let evening=false;
+mkBtn('День / вечер',false,b=>{
+  evening=!evening; b.classList.toggle('on',evening);
+  sun.intensity=evening?0.5:2.2;
+  sun.color.set(evening?0xffc98f:0xfff2dd);
+  sun.position.set(evening?-80:72,evening?26:96,evening?40:-46);
+  hemi.intensity=evening?0.28:0.55;
+  renderer.toneMappingExposure=evening?0.85:1.0;
+  scene.fog.color.set(evening?0x3a4250:0x9fb2c6);
+  renderer.shadowMap.needsUpdate=true;
+});
+mkBtn('Тени',false,b=>{
+  renderer.shadowMap.enabled=!renderer.shadowMap.enabled;
+  sun.castShadow=renderer.shadowMap.enabled;
+  b.classList.toggle('on',renderer.shadowMap.enabled);
+  scene.traverse(o=>{ if(o.isMesh) o.material.needsUpdate=true; });
+  renderer.shadowMap.needsUpdate=true;
+},renderer.shadowMap.enabled);
+/* ---------- режим обхода: как в симуляторе ---------- */
+let walk=false, wYaw=0, wPitch=0;
+const wPos=new THREE.Vector3(), wDir=new THREE.Vector3(), keys={};
+const padEl=document.getElementById('pad'), tipEl=document.getElementById('tip');
+const tipOrbit=tipEl.innerHTML;
+const SOLIDS=[{x0:1.2,x1:30.0,z0:0.8,z1:6.6}];                 // здание охраны — непроходимо
+const walkBtn=mkBtn('Режим обхода · WASD',true,()=>toggleWalk());
+function toggleWalk(){
+  walk=!walk; walkBtn.classList.toggle('on',walk); padEl.classList.toggle('on',walk);
+  if(walk){
+    fly=null;
+    const dx=camera.position.x-target.x, dz=camera.position.z-target.z;
+    wYaw=Math.atan2(-dx,-dz);                                   // смотрим туда же, куда смотрела камера
+    const d=Math.hypot(dx,dz)||1, back=Math.min(6,d);
+    wPos.set(target.x+dx/d*back,1.72,target.z+dz/d*back); wPitch=-0.06;
+    hoverObj=null; marker.visible=false; hoverEl.style.display='none';
+    tipEl.innerHTML='<b>W A S D</b> идти · <b>мышь</b> смотреть<br><b>Shift</b> бегом · <b>Esc</b> выход';
+    if(canvas.requestPointerLock) canvas.requestPointerLock();
+  } else {
+    if(document.pointerLockElement===canvas && document.exitPointerLock) document.exitPointerLock();
+    desired.t.set(wPos.x+wDir.x*8,1.5,wPos.z+wDir.z*8); target.copy(desired.t);
+    desired.r=12; sph.radius=12; desired.phi=1.2; sph.phi=1.2;
+    desired.th=Math.atan2(wPos.x-target.x,wPos.z-target.z); sph.theta=desired.th;
+    tipEl.innerHTML=tipOrbit;
+    for(const k in keys) keys[k]=false;
+  }
+}
+document.addEventListener('pointerlockchange',()=>{ if(walk && document.pointerLockElement!==canvas) toggleWalk(); });
+document.addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT') return;
+  keys[e.code]=true; if(walk&&e.code==='Escape') toggleWalk(); if(walk&&['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault(); });
+document.addEventListener('keyup',e=>{ keys[e.code]=false; });
+padEl.querySelectorAll('button').forEach(b=>{
+  const k=b.dataset.k;
+  const on=e=>{ e.preventDefault(); if(k==='Escape'){ if(walk) toggleWalk(); return; } keys[k]=true; b.classList.add('on'); };
+  const off=e=>{ keys[k]=false; b.classList.remove('on'); };
+  b.addEventListener('pointerdown',on); b.addEventListener('pointerup',off); b.addEventListener('pointercancel',off); b.addEventListener('pointerleave',off);
+});
+function tryMove(mx,mz){
+  const nx=wPos.x+mx, nz=wPos.z+mz;
+  let bx=false, bz=false;
+  for(const wx of [0,W]) if((wPos.x-wx)*(nx-wx)<0 && wPos.z>-0.6 && wPos.z<D+0.6)
+    if(!GATES.some(g=>Math.abs(wPos.z-g.z)<g.w/2-0.25)) bx=true;        // боковые стены: только через ворота
+  for(const wz of [0,D,OUR]) if((wPos.z-wz)*(nz-wz)<0 && wPos.x>0 && wPos.x<W) bz=true;   // торцы и решётка — глухие
+  for(const o of SOLIDS){
+    const inX=v=>v>o.x0&&v<o.x1, inZ=v=>v>o.z0&&v<o.z1;
+    if(inZ(wPos.z)&&!inX(wPos.x)&&inX(nx)) bx=true;
+    if(inX(wPos.x)&&!inZ(wPos.z)&&inZ(nz)) bz=true;
+  }
+  if(!bx) wPos.x=clamp(nx,-70,W+70);
+  if(!bz) wPos.z=clamp(nz,-70,D+70);
+}
+function walkStep(dt){
+  const run=keys.ShiftLeft||keys.ShiftRight, sp=(run?5.5:2.1)*dt;
+  const fx=-Math.sin(wYaw), fz=-Math.cos(wYaw), rx=Math.cos(wYaw), rz=-Math.sin(wYaw);
+  let mx=0, mz=0;
+  if(keys.KeyW||keys.ArrowUp){ mx+=fx; mz+=fz; }   if(keys.KeyS||keys.ArrowDown){ mx-=fx; mz-=fz; }
+  if(keys.KeyD||keys.ArrowRight){ mx+=rx; mz+=rz; } if(keys.KeyA||keys.ArrowLeft){ mx-=rx; mz-=rz; }
+  const L=Math.hypot(mx,mz); if(L>0){ mx=mx/L*sp; mz=mz/L*sp; tryMove(mx,mz); }
+  camera.position.copy(wPos);
+  wDir.set(-Math.sin(wYaw)*Math.cos(wPitch), Math.sin(wPitch), -Math.cos(wYaw)*Math.cos(wPitch));
+  camera.lookAt(wPos.x+wDir.x, wPos.y+wDir.y, wPos.z+wDir.z);
+}
+mkBtn('Скачать кадр PNG',true,()=>{
+  renderer.render(scene,camera);
+  const a=document.createElement('a');
+  a.download='sklad4-blok4-1.png'; a.href=renderer.domElement.toDataURL('image/png'); a.click();
+});
+
+const RULES=[
+  ['1','Одна ячейка — одна отправка',
+   'Две разные отправки в одной ячейке запрещены, даже если осталось место. FIFO ломает не глубина хранения, а смешение партий: как только в ячейке два возраста, порядок выдачи становится делом памяти грузчика. Когда партия уезжает целиком, ячейка пустеет целиком — и сотовый эффект, из-за которого обычно теряют до трети площади, просто не возникает.'],
+  ['2','Адрес печатается на этикетке, а не выбирается на месте',
+   'Ячейку назначает старший смены на контроле, до юнитизации, по дате отгрузки. Дальше грузчик не принимает ни одного решения — он читает адрес. Это же правило закрывает главный риск склада без WMS: место, которое «положили куда влезло», найти потом нельзя.'],
+  ['3','Цвет дня решает спор о старшинстве',
+   'Семь цветов бирок по дням недели. Сначала уезжает самый старый цвет — правило, которое видно с десяти метров и не требует сверки с журналом. Совпадение цвета с сегодняшним означает, что месту ровно неделя, и оно уже должно висеть на красной доске.'],
+  ['4','Карман приёма пуст до следующей машины',
+   'Всё снятое с борта ложится в размеченный карман и должно уйти из него до прихода следующей машины. Это единственная защита от того, во что вырождается большинство кросс-доков: приёмка становится постоянной свалкой, и оттуда груз уже не адресуется никогда.'],
+  ['5','Полоса стейджинга — очередь на погрузку, не хранение',
+   'Полоса набирается только в день отгрузки, одна полоса — одна машина. Если полоса занята больше суток, это уже буфер, и груз обязан вернуться в адресную ячейку. Полоса S4 держится пустой под срыв графика — резерв, а не место для «пока положим сюда».'],
+  ['6','Тяжёлое принимается только на поддоне',
+   'Крана нет. Место тяжелее тонны принимается, если оно стоит на поддоне или на брусьях под вилы погрузчика 3 т — и только тогда. Если его нельзя взять вилами, оно не принимается: попытка перехватить такое место стропами за погрузчик — самый верный способ и уронить его, и покалечить людей.'],
+  ['7','Ничего не стоит вне разметки',
+   'Груз «просто у стенки» — это груз, который потеряют, собьют или отгрузят не в ту машину. Если для места нет адреса, значит нет и приёмки: оно возвращается в карман и адресуется заново.']
+];
+const rulesEl=document.getElementById('rules');
+RULES.forEach(r=>{
+  const d=document.createElement('div'); d.className='row eq';
+  d.innerHTML=`<span class="no">${r[0]}</span><span class="t">${r[1]}</span><span class="p"></span>`;
+  d.onclick=()=>showInfo({t:r[1],q:'правило смены №'+r[0],n:r[2]});
+  rulesEl.appendChild(d);
+});
+const bandsEl=document.getElementById('bands');
+BANDS.forEach((bd,i)=>{
+  const d=document.createElement('div'); d.className='row zone';
+  const rng=['1–5 · западный пролёт','6–10 · восточный пролёт'][i];
+  d.innerHTML=`<span class="chip" style="background:#${bd.c.toString(16).padStart(6,'0')}"></span>
+    <span><b>${bd.t}</b><span>ячейки ${rng}</span></span><span class="m2">A и B</span>`;
+  d.onclick=()=>{
+    flyTo({t:[[8.2,39.8][i],1.5,21.8],r:22,phi:0.7,th:-0.3});
+    showInfo({t:bd.t,q:'ячейки '+rng+' в обоих рядах',n:bd.n});
+  };
+  bandsEl.appendChild(d);
+});
+const zonesEl=document.getElementById('zones');
+ZONES.forEach(z=>{
+  const d=document.createElement('div'); d.className='row zone';
+  d.innerHTML=`<span class="chip" style="background:#${z.c.toString(16).padStart(6,'0')}"></span>
+    <span><b>[${z.id}] ${z.n}</b><span>${(z.x1-z.x0).toFixed(1)} × ${(z.z1-z.z0).toFixed(1)} м</span></span>
+    <span class="m2">${z.m2} м²</span>`;
+  d.onclick=()=>{
+    flyTo({t:[z.center.x,1.5,z.center.z],r:Math.max(18,(z.x1-z.x0)*1.1),phi:0.8,th:-0.55});
+    showInfo({t:`[${z.id}] ${z.n}`,q:`${z.m2} м²`,n:z.note,k:z.eq,kt:'Оборудование зоны'});
+  };
+  zonesEl.appendChild(d);
+});
+const eqEl=document.getElementById('eqlist');
+Object.keys(EQ).map(Number).sort((a,b)=>a-b).forEach(no=>{
+  const e=EQ[no];
+  const d=document.createElement('div'); d.className='row eq';
+  d.innerHTML=`<span class="no">${no}</span><span class="t">${e.t}</span>
+    <span class="p">${e.usd.replace(/ /g,'\u00a0')} $</span>`;
+  d.onclick=()=>{ if(e.focus) flyTo({t:e.focus,r:e.r||14,phi:1.0,th:-0.5}); showInfo(e); };
+  eqEl.appendChild(d);
+});
+const infoBody=document.getElementById('infoBody');
+function showInfo(o){
+  infoBody.className='';
+  const price=(o.cny||o.usd)
+    ?`<div class="price">${o.cny?`<div>Завод, 1688<b>${o.cny} ¥</b></div>`:''}
+       ${o.usd?`<div>Под ключ<b>${o.usd} $</b></div>`:''}</div>`:'';
+  infoBody.innerHTML=`<div class="ttl">${o.no?('№'+o.no+' · '):''}${o.t}</div>
+    <div class="qty">${o.q||''}</div>${price}
+    <div class="note">${o.n||''}</div>
+    ${o.k?`<div class="kw"><b>${o.kt||'Ключ для поиска на 1688'}</b>${o.k}</div>`:''}`;
+}
+
+/* --------------------------------------------------------- управление */
+const canvas=renderer.domElement;
+var ED={on:false,sel:null,drag:null,snap:false,undo:[]};   // наполняется блоком редактора ниже
+const pointers=new Map();
+let mode=null,lastX=0,lastY=0,moved=0,pinch=0;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+canvas.addEventListener('pointerdown',e=>{
+  if(walk){ if(canvas.requestPointerLock && e.pointerType==='mouse' && document.pointerLockElement!==canvas) canvas.requestPointerLock();
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); lastX=e.clientX; lastY=e.clientY; mode='look'; return; }
+  if(ED.on && pointers.size===0 && e.button!==2 && !e.shiftKey){
+    const hit=hitTest(e.clientX,e.clientY);
+    if(hit){ canvas.setPointerCapture(e.pointerId); edSelect(hit);
+      if(edDragStart(hit,e)) return; }
+  }
+  canvas.setPointerCapture(e.pointerId);
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.size===1){ mode=(e.button===2||e.shiftKey)?'pan':'rot'; moved=0; }
+  if(pointers.size===2){ mode='pinch'; pinch=pdist(); }
+  lastX=e.clientX; lastY=e.clientY; canvas.classList.add('grabbing');
+});
+canvas.addEventListener('pointermove',e=>{
+  if(walk){
+    if(document.pointerLockElement===canvas){ wYaw-=e.movementX*0.0024; wPitch=clamp(wPitch-e.movementY*0.0024,-1.25,1.25); }
+    else if(mode==='look'&&pointers.has(e.pointerId)){ wYaw-=(e.clientX-lastX)*0.006; wPitch=clamp(wPitch-(e.clientY-lastY)*0.006,-1.25,1.25); lastX=e.clientX; lastY=e.clientY; }
+    return;
+  }
+  if(ED.drag){ edDragMove(e); return; }
+  hoverX=e.clientX; hoverY=e.clientY; hoverDirty=true;
+  if(!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(mode==='pinch'&&pointers.size===2){ const d=pdist();
+    desired.r=clamp(desired.r*(pinch/d),0.6,2200); pinch=d; return; }
+  const dx=e.clientX-lastX,dy=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY; moved+=Math.abs(dx)+Math.abs(dy);
+  if(mode==='rot'){ desired.th-=dx*0.006; desired.phi=clamp(desired.phi-dy*0.006,0.035,1.535); }
+  else if(mode==='pan'){
+    const k=desired.r*0.0016;
+    const right=new THREE.Vector3().setFromMatrixColumn(camera.matrix,0);
+    const fwd=new THREE.Vector3(-right.z,0,right.x);
+    desired.t.addScaledVector(right,-dx*k).addScaledVector(fwd,-dy*k);
+  }
+});
+['pointerup','pointercancel','pointerleave'].forEach(ev=>canvas.addEventListener(ev,e=>{
+  if(walk){ pointers.delete(e.pointerId); if(pointers.size===0) mode=null; return; }
+  if(ED.drag){ const d=ED.drag; ED.drag=null;
+    if(d.dist>0.02) edRecord(d.o); else if(d.o.userData.info) showInfo(d.o.userData.info);
+    edUI(); return; }
+  if(mode&&mode!=='pinch'&&moved<5) pick(e.clientX,e.clientY,true);
+  pointers.delete(e.pointerId);
+  if(pointers.size===0){ mode=null; canvas.classList.remove('grabbing'); }
+}));
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+const _zray=new THREE.Raycaster(), _zndc=new THREE.Vector2(), _zp=new THREE.Vector3();
+function zoomAt(e){
+  const f=Math.exp((e.deltaY||0)*0.0012);             // плавный зум колесом, без ограничений по дистанции
+  desired.r=clamp(desired.r*f,0.6,2200);
+  if(f>=1) return;                                    // приближение тянет камеру к точке под курсором
+  const rc=canvas.getBoundingClientRect();
+  _zndc.x=((e.clientX-rc.left)/rc.width)*2-1;
+  _zndc.y=-((e.clientY-rc.top)/rc.height)*2+1;
+  _zray.setFromCamera(_zndc,camera);
+  const d=_zray.ray.direction;
+  if(d.y>=-0.02) return;
+  const t=-_zray.ray.origin.y/d.y;
+  if(t<=0||t>3000) return;
+  _zp.copy(_zray.ray.origin).addScaledVector(d,t);
+  const k=1-f;
+  desired.t.x+=(_zp.x-desired.t.x)*k;
+  desired.t.z+=(_zp.z-desired.t.z)*k;
+}
+canvas.addEventListener('wheel',e=>{ e.preventDefault(); if(walk) return;
+  zoomAt(e); },{passive:false});
+function pdist(){ const p=[...pointers.values()]; return Math.hypot(p[0].x-p[1].x,p[0].y-p[1].y)||1; }
+
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2();
+const hoverEl=document.getElementById('hover');
+let hoverX=0,hoverY=0,hoverDirty=false,hoverObj=null;
+const marker=new THREE.BoxHelper(new THREE.Object3D(),0xf2b705);
+marker.material.depthTest=false; marker.material.transparent=true;
+marker.visible=false; scene.add(marker);
+function hitTest(cx,cy){
+  const r=canvas.getBoundingClientRect();
+  ndc.x=((cx-r.left)/r.width)*2-1; ndc.y=-((cy-r.top)/r.height)*2+1;
+  ray.setFromCamera(ndc,camera);
+  const hs=ray.intersectObjects(pickables,true);
+  if(!hs.length) return null;
+  let o=hs[0].object;
+  while(o&&!o.userData.info) o=o.parent;
+  return (o&&o.userData.info)?o:null;
+}
+function pick(cx,cy,click){ const o=hitTest(cx,cy); if(click&&o) showInfo(o.userData.info); return o; }
+function updateHover(){
+  if(!hoverDirty) return; hoverDirty=false;
+  const o=mode?null:hitTest(hoverX,hoverY);
+  if(o!==hoverObj){
+    hoverObj=o;
+    if(o){ marker.setFromObject(o); marker.visible=true;
+      hoverEl.style.display='block'; hoverEl.textContent=o.userData.info.t; }
+    else { marker.visible=false; hoverEl.style.display='none'; }
+  }
+  if(o){ const r=canvas.getBoundingClientRect();
+    hoverEl.style.left=(hoverX-r.left)+'px'; hoverEl.style.top=(hoverY-r.top)+'px'; }
+}
+let fly=null;
+function flyTo(v){
+  fly={t0:performance.now(),dur:reduceMotion?1:780,
+    from:{t:desired.t.clone(),r:desired.r,phi:desired.phi,th:desired.th},
+    to:{t:new THREE.Vector3(v.t[0],v.t[1],v.t[2]),r:v.r,phi:v.phi,th:v.th}};
+}
+function tickFly(now){
+  if(!fly) return;
+  const k=clamp((now-fly.t0)/fly.dur,0,1);
+  const e=k<0.5?4*k*k*k:1-Math.pow(-2*k+2,3)/2;
+  desired.t.lerpVectors(fly.from.t,fly.to.t,e);
+  desired.r=fly.from.r+(fly.to.r-fly.from.r)*e;
+  desired.phi=fly.from.phi+(fly.to.phi-fly.from.phi)*e;
+  let d=fly.to.th-fly.from.th;
+  while(d>Math.PI) d-=Math.PI*2;
+  while(d<-Math.PI) d+=Math.PI*2;
+  desired.th=fly.from.th+d*e;
+  if(k>=1) fly=null;
+}
+const hdist=document.getElementById('hdist');
+function resize(){ const w=view.clientWidth,h=view.clientHeight;
+  renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+addEventListener('resize',resize);
+const tgl=document.getElementById('toggle');
+tgl.onclick=()=>{ const app=document.getElementById('app');
+  app.classList.toggle('max');
+  tgl.textContent=app.classList.contains('max')?'Панель':'Развернуть';
+  requestAnimationFrame(resize); };
+
+let prev=performance.now(),frame=0;
+const _lp=new THREE.Vector3();
+function loop(now){
+  const dt=Math.min(Math.max((now-prev)/1000,0),0.05); prev=now;
+  if(walk){ walkStep(dt); }
+  else {
+    tickFly(now);
+    const s=reduceMotion?1:1-Math.pow(0.001,dt);
+    target.lerp(desired.t,s);
+    sph.radius+=(desired.r-sph.radius)*s;
+    sph.phi+=(desired.phi-sph.phi)*s;
+    sph.theta+=(desired.th-sph.theta)*s;
+    camera.position.copy(target).add(new THREE.Vector3().setFromSpherical(sph));
+    camera.lookAt(target);
+  }
+  if(!reduceMotion){
+    for(const b of beltRuns) b.tex.offset.x=((b.tex.offset.x+b.sp*dt)%1+1)%1;
+    for(const c of beltCargo){ c.t=((c.t+dt*c.sp)%1+1)%1;
+      c.o.position.x=c.x0+(c.x1-c.x0)*c.t;
+      c.o.position.y=c.y0+(c.y1-c.y0)*c.t; }
+  }
+  if(!reduceMotion) for(const s of spinAnim) s.o.rotation.y+=s.sp*dt;
+  if(!reduceMotion) for(const r of flexAnim){
+    const rd=r.dir||1;
+    for(const s of r.spin) s.rotateY(-6.5*dt*rd);
+    for(const c of r.cargo){ c.t=((c.t+dt*c.sp*rd)%1+1)%1; flexPlace(c,r); }
+  }
+  if(G.flow.visible&&!reduceMotion){
+    for(const m of flowMeshes){
+      m.userData.t=((m.userData.t+m.userData.sp*dt)%1+1)%1;
+      const p=m.userData.curve.getPointAt(m.userData.t);
+      if(!p) continue;
+      m.position.copy(p);
+      m.lookAt(p.clone().add(m.userData.curve.getTangentAt(m.userData.t)));
+    }
+  }
+  if((frame++&1)===0){
+    if(!walk) updateHover();
+    for(const sp2 of allLabels){
+      if(!sp2.parent||!sp2.parent.visible) continue;
+      sp2.getWorldPosition(_lp);
+      sp2.material.opacity=clamp((_lp.distanceTo(camera.position)-12)/10,0,1);
+    }
+  }
+  if(hoverObj) marker.setFromObject(hoverObj);
+  if(ED.sel) edSelBox.setFromObject(ED.sel);
+  hdist.textContent=walk?'ОБХОД · '+wPos.x.toFixed(0)+' / '+wPos.z.toFixed(0)+' м':sph.radius.toFixed(0)+' м';
+  renderer.render(scene,camera);
+  requestAnimationFrame(loop);
+}
+/* всё остальное наполнение сцены — люди, паллеты, штабели, машины — тоже
+   должно выбираться и убираться в редакторе, а не только помеченные карточками */
+[[G.people,'Человек на площадке'],[G.equip,'Объект расстановки'],[G.trucks,'Машина']].forEach(([grpG,def])=>{
+  grpG.children.slice().forEach(o=>{
+    if(o.userData.info) return;
+    if(o.isMesh && o.geometry && o.geometry.type==='PlaneGeometry') return;
+    const bb=new THREE.Box3().setFromObject(o);
+    if(bb.isEmpty()||bb.max.y-bb.min.y<0.12) return;          // разметка и подкладки — не трогаем
+    tag(o,{t:o.userData.nm||def,
+      q:(bb.max.x-bb.min.x).toFixed(1)+' × '+(bb.max.y-bb.min.y).toFixed(1)+' × '+(bb.max.z-bb.min.z).toFixed(1)+' м',
+      n:'Объект расстановки: тянется мышью, поворачивается и убирается в режиме правки. Кнопка «Сброс» в нижней панели возвращает исходную расстановку целиком.'});
+  });
+});
+
+/* ===================== БИБЛИОТЕКА ОБЪЕКТОВ =====================
+   Объекты добавляются из панели, тянутся мышью и настраиваются слайдерами.
+   Состав и параметры пишутся в localStorage вместе с правкой расстановки. */
+const flexAnim=[];
+function flexRoller(o){
+  o=Object.assign({ext:0.8,cb:0,sb:0,h:0.78,w:0.5,load:1,dir:1},o||{});
+  const N=40, PMIN=0.055, PMAX=0.175;
+  const pitch=PMIN+(PMAX-PMIN)*o.ext, len=pitch*(N-1), W=o.w, H=o.h, RR=0.025;
+  const g=new THREE.Group(), inner=new THREE.Group(); g.add(inner);
+  const mk=(geo,mat,nm)=>{ const m=new THREE.Mesh(geo,mat);
+    m.castShadow=m.receiveShadow=true; m.name=nm||'part'; inner.add(m); return m; };
+  const X=new THREE.Vector3(1,0,0), Y=new THREE.Vector3(0,1,0);
+  const strut=(a,b,th,mat,nm)=>{ const d=b.clone().sub(a), L=d.length();
+    if(L<1e-4) return null;
+    const m=mk(new THREE.BoxGeometry(L,th,th),mat,nm);
+    m.position.copy(a).addScaledVector(d,0.5);
+    m.quaternion.setFromUnitVectors(X,d.clone().normalize()); return m; };
+  const castor=(p,nm)=>{ const pl=mk(new THREE.BoxGeometry(0.10,0.03,0.10),M.galv,nm+'_plate');
+    pl.position.copy(p).add(new THREE.Vector3(0,0.135,0));
+    const w=mk(new THREE.CylinderGeometry(0.05,0.05,0.04,14),M.red,nm+'_wheel');
+    w.rotation.x=Math.PI/2; w.position.copy(p).add(new THREE.Vector3(0,0.05,0)); };
+
+  const pts=[],tan=[],nrm=[]; let px=0,pz=0,head=0;
+  const A=(o.cb*Math.PI/180)*Math.PI/(2*len), B=(o.sb*Math.PI/180)*Math.PI/len;
+  for(let i=0;i<N;i++){ const t=i/(N-1);
+    pts.push(new THREE.Vector3(px,0,pz));
+    const k=A*Math.sin(Math.PI*t)+B*Math.sin(2*Math.PI*t); head+=k*pitch;
+    px+=Math.cos(head)*pitch; pz+=Math.sin(head)*pitch; }
+  for(let i=0;i<N;i++){ const a=pts[Math.max(0,i-1)], b=pts[Math.min(N-1,i+1)];
+    const t=b.clone().sub(a).normalize(); tan.push(t); nrm.push(new THREE.Vector3(-t.z,0,t.x)); }
+  const side=(i,s)=>pts[i].clone().addScaledVector(nrm[i],s*W/2);
+  const yR=H-RR, yTop=H-0.10, yBot=Math.max(0.30,H-0.42);
+
+  const rollGeo=new THREE.CylinderGeometry(RR,RR,W,12), ringGeo=new THREE.CylinderGeometry(RR+0.008,RR+0.008,0.014,10);
+  const spin=[];
+  for(let i=0;i<N;i++){
+    const r=mk(rollGeo,M.galv,'roller_'+(i+1));
+    r.quaternion.setFromUnitVectors(Y,nrm[i]);
+    r.position.copy(pts[i]).add(new THREE.Vector3(0,yR,0)); spin.push(r);
+    const bd=mk(ringGeo,M.green,'drive_band_'+(i+1));
+    bd.quaternion.copy(r.quaternion);
+    bd.position.copy(pts[i]).addScaledVector(nrm[i],W/2-0.06).add(new THREE.Vector3(0,yR,0));
+    if(i<N-1) strut(pts[i].clone().addScaledVector(nrm[i],W/2-0.06).add(new THREE.Vector3(0,yR+RR+0.007,0)),
+                    pts[i+1].clone().addScaledVector(nrm[i+1],W/2-0.06).add(new THREE.Vector3(0,yR+RR+0.007,0)),
+                    0.012,M.green,'band_link');
+  }
+  for(const s of [-1,1]) for(let i=0;i<N-1;i++){
+    const a=side(i,s), b=side(i+1,s);
+    strut(a.clone().add(new THREE.Vector3(0,yBot,0)),b.clone().add(new THREE.Vector3(0,yTop,0)),0.020,M.galv,'pantograph_bar');
+    strut(a.clone().add(new THREE.Vector3(0,yTop,0)),b.clone().add(new THREE.Vector3(0,yBot,0)),0.020,M.galv,'pantograph_bar');
+  }
+  const legStep=Math.max(6,Math.round(N/6));
+  for(let i=legStep;i<N-2;i+=legStep){
+    for(const s of [-1,1]){ const f=side(i,s);
+      strut(f.clone().add(new THREE.Vector3(0,0.14,0)),f.clone().add(new THREE.Vector3(0,yBot+0.04,0)),0.045,M.steelDark,'leg_post');
+      castor(f.clone(),'leg_castor'); }
+    strut(side(i,-1).add(new THREE.Vector3(0,yBot-0.10,0)),side(i,1).add(new THREE.Vector3(0,yBot-0.10,0)),0.04,M.steelDark,'leg_beam');
+  }
+  [0,N-1].forEach((i,k)=>{
+    const out=tan[i].clone().multiplyScalar(k?0.14:-0.14);
+    for(const s of [-1,1]){ const f=side(i,s).add(out);
+      strut(f.clone().add(new THREE.Vector3(0,0.14,0)),f.clone().add(new THREE.Vector3(0,H,0)),0.055,M.steelDark,'end_post');
+      castor(f.clone(),'end_castor'); }
+    const l=side(i,-1).add(out), r=side(i,1).add(out);
+    strut(l.clone().add(new THREE.Vector3(0,H-0.02,0)),r.clone().add(new THREE.Vector3(0,H-0.02,0)),0.05,M.steelDark,'end_rail_top');
+    strut(l.clone().add(new THREE.Vector3(0,0.32,0)),r.clone().add(new THREE.Vector3(0,0.32,0)),0.045,M.steelDark,'end_rail_low');
+  });
+  {
+    const out=tan[0].clone().multiplyScalar(-0.14);
+    const l=side(0,-1).add(out), r=side(0,1).add(out);
+    const hl=l.clone().add(new THREE.Vector3(0,H+0.30,0)), hr=r.clone().add(new THREE.Vector3(0,H+0.30,0));
+    strut(l.clone().add(new THREE.Vector3(0,H-0.02,0)),hl,0.05,M.yellow,'handle_post');
+    strut(r.clone().add(new THREE.Vector3(0,H-0.02,0)),hr,0.05,M.yellow,'handle_post');
+    strut(hl,hr,0.05,M.yellow,'handle_bar');
+    const c=pts[1].clone().addScaledVector(nrm[1],-0.10);
+    const mot=mk(new THREE.CylinderGeometry(0.075,0.075,0.22,14),M.steelDark,'drive_motor');
+    mot.quaternion.setFromUnitVectors(Y,nrm[1]); mot.position.copy(c).add(new THREE.Vector3(0,yBot+0.10,0));
+    const bx=side(1,-1).addScaledVector(tan[1],0.30).add(new THREE.Vector3(0,0.44,0));
+    const cb=mk(new THREE.BoxGeometry(0.15,0.20,0.11),M.orange,'control_box'); cb.position.copy(bx);
+  }
+  const cargo=[];
+  if(o.load) [0.28,0.64].forEach((t,k)=>{
+    const cg=new THREE.Group(); inner.add(cg);
+    const bw=k?0.52:0.40, bh=k?0.26:0.30, bd=Math.min(W-0.08,k?0.46:0.34);
+    const b=new THREE.Mesh(new THREE.BoxGeometry(bw,bh,bd),M.carton);
+    b.castShadow=b.receiveShadow=true; b.name='parcel'; b.position.y=bh/2; cg.add(b);
+    cargo.push({g:cg,t,sp:k?0.055:0.043});
+  });
+  const bb=new THREE.Box3().setFromObject(inner), ct=bb.getCenter(new THREE.Vector3());
+  inner.position.set(-ct.x,0,-ct.z);
+  g.userData.flex={spin,cargo,pts,tan,y:H,N,dir:o.dir<0?-1:1};
+  g.userData.libLen=len; g.userData.libPitch=pitch;
+  return g;
+}
+function flexPlace(c,rec){
+  const N=rec.N, f=c.t*(N-1), i=Math.min(N-2,Math.floor(f)), fr=f-i;
+  const p=rec.pts[i].clone().lerp(rec.pts[i+1],fr);
+  c.g.position.copy(p).add(new THREE.Vector3(0,rec.y,0));
+  const t=rec.tan[i].clone().lerp(rec.tan[i+1],fr).normalize();
+  c.g.rotation.y=Math.atan2(-t.z,t.x)+((rec.dir||1)<0?Math.PI:0);
+}
+
+const LIBROLES=['ГРУЗЧИК','КЛАДОВЩИК','ОПЕРАТОР','КОНТРОЛЁР','ВОДИТЕЛЬ','БРИГАДИР','ОХРАННИК'];
+function cartonBox(o){                                     // одиночное место: короб с лентой и этикеткой
+  o=Object.assign({l:0.6,w:0.4,hh:0.4,label:1},o||{});
+  const g=new THREE.Group();
+  box(o.l,o.hh,o.w,M.carton,0,o.hh/2,0,g);
+  box(o.l+0.004,0.03,o.w*0.22,M.dark,0,o.hh/2,0,g).castShadow=false;
+  box(o.l*0.22,0.03,o.w+0.004,M.dark,0,o.hh/2,0,g).castShadow=false;
+  box(o.l+0.006,0.012,o.w+0.006,std(0xa8825f,.95,0),0,o.hh-0.004,0,g).castShadow=false;
+  if(o.label){
+    box(0.005,o.hh*0.34,o.w*0.5,M.white,o.l/2+0.003,o.hh*0.58,0,g).castShadow=false;
+    for(let i=0;i<5;i++) box(0.004,0.012,o.w*0.44,M.dark,o.l/2+0.006,o.hh*0.50+i*0.018,0,g).castShadow=false;
+  }
+  g.userData.carton={l:o.l,w:o.w,hh:o.hh};
+  return g;
+}
+
+/* Казахская еврофура: тягач + шторный полуприцеп с видимой внутренней частью */
+function kzTruck(o){
+  o=Object.assign({len:13.6,open:0.55,load:0.7,roof:1},o||{});
+  const L=o.len, HW=1.275, FY=1.30, IH=2.62, RY=FY+IH;
+  const g=new THREE.Group(), inner=new THREE.Group(); g.add(inner);
+  const mk=(w,hh,d,mat,x,y,z,p)=>box(w,hh,d,mat,x,y,z,p||inner);
+  /* рама и пол полуприцепа */
+  for(const sg of [-1,1]) mk(L,0.26,0.12,M.steelDark,L/2,FY-0.20,sg*0.62);
+  mk(L,0.05,HW*2-0.06,M.steelDark,L/2,FY-0.07,0);
+  for(let i=0;i<Math.floor(L/0.42);i++) mk(0.30,0.035,HW*2-0.12,M.wood,0.22+i*0.42,FY,0);
+  /* стойки, верхний и нижний пояс */
+  const cov=Math.max(0.001,L*(1-o.open));                  // закрытая часть шторы, считается от переднего торца
+  for(const sg of [-1,1]){
+    mk(L,0.10,0.10,M.galv,L/2,RY-0.05,sg*HW);
+    mk(L,0.14,0.06,M.galv,L/2,FY+0.10,sg*HW);
+    for(let i=0;i<=Math.round(L/1.6);i++){
+      const px=Math.min(i*1.6+0.06,L-0.06);
+      if(sg<0&&o.open>0.04&&px<L-cov-0.12&&px>0.25) continue;   // съёмные стойки вынуты на открытой стороне
+      mk(0.07,IH,0.07,M.galv,px,FY+IH/2,sg*(HW-0.01));
+    }
+  }
+  for(let i=0;i<=Math.round(L/1.35);i++) mk(0.07,0.07,HW*2,M.galv,Math.min(i*1.35+0.06,L-0.06),RY-0.05,0);
+  if(o.roof) mk(L+0.06,0.06,HW*2+0.06,M.white,L/2,RY+0.01,0);
+  /* внутренние борта — видны, когда штора открыта */
+  mk(L-0.12,IH-0.14,0.03,std(0xd8dade,.8,.02),L/2,FY+IH/2,HW-0.06);
+  mk(0.03,IH-0.14,HW*2-0.12,std(0xd8dade,.8,.02),0.05,FY+IH/2,0);
+  /* шторы: дальняя закрыта, ближняя сдвигается на open */
+  mk(L,IH-0.16,0.04,M.tarp,L/2,FY+IH/2,HW+0.02);
+  if(cov>0.06) mk(cov,IH-0.16,0.04,M.tarp,L-cov/2,FY+IH/2,-HW-0.02);
+  if(o.open>0.04) for(let i=0;i<5;i++)                     // штора собрана гармошкой у переднего торца
+    mk(0.05,IH-0.20,0.17,M.tarp,L-0.12-i*0.085,FY+IH/2,-HW-0.03);
+  /* задние двери, фонари, номер */
+  for(const sg of [-1,1]) mk(0.05,IH-0.10,HW-0.05,std(0xeceff2,.7,.05),0.02,FY+IH/2,sg*(HW/2+0.02));
+  mk(0.10,0.16,0.34,M.red,-0.02,0.92,-0.88); mk(0.10,0.16,0.34,M.red,-0.02,0.92,0.88);
+  mk(0.05,0.13,0.42,M.white,-0.04,0.62,0);
+  mk(0.05,0.13,0.09,std(0x1e56a8,.6,.05),-0.05,0.62,-0.165);
+  /* колёса, опоры, седло */
+  const arch=(x,z,r,w,mat)=>{                                // узкая арка по колесу
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(r+0.09,r+0.09,w,16,1,true,Math.PI/2,Math.PI),
+      mat||M.fenderM);
+    m.rotation.x=Math.PI/2; m.position.set(x,r,z);
+    m.castShadow=m.receiveShadow=true; inner.add(m); return m; };
+  const axle=(x,r,dual,track)=>{                            // колея как у настоящей фуры
+    for(const sg of [-1,1]){
+      if(dual){ tire(inner,x,r,sg*(track/2-0.17),r,0.30,'z'); tire(inner,x,r,sg*(track/2+0.17),r,0.30,'z');
+        arch(x,sg*(track/2-0.02),r,0.70); }
+      else { tire(inner,x,r,sg*track/2,r,0.30,'z'); arch(x,sg*track/2,r,0.46); }
+    }
+  };
+  for(let i=0;i<3;i++) axle(1.45+i*1.36,0.52,true,1.86);
+  for(const sg of [-1,1]){                                   // брызговики за тележкой
+    box(0.03,0.42,0.62,M.dark,4.60,0.30,sg*1.05,inner).castShadow=false;
+    box(0.03,0.42,0.62,M.dark,0.62,0.30,sg*1.05,inner).castShadow=false;
+  }
+  for(const sg of [-1,1]){
+    mk(0.16,0.85,0.16,M.steelDark,L-2.9,0.42,sg*0.72);
+    mk(0.34,0.06,0.34,M.steelDark,L-2.9,0.04,sg*0.72);
+  }
+  mk(0.9,0.10,1.0,M.galv,L-1.1,FY-0.30,0);
+  for(const sg of [-1,1]) mk(L-4.6,0.55,0.03,M.galv,L-3.2,0.55,sg*(HW-0.06));  // боковая защита
+  /* тягач: длинная кабина со спальником, седло над ведущей осью */
+  const KP=L-1.70, DR=KP-0.15, ST=KP+3.60, NS=ST+1.30;   // сцепка 16,5 м по стандарту
+  const CB=std(0xe6eaee,.34,.34), GLS=std(0x2b3f52,.16,.5,{transparent:true,opacity:.86});
+  for(const sg of [-1,1]) mk(NS-DR+1.5,0.22,0.13,M.steelDark,(DR+NS)/2-0.42,0.95,sg*0.44);
+  mk(1.05,0.10,0.95,M.galv,KP,1.07,0);
+  mk(0.65,0.08,0.95,M.galv,KP-0.58,1.03,0);
+  const CX1=NS, CX0=ST-1.05, CL=CX1-CX0, CCX=(CX0+CX1)/2;
+  mk(CL,2.05,2.48,CB,CCX,2.25,0);
+  mk(CL-0.50,0.44,2.40,CB,CCX-0.16,3.46,0);                    // спальник
+  const wsh=mk(0.12,1.16,2.36,GLS,CX1-0.06,2.78,0);            // наклонное лобовое
+  wsh.rotation.z=-0.16;
+  const brow=mk(0.62,0.30,2.44,CB,CX1-0.30,3.40,0); brow.rotation.z=0.14;
+  const defl=mk(1.05,0.52,2.42,CB,CCX-0.55,3.55,0); defl.rotation.z=0.26;  // скос выводит поток на крышу прицепа
+  mk(0.95,0.26,2.44,CB,CCX-1.00,3.79,0);                       // вровень с тентом, 3,92 м
+  for(const sg of [-1,1]){ const sd=mk(0.55,1.30,0.10,CB,CX0+0.22,2.75,sg*1.26); sd.rotation.z=0.12; }
+  for(const sg of [-1,1]) mk(1.20,0.74,0.06,GLS,CX1-0.98,2.64,sg*1.245);
+  for(const sg of [-1,1]) mk(0.05,1.50,0.06,M.steelDark,CX1-1.66,2.05,sg*1.25);
+  mk(0.16,0.62,2.30,std(0x98a1a9,.45,.4),CX1+0.03,1.68,0);
+  mk(0.30,0.44,2.52,M.steelDark,CX1+0.11,1.10,0);
+  mk(0.24,0.22,2.52,CB,CX1+0.09,0.79,0);
+  for(const sg of [-1,1]){ mk(0.07,0.20,0.44,M.headLight,CX1+0.20,1.12,sg*0.92);
+    mk(0.05,0.09,0.16,M.amber,CX1+0.21,1.12,sg*1.20); }
+  for(const sg of [-1,1]){
+    mk(0.05,0.05,0.38,M.steelDark,CX1-0.22,3.06,sg*1.44);
+    mk(0.10,0.54,0.14,M.dark,CX1-0.32,2.78,sg*1.58);
+  }
+  for(const sg of [-1,1]) for(let i=0;i<2;i++)
+    mk(0.44,0.05,0.30,M.steelDark,CX1-1.78,1.02-i*0.34,sg*1.20);
+  mk(0.04,0.15,0.40,M.white,CX1+0.27,1.16,0);
+  mk(0.04,0.15,0.09,std(0x1e56a8,.6,.05),CX1+0.275,1.16,-0.155);
+  axle(DR,0.52,true,1.86); axle(ST,0.52,false,2.06);
+  for(const sg of [-1,1]) cyl(0.30,1.10,M.alu,DR+1.25,0.72,sg*1.02,inner,14).rotation.z=Math.PI/2;
+  cyl(0.075,1.55,M.galv,CX0-0.12,1.75,-1.14,inner,10);
+  for(const sg of [-1,1]) mk(0.03,0.44,0.62,M.dark,DR-0.78,0.30,sg*1.18);
+  /* груз */
+  const rows=Math.round(o.load*Math.floor((L-0.6)/1.25));
+  for(let i=0;i<rows;i++) for(const sg of [-1,1]){
+    const x=0.75+i*1.25;
+    pallet(inner,x,FY+0.02,sg*0.62);
+    const hh=0.55+((i+ (sg>0?1:0))%3)*0.22;
+    mk(1.10,hh,0.74,M.carton,x,FY+0.18+hh/2,sg*0.62);
+    mk(1.12,0.03,0.10,M.dark,x,FY+0.18+hh,sg*0.62).castShadow=false;
+  }
+  for(let i=0;i<Math.round(L/1.1);i++){                     // стяжные ремни шторы
+    const x=0.5+i*1.1; if(x>L-0.3) break;
+    box(0.05,IH-0.30,0.02,M.dark,x,FY+IH/2,HW+0.05,inner).castShadow=false;
+    if(x>L-cov) box(0.05,IH-0.30,0.02,M.dark,x,FY+IH/2,-HW-0.05,inner).castShadow=false;
+  }
+  for(let i=0;i<Math.round(L/2.2);i++) for(const sg of [-1,1])  // габаритные огни по верхнему поясу
+    box(0.09,0.05,0.03,M.amber,0.6+i*2.2,RY-0.16,sg*(HW+0.05),inner).castShadow=false;
+  box(0.14,0.16,HW*2-0.2,M.steelDark,-0.10,0.52,0,inner);      // задний противоподкатный брус
+  for(const sg of [-1,1]) box(0.10,0.34,0.10,M.steelDark,-0.05,0.74,sg*0.75,inner);
+
+  const bb=new THREE.Box3().setFromObject(inner), ct=bb.getCenter(new THREE.Vector3());
+  inner.position.set(-ct.x,0,-ct.z);
+  g.userData.kz={L,open:o.open,load:o.load};
+  return g;
+}
+
+const spinAnim=[];
+function palletWrapper(o){                                 // паллетообмотчик с поворотным столом
+  o=Object.assign({h:2.35,cy:0.55,load:1,film:0.7},o||{});
+  const g=new THREE.Group(), OR=std(0xf05500,.46,.14);
+  const FILM=std(0xe4ecf2,.32,.02,{transparent:true,opacity:.40});
+  const mk=(w,hh,d,mat,x,y,z,p)=>box(w,hh,d,mat,x,y,z,p||g);
+  const R=0.78;
+  mk(0.30,0.05,1.70,M.steelDark,0.98,0.025,0);             // въездной пандус под рохлю
+  cyl(R+0.06,0.10,M.steelDark,0,0.05,0,g,28);              // основание стола
+  const tt=grp(0,0.10,0,g);                                // вращающаяся часть
+  cyl(R,0.05,M.galv,0,0.025,0,tt,28);
+  for(let i=0;i<8;i++) box(0.06,0.012,R*0.9,std(0x8d949b,.5,.4),0,0.055,0,tt)
+    .rotation.y=i*Math.PI/8;
+  /* мачта, каретка с рулоном, пульт */
+  const MX=-(R+0.42);
+  mk(0.46,0.06,0.62,OR,MX,0.03,0);
+  mk(0.22,o.h,0.22,OR,MX,o.h/2,0);
+  mk(0.26,0.06,0.26,OR,MX,o.h+0.03,0);
+  const cy=Math.min(Math.max(o.cy,0.20),o.h-0.35);
+  const car=grp(MX,cy,0,g);
+  box(0.30,0.40,0.44,M.steelDark,0.10,0,0,car);
+  cyl(0.115,0.52,std(0xf2f5f8,.5,.05),0.34,0,0,car,18);
+  box(0.05,0.34,0.05,M.galv,0.34,0,0.30,car);
+  box(0.05,0.34,0.05,M.galv,0.34,0,-0.30,car);
+  box(0.30,0.30,0.02,FILM,0.60,0,0,car).castShadow=false;
+  mk(0.16,0.26,0.14,M.steelDark,MX-0.19,1.30,0.02);
+  mk(0.03,0.05,0.05,M.green,MX-0.28,1.36,0.02);
+  mk(0.03,0.05,0.05,M.red,MX-0.28,1.24,0.02);
+  if(o.load){
+    pallet(tt,0,0.05,0);
+    for(let r=0;r<4;r++) for(let i=0;i<2;i++) for(let j=0;j<2;j++)
+      box(0.56,0.30,0.38,M.carton,(i-0.5)*0.58,0.24+0.30*r,(j-0.5)*0.40,tt);
+    const fh=Math.max(0.05,o.film*1.44);
+    const fm=new THREE.Mesh(new THREE.CylinderGeometry(0.76,0.76,fh,22,1,true),FILM);
+    fm.position.y=0.16+fh/2; fm.castShadow=false; tt.add(fm);
+  }
+  g.userData.wrap={tt,h:o.h,cy};
+  return g;
+}
+
+/* DWS: обмер, взвешивание и сканирование паллеты — портал 2 м с весовой платформой */
+function dwsStation(o){
+  o=Object.assign({h:2.0,w:1.6,load:1},o||{});
+  const H=o.h, W=o.w, g=new THREE.Group();
+  const AL=std(0xc4c9ce,.34,.55), BL=std(0x27499b,.45,.12), PL=std(0x9aa1a8,.5,.45);
+  const V3=(a,b,c)=>new THREE.Vector3(a,b,c);
+  const mk=(w,hh,d,mat,x,y,z)=>box(w,hh,d,mat,x,y,z,g);
+  const st8=(a,b,th,mat)=>{ const d=b.clone().sub(a),L=d.length();
+    const m=box(L,th,th,mat,0,0,0,g);
+    m.position.copy(a).addScaledVector(d,0.5);
+    m.quaternion.setFromUnitVectors(V3(1,0,0),d.clone().normalize()); return m; };
+  const S=W-0.16;                                            // весовая платформа
+  mk(S,0.05,S,PL,0,0.025,0);
+  mk(S-0.10,0.012,S-0.10,std(0xaeb5bb,.62,.35),0,0.056,0).castShadow=false;
+  for(const sg of [-1,1]){                                   // въездные пандусы
+    const r=mk(0.52,0.028,S,PL,sg*(S/2+0.26),0.03,0); r.rotation.z=-sg*0.095; }
+  for(const sx of [-1,1]) for(const sz of [-1,1]){           // стойки портала
+    mk(0.065,H,0.065,AL,sx*W/2,H/2,sz*W/2);
+    mk(0.16,0.02,0.16,AL,sx*W/2,0.012,sz*W/2);
+  }
+  [H,H-0.44].forEach((y,k)=>{                                // два верхних пояса
+    for(const sz of [-1,1]) mk(W+0.065,0.065,0.065,AL,0,y,sz*W/2);
+    for(const sx of [-1,1]) mk(0.065,0.065,W-0.065,AL,sx*W/2,y,0);
+    if(k===0) for(const sz of [-1,1]) mk(W-0.065,0.05,0.05,AL,0,y,sz*(W/2-0.42));
+  });
+  for(const sx of [-1,1]) for(const sz of [-1,1])            // косынки под верхним поясом
+    st8(V3(sx*(W/2-0.02),H-0.46,sz*(W/2-0.02)),V3(sx*(W/2-0.44),H-0.05,sz*(W/2-0.44)),0.05,AL);
+  mk(W-0.10,0.05,0.05,AL,0,H-0.10,0);                        // траверса сканеров
+  for(const sx of [-1,1]){
+    const s=mk(0.15,0.13,0.11,M.dark,sx*0.19,H-0.22,0); s.rotation.z=-sx*0.42;
+    mk(0.05,0.12,0.05,M.steelDark,sx*0.15,H-0.13,0);
+    mk(0.10,0.02,0.07,std(0x2b3138,.25,.2),sx*0.24,H-0.28,0);
+  }
+  {                                                          // шкаф управления с монитором
+    const cx=-(W/2+0.42), cz=-(W/2-0.18);
+    const c=grp(cx,0,cz,g); c.rotation.y=0.32;
+    const cb=(w,hh,d,mat,x,y,z)=>box(w,hh,d,mat,x,y,z,c);
+    cb(0.66,0.98,0.56,BL,0,0.60,0);
+    cb(0.70,0.05,0.60,BL,0,1.11,0);
+    for(const sx of [-1,1]) for(const sz of [-1,1]){
+      cb(0.05,0.10,0.05,M.steelDark,sx*0.27,0.06,sz*0.22);
+      cyl(0.045,0.03,M.dark,sx*0.27,0.02,sz*0.22,c,10); }
+    cb(0.02,0.42,0.02,std(0xd9dde1,.4,.3),-0.06,0.62,0.29);
+    cb(0.02,0.42,0.02,std(0xd9dde1,.4,.3), 0.06,0.62,0.29);
+    cb(0.08,0.16,0.24,BL,0,1.20,-0.12);                      // стойка монитора
+    const mn=cb(0.52,0.33,0.035,M.dark,0,1.42,-0.10); mn.rotation.x=-0.16;
+    const sc=cb(0.48,0.29,0.01,std(0x1b2f52,.3,.1,{emissive:0x24406e,emissiveIntensity:.5}),0,1.42,-0.075);
+    sc.rotation.x=-0.16; sc.castShadow=false;
+    cb(0.26,0.05,0.18,M.steelDark,0.20,1.16,0.10);           // весовой индикатор
+    cb(0.22,0.02,0.13,std(0x9fe3a8,.3,0,{emissive:0x4ec463,emissiveIntensity:.8}),0.20,1.19,0.10).castShadow=false;
+    cyl(0.035,0.02,M.red,-0.24,1.15,0.10,c,12);              // грибок стопа
+    cb(0.16,0.06,0.01,M.yellow,-0.20,0.96,0.285);
+  }
+  if(o.load){                                                // паллета с коробами на весах
+    pallet(g,0,0.05,0);
+    for(let r=0;r<4;r++) for(let i=0;i<2;i++) for(let j=0;j<2;j++){
+      const b=mk(0.56,0.30,0.38,M.carton,(i-0.5)*0.58,0.24+0.30*r,(j-0.5)*0.40);
+      if(r>0&&i===1) box(0.20,0.13,0.005,M.white,0,0,0.191,b).castShadow=false;
+    }
+  }
+  g.userData.dws={H,W};
+  return g;
+}
+
+/* ===================== РЕДАКТОР РАССТАНОВКИ =====================
+   Правка кликом: перетащить по полу, повернуть, скопировать, убрать.
+   Всё пишется в localStorage и восстанавливается при следующем открытии. */
+const EDKEY='sklad4.edit.v1';
+const edMap=new Map();
+pickables.forEach((o,i)=>{ const id='b'+i; o.userData.eid=id; edMap.set(id,o); });
+let edStore={m:{},c:[],h:[],a:[],seed:0}, edCloneN=0, edAddN=0;
+try{ const raw=localStorage.getItem(EDKEY); if(raw) edStore=Object.assign({m:{},c:[],h:[],a:[],seed:0},JSON.parse(raw)); }catch(err){}
+if(!Array.isArray(edStore.a)) edStore.a=[];
+const edSave=()=>{ try{ localStorage.setItem(EDKEY,JSON.stringify(edStore)); }catch(err){} };
+
+function edClone(srcId,p,r,eid){
+  const src=edMap.get(srcId); if(!src) return null;
+  const c=src.clone(true);
+  c.position.set(p[0],p[1],p[2]); c.rotation.y=r;
+  (src.parent||G.equip).add(c);
+  c.userData.eid=eid; c.userData.srcEid=srcId; c.userData.isClone=true;
+  c.traverse(n=>{ if(n.isMesh){ n.castShadow=true; n.receiveShadow=true; } });
+  edMap.set(eid,c); pickables.push(c);
+  return c;
+}
+function edHide(o){ o.visible=false; const k=pickables.indexOf(o); if(k>=0) pickables.splice(k,1); }
+function edShow(o){ o.visible=true; if(pickables.indexOf(o)<0) pickables.push(o); }
+
+/* восстановление сохранённой правки */
+for(const id in edStore.m){ const o=edMap.get(id); if(!o) continue;
+  const t=edStore.m[id]; o.position.set(t[0],t[1],t[2]); o.rotation.y=t[3]; }
+
+ED={on:false,sel:null,drag:null,snap:false,undo:[]};
+const edSelBox=new THREE.BoxHelper(new THREE.Object3D(),0x53d16f);
+edSelBox.material.depthTest=false; edSelBox.material.transparent=true;
+edSelBox.visible=false; scene.add(edSelBox);
+const edBar=document.getElementById('edit'), edNameEl=document.getElementById('edname');
+
+function edRecord(o){
+  const p=[+o.position.x.toFixed(3),+o.position.y.toFixed(3),+o.position.z.toFixed(3)], r=+o.rotation.y.toFixed(4);
+  if(o.userData.isClone){ const rec=edStore.c.find(c=>c.i===o.userData.eid); if(rec){ rec.p=p; rec.r=r; } }
+  else if(o.userData.isAdded){ const rec=edStore.a.find(c=>c.i===o.userData.eid); if(rec){ rec.p=p; rec.r=r; } }
+  else edStore.m[o.userData.eid]=[p[0],p[1],p[2],r];
+  edSave();
+}
+function edState(o){ return {p:[o.position.x,o.position.y,o.position.z],r:o.rotation.y}; }
+function edPush(a){ ED.undo.push(a); if(ED.undo.length>60) ED.undo.shift(); }
+function edUI(){
+  const o=ED.sel;
+  if(!o){ edNameEl.innerHTML='выберите объект'; edSelBox.visible=false; return; }
+  edSelBox.setFromObject(o); edSelBox.visible=true;
+  const nm=(o.userData.info&&(o.userData.info.t||o.userData.info.n))||'объект';
+  edNameEl.innerHTML='<b>'+nm+'</b> · x '+o.position.x.toFixed(2)+' / z '+o.position.z.toFixed(2)+
+    ' · '+Math.round(o.rotation.y*180/Math.PI)+'°'+(o.userData.isClone?' · копия':'');
+}
+function edSelect(o){ ED.sel=o; edUI(); }
+function edDeselect(){ ED.sel=null; edUI(); }
+function edSetMode(on){
+  ED.on=on; edBar.classList.toggle('on',on);
+  document.getElementById('edtoggle').classList.toggle('on',on);
+  if(!on) edDeselect();
+}
+const edPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0), edV=new THREE.Vector3();
+function edGround(cx,cy){
+  const r=canvas.getBoundingClientRect();
+  ndc.x=((cx-r.left)/r.width)*2-1; ndc.y=-((cy-r.top)/r.height)*2+1;
+  ray.setFromCamera(ndc,camera);
+  return ray.ray.intersectPlane(edPlane,edV)?edV.clone():null;
+}
+function edDragStart(o,e){
+  const pt=edGround(e.clientX,e.clientY); if(!pt) return false;
+  ED.drag={o,pt,from:edState(o),start:o.position.clone(),dist:0,logged:false};
+  return true;
+}
+function edDragMove(e){
+  const d=ED.drag, pt=edGround(e.clientX,e.clientY); if(!pt) return;
+  const pl=d.o.parent||scene;
+  const a=pl.worldToLocal(d.pt.clone()), b=pl.worldToLocal(pt.clone());
+  let x=d.start.x+(b.x-a.x), z=d.start.z+(b.z-a.z);
+  if(ED.snap){ x=Math.round(x/0.25)*0.25; z=Math.round(z/0.25)*0.25; }
+  d.dist+=Math.abs(x-d.o.position.x)+Math.abs(z-d.o.position.z);
+  d.o.position.x=x; d.o.position.z=z;
+  if(!d.logged && d.dist>0.02){ d.logged=true; edPush({t:'tr',id:d.o.userData.eid,from:d.from}); }
+  edUI();
+}
+function edNudge(dx,dz){ const o=ED.sel; if(!o) return;
+  edPush({t:'tr',id:o.userData.eid,from:edState(o)});
+  o.position.x+=dx; o.position.z+=dz; edRecord(o); edUI(); }
+function edRot(a){ const o=ED.sel; if(!o) return;
+  edPush({t:'tr',id:o.userData.eid,from:edState(o)});
+  o.rotation.y+=a; edRecord(o); edUI(); }
+function edDup(){ const o=ED.sel; if(!o) return;
+  const srcId=o.userData.srcEid||o.userData.eid, eid='c'+(edCloneN++);
+  const p=[o.position.x+1.4,o.position.y,o.position.z], r=o.rotation.y;
+  const c=edClone(srcId,p,r,eid); if(!c){ edCloneN--; return; }
+  edStore.c.push({i:eid,s:srcId,p:[+p[0].toFixed(3),+p[1].toFixed(3),+p[2].toFixed(3)],r:+r.toFixed(4)});
+  edSave(); edPush({t:'add',id:eid}); edSelect(c);
+}
+function edDel(){ const o=ED.sel; if(!o) return;
+  if(o.userData.isAdded){ const rec=edStore.a.find(c=>c.i===o.userData.eid);
+    libRemove(o); if(rec) edPush({t:'restore-added',rec:JSON.parse(JSON.stringify(rec))});
+    edDeselect(); return; }
+  if(o.userData.isClone){ const rec=edStore.c.find(c=>c.i===o.userData.eid);
+    edRemoveClone(o); if(rec) edPush({t:'restore-clone',rec:{i:rec.i,s:rec.s,p:rec.p,r:rec.r}}); }
+  else { edHide(o); if(!edStore.h.includes(o.userData.eid)) edStore.h.push(o.userData.eid); edSave();
+    edPush({t:'show',id:o.userData.eid}); }
+  edDeselect();
+}
+function edRemoveClone(o){
+  const eid=o.userData.eid;
+  edStore.c=edStore.c.filter(c=>c.i!==eid);
+  edStore.h=edStore.h.filter(i=>i!==eid);
+  if(o.parent) o.parent.remove(o);
+  const k=pickables.indexOf(o); if(k>=0) pickables.splice(k,1);
+  edMap.delete(eid); edSave();
+}
+function edUndo(){
+  const a=ED.undo.pop(); if(!a) return;
+  if(a.t==='tr'){ const o=edMap.get(a.id); if(o){ o.position.set(a.from.p[0],a.from.p[1],a.from.p[2]);
+    o.rotation.y=a.from.r; edRecord(o); edSelect(o); } }
+  else if(a.t==='add'){ const o=edMap.get(a.id); if(o){ edRemoveClone(o); edDeselect(); } }
+  else if(a.t==='show'){ const o=edMap.get(a.id); if(o){ edShow(o);
+    edStore.h=edStore.h.filter(i=>i!==a.id); edSave(); edSelect(o); } }
+  else if(a.t==='restore-added'&&a.rec){ const n=libSpawn(a.rec.k,a.rec.o,a.rec.p,a.rec.r,a.rec.i);
+    if(n){ edStore.a.push(a.rec); edSave(); edSelect(n); } }
+  else if(a.t==='restore-clone'&&a.rec){ const c=edClone(a.rec.s,a.rec.p,a.rec.r,a.rec.i);
+    if(c){ edStore.c.push(a.rec); edSave(); edSelect(c); } }
+}
+document.getElementById('edtoggle').onclick=()=>edSetMode(!ED.on);
+document.getElementById('edrl').onclick=()=>edRot(-Math.PI/12);
+document.getElementById('edrr').onclick=()=>edRot(Math.PI/12);
+document.getElementById('eddup').onclick=edDup;
+document.getElementById('eddel').onclick=edDel;
+document.getElementById('edundo').onclick=edUndo;
+document.getElementById('edsnap').onclick=e=>{ ED.snap=!ED.snap; e.currentTarget.classList.toggle('on',ED.snap); };
+document.getElementById('edreset').onclick=()=>{
+  if(!confirm('Вернуть исходную расстановку? Все ваши перемещения и копии будут удалены.')) return;
+  try{ localStorage.removeItem(EDKEY); }catch(err){} location.reload();
+};
+addEventListener('keydown',e=>{
+  if(!ED.on||walk||/^(INPUT|TEXTAREA)$/.test(e.target.tagName||'')) return;
+  const st=e.shiftKey?0.5:0.1; let used=true;
+  if((e.ctrlKey||e.metaKey)&&e.code==='KeyZ') edUndo();
+  else if((e.ctrlKey||e.metaKey)&&e.code==='KeyD') edDup();
+  else if(e.code==='ArrowLeft') edNudge(-st,0);
+  else if(e.code==='ArrowRight') edNudge(st,0);
+  else if(e.code==='ArrowUp') edNudge(0,-st);
+  else if(e.code==='ArrowDown') edNudge(0,st);
+  else if(e.code==='KeyQ') edRot(-Math.PI/12);
+  else if(e.code==='KeyE') edRot(Math.PI/12);
+  else if(e.code==='Delete') edDel();
+  else if(e.code==='Escape') edDeselect();
+  else used=false;
+  if(used) e.preventDefault();
+});
+/* ---------- каталог, добавление и настройка ---------- */
+const LIB={
+  flex:{n:'Гибкий роликовый конвейер',s:'LIANGZO · моторный привод · гнётся и раздвигается',
+    d:{ext:0.8,cb:0,sb:0,h:0.78,w:0.5,load:1,dir:1},
+    p:[['ext','Растяжение',0,1,0.01,''],['cb','Изгиб дугой',-260,260,5,'°'],
+       ['sb','Изгиб змейкой',-180,180,5,'°'],['h','Высота роликов',0.6,1.05,0.01,'мм'],
+       ['w','Ширина ролика',0.3,0.7,0.05,'мм'],['dir','Направление хода',-1,1,2,'напр']],
+    make:o=>flexRoller(o),
+    sum:g=>'длина по осевой '+g.userData.libLen.toFixed(2)+' м · шаг '+Math.round(g.userData.libPitch*1000)+' мм · 40 роликов Ø50',
+    info:{t:'Гибкий роликовый конвейер с моторным приводом',q:'LIANGZO · 40 роликов Ø50 · раздвижная рама-пантограф',
+      n:'Приводные ролики связаны зелёными полиуретановыми кольцами, мотор-редуктор на приводном торце, пульт в оранжевом корпусе. Рама-пантограф раздвигается в 3 раза и гнётся по месту, опоры на поворотных колёсах с тормозом. Ставится от борта машины к карману приёма и убирается к стене между машинами.',
+      k:'flexible expandable powered roller conveyor / гибкий роликовый конвейер с приводом / 柔性动力伸缩滚筒输送机'}},
+  tele:{n:'Телескопический конвейер',s:'оранжевый · площадка оператора на носу',
+    d:{lift:0.70,tilt:-2,ext:0.55,dir:1},
+    p:[['ext','Выдвижение секций',0,1,0.02,'%'],['tilt','Уклон стрелы',-14,14,0.5,'°'],
+       ['lift','Высота шарнира',0,1.2,0.02,'мм'],['dir','Направление хода',-1,1,2,'напр']],
+    make:o=>{ const g=telescopicConveyor(0,0,0,o.lift,o.tilt,o.ext,o.dir); G.equip.remove(g); return g; },
+    sum:g=>{const x=g.userData.teleExt===undefined?1:g.userData.teleExt;
+      return 'выдвижная часть '+(9.0*x).toFixed(1)+' м · всего '+(4.6+0.1+9.0*x).toFixed(1)+' м · лента 800 мм';},
+    info:{t:'Телескопический ленточный конвейер — опция',
+      q:'база 4,6 м + выдвижная часть до 9,0 м · лента 800 мм · уклон ±14° · 220/380 В',
+      n:'Оранжевая стальная конструкция, три выдвижные секции, жёлтая площадка оператора с частотником едет вместе со стрелой, подъём носа гидравликой, лента 800 мм, 220/380 В. Не входит в этап 1 и в смету: базовое решение приёмки остаётся прежним — гравитационный рольганг без электричества. Конвейер показан как опция на будущее: лента заходит через проём Л2 над бетонной платформой прямо к борту машины, грузчик не носит места по кузову, оператор стоит на площадке у пульта с грибком аварийного стопа. Условия внедрения: питание у ворот, обученный оператор и жёсткое правило — конвейер не заменяет карман приёма, а только подаёт в него.',
+      k:'telescopic belt conveyor / телескопический ленточный конвейер / 伸缩式皮带输送机'}},
+  dws:{n:'DWS: обмер, вес, сканирование',s:'портал 2 м · весовая платформа · пульт',
+    d:{h:2.0,w:1.6,load:1},
+    p:[['h','Высота портала',1.6,2.6,0.05,'мм'],['w','Ширина портала',1.2,2.2,0.05,'мм'],
+       ['load','Паллета на весах',0,1,1,'']],
+    make:o=>dwsStation(o),
+    sum:g=>'портал '+Math.round(g.userData.dws.H*1000)+' мм · платформа '+
+      Math.round((g.userData.dws.W-0.16)*1000)+' мм · два сканера сверху',
+    info:{t:'DWS: обмер, взвешивание и сканирование',
+      q:'портал 2,0 м · весовая платформа с пандусами · два сканера · шкаф с монитором',
+      n:'Одно измерение вместо трёх операций: паллета заезжает на платформу, сканеры сверху читают этикетку и снимают габарит, платформа даёт вес. Данные ложатся в одну строку — номер отправки, объём, вес, фото. Ставится в зоне контроля перед адресацией: расхождение с packing list видно до того, как груз ушёл в буфер.',
+      k:'DWS pallet dimensioner weigher scanner / DWS обмер взвешивание сканирование / 体积重量扫描一体机'}},
+  kz:{n:'Казахская фура (еврофура)',s:'тягач + шторный полуприцеп · борт открывается',
+    d:{len:13.6,open:0.55,load:0.7,roof:1},
+    p:[['open','Открыть борт',0,1,0.05,'%'],['load','Загрузка',0,1,0.1,'%'],['roof','Крыша',0,1,1,'']],
+    make:o=>kzTruck(o),
+    sum:g=>'полуприцеп 13,6 × 2,55 × 2,62 м внутри · борт открыт на '+
+      Math.round(g.userData.kz.open*100)+' %',
+    info:{t:'Казахская фура — шторный полуприцеп',
+      q:'тягач + полуприцеп 13,6 м · внутри 2,55 × 2,62 м · борт открывается',
+      n:'Стандартная еврофура на 33 европаллеты в один ярус. Борт открывается шторой на всю длину — приёмка и погрузка идут сбоку погрузчиком, а не через задние двери. Ползунок «Открыть борт» показывает внутреннюю часть прицепа: пол, стойки, крышевые дуги и фактическую раскладку паллет.',
+      k:'curtainsider semi trailer 13.6m / шторный полуприцеп еврофура / 侧帘半挂车'}},
+  cn:{n:'Китайская бортовая машина',s:'решётчатые борта · груз выключается',
+    d:{len:11,load:1},   // длина кузова стандартная
+    p:[['load','Груз в кузове',0,1,1,'']],
+    make:o=>{ const g=flatTruck(0,0,o.len,-1,false,0,o.load); G.trucks.remove(g); return g; },
+    sum:g=>'борт с решётками · разгрузка сбоку погрузчиком',
+    info:{t:'Китайская бортовая машина',q:'решётчатые борта · разгрузка сбоку',
+      n:'Приходит с китайской стороны. Разгрузка сбоку с земли: класс A на рольганг, класс B погрузчиком через мобильную рампу. Ползунок «Груз» показывает пустой кузов — как машина уходит обратно.',
+      k:'flatbed lattice truck / бортовая машина с решётчатыми бортами / 栏板货车'}},
+  man:{n:'Человек',s:'роль подписывается над головой',
+    d:{role:0,pose:1},
+    p:[['role','Роль',0,6,1,'роль'],['pose','Поза: стоит / в работе',0,1,1,'']],
+    make:o=>{ const g=person(0,0,0,o.pose>0.5,LIBROLES[Math.round(o.role)]||LIBROLES[0]);
+      G.people.remove(g); return g; },
+    sum:g=>'рост 1,75 м · подпись гаснет на удалении',
+    info:{t:'Человек на площадке',q:'масштабная фигура с подписью роли',
+      n:'Ставится, чтобы проверить масштаб и досягаемость: ширину прохода, высоту стола, вылет конвейера, зону у борта машины.',
+      k:'warehouse worker figure / фигура человека / 仓库人员模型'}},
+  stack:{n:'Паллета с коробами',s:'ярусы и плёнка настраиваются',
+    d:{layers:3,wrapped:0},
+    p:[['layers','Ярусов',1,5,1,'шт'],['wrapped','Стретч-плёнка',0,1,1,'']],
+    make:o=>{ const g=stack(0,0,Math.round(o.layers),0,o.wrapped>0.5); G.equip.remove(g); return g; },
+    sum:g=>'EUR 1200 × 800 · до 1,8 м в ярусе',
+    info:{t:'Паллета с коробами',q:'EUR 1200 × 800 · ярусы настраиваются',
+      n:'Единица хранения буфера. Ярусность задаётся ползунком — так проверяется, влезает ли фактическая раскладка в ячейку и под второй ярус.',
+      k:'euro pallet stacked cartons / паллета с коробами / 欧标托盘堆垛'}},
+  carton:{n:'Короб (место)',s:'габарит настраивается',
+    d:{l:0.6,w:0.4,hh:0.4,label:1},
+    p:[['l','Длина',0.2,1.2,0.05,'мм'],['w','Ширина',0.2,1.0,0.05,'мм'],
+       ['hh','Высота',0.15,0.9,0.05,'мм'],['label','Этикетка',0,1,1,'']],
+    make:o=>cartonBox(o),
+    sum:g=>'место '+Math.round(g.userData.carton.l*1000)+' × '+Math.round(g.userData.carton.w*1000)+
+      ' × '+Math.round(g.userData.carton.hh*1000)+' мм',
+    info:{t:'Короб — единица приёмки',q:'габарит настраивается ползунками',
+      n:'Одно место с этикеткой: номер отправки, адрес ячейки и цвет дня. Ставится для проверки габарита на рольганге, на весах DWS и в ячейке буфера.',
+      k:'carton parcel / короб место / 纸箱'}},
+  wrap:{n:'Паллетообмотчик',s:'поворотный стол · каретка с плёнкой',
+    d:{h:2.35,cy:0.55,load:1,film:0.7},
+    p:[['h','Высота мачты',1.8,3.0,0.05,'мм'],['cy','Высота каретки',0.2,2.4,0.05,'мм'],
+       ['film','Намотано плёнки',0,1,0.1,'%'],['load','Паллета на столе',0,1,1,'']],
+    make:o=>palletWrapper(o),
+    sum:g=>'стол Ø1560 мм · мачта '+Math.round(g.userData.wrap.h*1000)+' мм · стол вращается',
+    info:{t:'Паллетообмотчик',q:'поворотный стол Ø1560 мм · мачта до 3,0 м · каретка с рулоном',
+      n:'Паллета обматывается плёнкой до того, как уйдёт в буфер или в машину: без обмотки штабель разъезжается на первом же повороте погрузчика. Ползунки задают высоту мачты под фактический рост паллеты и положение каретки.',
+      k:'pallet stretch wrapper turntable / паллетообмотчик поворотный стол / 缠绕机 托盘'}},
+  roll:{n:'Гравитационный рольганг',s:'секция без электричества',
+    d:{len:5.5,h:0.72},
+    p:[['len','Длина секции',1.5,9,0.5,'м'],['h','Высота',0.5,1.0,0.02,'мм']],
+    make:o=>{ const g=roller(0,0,o.len,false,o.h); G.equip.remove(g); scene.remove(g); return g; },
+    sum:g=>'без привода · класс A от борта в зону приёма',
+    info:EQ[6]},
+  bench:{n:'Стол упаковки',s:'верстак с полкой',
+    d:{w:2.0,d:0.9},
+    p:[['w','Длина',1.0,3.2,0.1,'м'],['d','Глубина',0.6,1.4,0.1,'м']],
+    make:o=>{ const g=bench(0,0,o.w,o.d); G.equip.remove(g); scene.remove(g); return g; },
+    sum:g=>'рабочее место упаковки',
+    info:{t:'Стол упаковки',q:'верстак с нижней полкой',n:'Рабочее место в зоне контроля и упаковки.',k:'packing bench / стол упаковки / 包装台'}}
+};
+function libSpawn(kind,opts,p,r,eid){
+  const L=LIB[kind]; if(!L) return null;
+  const o=Object.assign({},L.d,opts||{});
+  const r0=beltRuns.length, c0=beltCargo.length;
+  let g; try{ g=L.make(o); }catch(err){ return null; }
+  if(!g) return null;
+  for(let i=r0;i<beltRuns.length;i++) beltRuns[i].eid=eid;
+  for(let i=c0;i<beltCargo.length;i++) beltCargo[i].eid=eid;
+  G.equip.add(g);
+  g.position.set(p[0],p[1],p[2]); g.rotation.y=r||0;
+  g.traverse(n=>{ if(n.isMesh){ n.castShadow=true; n.receiveShadow=true; } });
+  g.userData.eid=eid; g.userData.isAdded=true; g.userData.libKind=kind; g.userData.libOpts=o;
+  tag(g,L.info);
+  edMap.set(eid,g);
+  if(g.userData.wrap) spinAnim.push({eid,o:g.userData.wrap.tt,sp:0.55});
+  if(g.userData.flex){ const f=g.userData.flex;
+    flexAnim.push({eid,spin:f.spin,cargo:f.cargo,pts:f.pts,tan:f.tan,y:f.y,N:f.N,dir:f.dir});
+    for(const c of f.cargo) flexPlace(c,flexAnim[flexAnim.length-1]); }
+  return g;
+}
+function libRemove(o){
+  const eid=o.userData.eid;
+  edStore.a=edStore.a.filter(c=>c.i!==eid);
+  for(let i=flexAnim.length-1;i>=0;i--) if(flexAnim[i].eid===eid) flexAnim.splice(i,1);
+  for(let i=spinAnim.length-1;i>=0;i--) if(spinAnim[i].eid===eid) spinAnim.splice(i,1);
+  for(let i=beltRuns.length-1;i>=0;i--) if(beltRuns[i].eid===eid) beltRuns.splice(i,1);
+  for(let i=beltCargo.length-1;i>=0;i--) if(beltCargo[i].eid===eid) beltCargo.splice(i,1);
+  if(o.parent) o.parent.remove(o);
+  o.traverse(n=>{ if(n.isMesh&&n.geometry) n.geometry.dispose(); });
+  const k=pickables.indexOf(o); if(k>=0) pickables.splice(k,1);
+  edMap.delete(eid); edSave();
+}
+function libAdd(kind){
+  const eid='a'+(edAddN++);
+  const p=[+target.x.toFixed(2),0,+target.z.toFixed(2)];
+  const g=libSpawn(kind,null,p,0,eid);
+  if(!g){ edAddN--; return; }
+  edStore.a.push({i:eid,k:kind,p,r:0,o:Object.assign({},g.userData.libOpts)});
+  edSave(); edPush({t:'del-added',id:eid});
+  edSetMode(true); edSelect(g); libPanel();
+}
+function libRebuild(o,key,val){
+  if(!o||!o.userData||!o.userData.isAdded) return;
+  if(!edMap.get(o.userData.eid)) return;
+  const L0=LIB[o.userData.libKind];
+  if(!L0||!L0.p.some(x=>x[0]===key)) return;
+  const eid=o.userData.eid, kind=o.userData.libKind;
+  const opts=Object.assign({},o.userData.libOpts); opts[key]=val;
+  const p=[o.position.x,o.position.y,o.position.z], r=o.rotation.y;
+  libRemove(o);
+  const g=libSpawn(kind,opts,p,r,eid);
+  if(!g) return;
+  const rec=edStore.a.find(c=>c.i===eid);
+  if(rec){ rec.o=opts; } else edStore.a.push({i:eid,k:kind,p,r,o:opts});
+  edSave(); ED.sel=g; edUI(); libPanel(true);
+}
+const libItemsEl=document.getElementById('libitems'), libParamsEl=document.getElementById('libparams');
+Object.keys(LIB).forEach(k=>{
+  const b=document.createElement('button');
+  b.innerHTML=LIB[k].n+'<span>'+LIB[k].s+'</span>';
+  b.onclick=()=>libAdd(k);
+  libItemsEl.appendChild(b);
+});
+let libTimers=[];
+function libPanel(keepFocus){
+  libTimers.forEach(clearTimeout); libTimers=[];
+  const o=ED.sel;
+  if(!o||!o.userData.isAdded){
+    libParamsEl.innerHTML='<div class="empty">Выберите добавленный объект в режиме правки — здесь появятся его настройки. Перетаскивание, поворот и удаление — в нижней панели.</div>';
+    return;
+  }
+  const L=LIB[o.userData.libKind], op=o.userData.libOpts;
+  const unit=(u,v)=>u==='мм'?Math.round(v*1000)+' мм':u==='°'?(Math.round(v*10)/10)+'°':
+    u==='м'?v.toFixed(1)+' м':u==='%'?Math.round(v*100)+' %':
+    u==='шт'?Math.round(v)+' шт':u==='роль'?(LIBROLES[Math.round(v)]||'—'):
+    u==='напр'?(v>0?'вперёд ▸':'◂ назад'):v.toFixed(2);
+  libParamsEl.innerHTML='<div class="ph">'+L.n+'</div>'+
+    L.p.map(pp=>'<div class="pr"><label>'+pp[1]+'<b id="lv-'+pp[0]+'">'+unit(pp[5],op[pp[0]])+'</b></label>'+
+      '<input type="range" data-k="'+pp[0]+'" min="'+pp[2]+'" max="'+pp[3]+'" step="'+pp[4]+'" value="'+op[pp[0]]+'"></div>').join('')+
+    '<div class="sum">'+L.sum(o)+'</div>';
+  const owner=o;
+  libParamsEl.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input',e=>{
+      const k=e.target.dataset.k, v=parseFloat(e.target.value);
+      const pp=L.p.find(x=>x[0]===k);
+      document.getElementById('lv-'+k).textContent=unit(pp[5],v);
+      clearTimeout(inp._t);
+      inp._t=setTimeout(()=>libRebuild(owner,k,v),90);
+      libTimers.push(inp._t);
+    });
+  });
+}
+const _edSelect=edSelect, _edDeselect=edDeselect;
+edSelect=function(o){ _edSelect(o); libPanel(); };
+edDeselect=function(){ _edDeselect(); libPanel(); };
+
+/* штатная расстановка каталога: телескопический конвейер у ворот Л2 — ставится один раз,
+   дальше живёт как обычный объект библиотеки: тянется, настраивается, удаляется */
+if(!(edStore.seed>=4)){
+  for(const id in edStore.m) if(edStore.m[id][0]<-0.35) delete edStore.m[id];   // запад опустился на 1 м
+  const t=edStore.a.find(r=>r.i==='t-l2');
+  if(!t) edStore.a.push({i:'t-l2',k:'tele',p:[0.02,0,10.9],r:Math.PI,o:{lift:0.10,tilt:-5,ext:0.48}});
+  else { t.p=[0.02,0,10.9]; if(t.o){ t.o.ext=0.48; t.o.lift=0.10; t.o.tilt=-5; } }  // борт машины стал на 1 м ниже
+  if(!edStore.a.some(r=>r.i==='dws-3'))
+    edStore.a.push({i:'dws-3',k:'dws',p:[9.0,0,10.4],r:0,o:{h:2.0,w:1.6,load:1}});
+  edStore.seed=4; edSave();
+}
+
+/* восстановление добавленных объектов, копий и скрытых — после объявления каталога */
+edStore.a=edStore.a.filter(rec=>{
+  edAddN=Math.max(edAddN,(parseInt(rec.i.slice(1),10)||0)+1);
+  return !!libSpawn(rec.k,rec.o,rec.p,rec.r,rec.i);
+});
+edStore.c=edStore.c.filter(rec=>{
+  edCloneN=Math.max(edCloneN,(parseInt(rec.i.slice(1),10)||0)+1);
+  return !!edClone(rec.s,rec.p,rec.r,rec.i);
+});
+edStore.h=edStore.h.filter(id=>{ const o=edMap.get(id); if(!o) return false; edHide(o); return true; });
+
+/* сторона Л1/Л2 ниже пола зала на 1 м: всё западнее стены опускается — после
+   восстановления сохранённой правки, чтобы старые координаты не поднимали объекты обратно */
+scene.updateMatrixWorld(true);
+[G.trucks,G.equip,G.people,G.struct].forEach(grpG=>{
+  grpG.children.forEach(o=>{
+    if(o.position.y<-0.5) return;
+    if(o.position.x>=-0.35) return;                                          // восточнее кромки — остаётся
+    const gp=(o.isMesh&&o.geometry)?o.geometry.parameters:null;
+    if(gp&&(gp.width>=1000||gp.height>=1000||gp.depth>=1000)) return;         // сами плоскости площадки и стенка перепада
+    o.position.y-=1.0;
+  });
+});
+
+edUI(); libPanel();
+
+resize();
+renderer.shadowMap.needsUpdate=true;
+flyTo(VIEWS[1][1]);
+requestAnimationFrame(loop);
+setTimeout(()=>{ const l=document.getElementById('load'); if(l) l.style.display='none'; },260);
+</script>

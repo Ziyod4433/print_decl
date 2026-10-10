@@ -1,0 +1,10 @@
+[{"name":"a_fin","until":"SIM.state().kz.finishing","dT":0,"pos":[36,3.0,17.5],"look":[30,1.4,10.6],"fov":62,"js":"G.labels.visible=false;G.addr.visible=false;"},
+ {"name":"b_jump","dT":4,"pos":[33.5,2.2,14.5],"look":[29.5,1.2,11.0],"fov":62},
+ {"name":"c_jump2","dT":7,"pos":[44.5,2.2,14.5],"look":[40.5,1.2,11.0],"fov":62},
+ {"name":"d_photo","dT":17,"pos":[46,2.4,16.5],"look":[41,1.4,11.5],"fov":62},
+ {"name":"e_curt","dT":22,"pos":[36,3.0,17.5],"look":[30,1.4,10.6],"fov":62},
+ {"name":"f_curt2","dT":25,"pos":[46,2.4,16.5],"look":[41,1.4,11.5],"fov":62},
+ {"name":"g_closed","dT":29,"pos":[36,3.0,17.5],"look":[30,1.4,10.6],"fov":62},
+ {"name":"h_out","dT":36,"pos":[48,3.5,17.5],"look":[42,1.4,10.6],"fov":62},
+ {"name":"i_out2","dT":42,"pos":[52,4.0,18.0],"look":[50,1.4,10.6],"fov":62},
+ {"name":"j_after","dT":60,"pos":[36,3.0,17.5],"look":[30,1.4,10.6],"fov":62}]

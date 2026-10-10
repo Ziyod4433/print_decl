@@ -1,0 +1,9 @@
+node_modules/
+out/
+blender/exp*/
+blender/ovl*/
+blender/final*/
+blender/*.blend
+blender/*.blend1
+blender/*.log
+blender/x264p*

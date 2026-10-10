@@ -43,8 +43,9 @@
     const dom=[]; for(let v=0;v<pos.count;v++){ let bi=0,bw=-1; for(let k=0;k<4;k++){ const w=sW(v,k); if(w>bw){ bw=w; bi=sI(v,k); } } dom.push(bones[bi]); }
     const arms=/Arm|Hand|Shoulder/, torso={Hips:1,Spine:1,Spine1:1,Spine2:1};
     let CZ=0; for(let v=0;v<pos.count;v++) CZ+=pos.getZ(v); CZ/=pos.count;          // перед — +Z (глаза)
-    const keep=[], vest=[];
+    const keep=[], vest=[], NKY=wp('Neck').y;
     for(let t=0;t<idx.length;t+=3){ const tri=[idx[t],idx[t+1],idx[t+2]];
+      if(tri.every(v=>Math.abs(pos.getX(v))<0.064&&pos.getY(v)>NKY-0.016&&pos.getY(v)<NKY+0.052&&pos.getZ(v)>0.05)) continue;   // галстук-бабочка от пиджака модели — не к рабочей куртке
       if(tri.every(v=>pos.getY(v)<HY-0.03&&pos.getZ(v)<CZ-0.02&&!arms.test(dom[v]))) continue;   // фалды пиджака сзади — прочь: куртка до пояса
       if(tri.every(v=>{ const n=dom[v], y=pos.getY(v); return y>HY-0.03&&(torso[n]&&y<SP2+0.17||(n==='Neck'&&y<SP2+0.06)||(/Shoulder/.test(n)&&y<SP2+0.12)); })) vest.push(...tri);
       else keep.push(...tri); }
@@ -71,6 +72,15 @@
       const kb=[], gl2=[]; for(let t=0;t<bi.length;t+=3){ const tri=[bi[t],bi[t+1],bi[t+2]]; (tri.every(v=>hand[v])?gl2:kb).push(...tri); }
       const gg=bg.clone(); gg.setIndex(gl2); bg.setIndex(kb);
       const gm=new THREE.SkinnedMesh(gg,body.material); gm.name='Wolf3D_Gloves'; body.parent.add(gm); gm.bind(body.skeleton,body.bindMatrix); }
+    /* короткая стрижка: оболочка по коже головы выше линии роста волос (лоб, виски, затылок), отступ 4,5 мм по нормали,
+       та же привязка к скелету — у модели голова без волос, а под каской люди выглядели бритыми наголо */
+    { const head=sc.getObjectByName('Wolf3D_Head'), hb=wp('Head'), hg=head.geometry, hp=hg.attributes.position, hn=hg.attributes.normal, hi=hg.index.array;
+      const ok=v=>{ const x=hp.getX(v), y=hp.getY(v)-hb.y, z=hp.getZ(v)-hb.z; return y>0.07+0.55*z&&!(Math.abs(x)>0.076&&y<0.13); };
+      const ki=[]; for(let t=0;t<hi.length;t+=3) if(ok(hi[t])&&ok(hi[t+1])&&ok(hi[t+2])) ki.push(hi[t],hi[t+1],hi[t+2]);
+      const g2=hg.clone(); g2.morphAttributes={}; const P2=g2.attributes.position;
+      for(let v=0;v<P2.count;v++) P2.setXYZ(v,hp.getX(v)+hn.getX(v)*0.0045,hp.getY(v)+hn.getY(v)*0.0045,hp.getZ(v)+hn.getZ(v)*0.0045);
+      g2.setIndex(ki); g2.computeVertexNormals();
+      const hm=new THREE.SkinnedMesh(g2,hairMat('#1a1512')); hm.name='Wolf3D_HairCut'; head.parent.add(hm); hm.bind(head.skeleton,head.bindMatrix); }
     sc.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; o.frustumCulled=false; } });
     RP.src=gl;
   }
@@ -88,6 +98,15 @@
     const c=new THREE.Mesh(new THREE.CylinderGeometry(0.112,0.108,0.075,28),MT.guard); c.scale.set(1,1,1.1); g.add(c);
     const v=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,0.01,18,1,false,-0.9,1.8),MT.strap); v.scale.set(1.25,1,1.1); v.position.set(0,-0.03,0.08); v.rotation.x=0.18; g.add(v);
     return g; }
+  function hairMat(col){ if(RP.mat['h'+col]) return RP.mat['h'+col];
+    if(!RP.hairTex){ const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');   // мелкие пряди: штрихи разной яркости
+      g.fillStyle='#808080'; g.fillRect(0,0,256,256); let q=7; const r=()=>{ q=(q*1664525+1013904223)>>>0; return q/4294967296; };   // свой генератор: общий LOOK.R не трогаем
+      for(let i=0;i<5000;i++){ const x=r()*256, y=r()*256, l=100+r()*110|0; g.strokeStyle=`rgba(${l},${l},${l},.5)`; g.lineWidth=0.8;
+        g.beginPath(); g.moveTo(x,y); g.lineTo(x+(r()-.5)*3,y+2+r()*5); g.stroke(); }
+      RP.hairTex=new THREE.CanvasTexture(c); RP.hairTex.wrapS=RP.hairTex.wrapT=THREE.RepeatWrapping; RP.hairTex.repeat.set(6,6); }
+    const m=new THREE.MeshStandardMaterial({color:col,map:RP.hairTex,roughness:.72,metalness:0,envMapIntensity:.5,skinning:true}); m.name='HUM_hair';
+    RP.mat['h'+col]=m; return m; }
+  const HAIR=['#16120f','#1a1512','#0f0d0c','#2b2019','#3a2b20','#1f1a17','#5b5752'];
   function rpmMat(src,key,fn){ const k=src.uuid+key; if(RP.mat[k]) return RP.mat[k]; const m=src.clone(); fn(m); RP.mat[k]=m; return m; }
   function rpmAttach(H){
     if(H.rb) return; const v=H.var, prof=H.prof||{}, guard=!!prof.guard;
@@ -102,6 +121,7 @@
       else if(n==='Wolf3D_Gloves'&&!guard){ const gc=GLOVE[(v.vest*GLOVE.length)|0]; o.material=rpmMat(m,'glove'+gc,x=>{ x.map=null; x.color.set(gc); x.roughness=.9; x.metalness=0; x.normalMap=null; x.name='HUM_glove'; }); }
       else if(n==='Wolf3D_Body'||n==='Wolf3D_Head'||n==='Wolf3D_Gloves') o.material=rpmMat(m,sk.join(),x=>{ x.color.setRGB(sk[0],sk[1],sk[2]); x.name='HUM_skin'; });
       else if(n==='Wolf3D_Beard'){ o.visible=v.beard<0.4; }
+      else if(n==='Wolf3D_HairCut'){ const k=(v.h*7.13+v.beard*3.71)%1; o.visible=guard||k>0.07; o.material=hairMat(HAIR[(k*HAIR.length)|0]); }   // ~7 % — бритые наголо
       else if(n==='Wolf3D_Vest'){ if(prof.vest) o.material=vestMat(VEST[prof.vest]||'#ff6a13'); else o.visible=false; } });
     c.traverse(o=>{ if(o.name==='Wolf3D_TopTorso') o.visible=!prof.vest; });
     const hd=H.rb.Head;

@@ -94,7 +94,7 @@ function frame(t){
   const prevVP=new THREE.Matrix4().multiplyMatrices(pcam.projectionMatrix,pcam.matrixWorldInverse);
   G.roof.visible=true; interior.intensity=LIGHT.inRoof;
   const P=POST.P; P.time=t;
-  P.grain=0.016; P.exposure=s.ext?0.64:1.05; P.dof=s.dof?s.dof.k:0; P.fstop=2.0; P.focus=focusDist(s,look);
+  P.grain=0.016; P.exposure=s.ext?EXPO.out*1.05:EXPO.at(camera)*1.03;   // в зале — экспозиция зала, снаружи (и планы «снаружи») — улицы P.dof=s.dof?s.dof.k:0; P.fstop=2.0; P.focus=focusDist(s,look);
   P.mblur=(s.mb||0.6)*(pi===si?1:0); P.shutter=0.5;
   renderer.shadowMap.needsUpdate=true;
   if(P.on) POST.render(scene,camera,P.mblur>0?prevVP:null); else renderer.render(scene,camera);

@@ -129,8 +129,8 @@ function setup(){
   CREW.forEach((cw,r)=>{ const bx=S.bw[r][0]; const spot={[cw[0]]:[bx+1.5,13.2],[cw[1]]:[bx+4.75,13.2]};
     cw.forEach(w=>{ mkH(w,F.KH[w],spot[w][0],spot[w][1],PI); S.hum[w].spot=spot[w]; S.hum[w].body=r; S.hum[w].state='wait'; }); });
   { const C=F.bod[0].userData.curt, n=C.strips.length; S.cEdge=[C.x0+0.05+(n-1)*C.pitch,C.x0+C.w*(n-0.5)]; }
-  S.kzE=[[],[]]; S.ringA=[];
-  S.done=false; S.endT=null; S.inLeft=S.cfg().inTrucks; S.outN=0; S.loaded=0; S.placed=0;
+  S.kzE=[[],[]]; S.kzB0=[[0,0],[0,0]]; S.ringA=[];
+  S.done=false; S.endT=null; S.inLeft=S.cfg().inTrucks; S.outN=0; S.loaded=0; S.placed=0; loadReset();
   S.wt={H:F.WT,tr:null,free:0}; F.WT.root.visible=false;
   S.dws={job:null}; F.lasers.forEach(l=>l.visible=false); F.lm.opacity=0; if(F.scan) F.scan.visible=false; if(F.dwsScr) F.dwsScr.material=F.scr[0];
 }
@@ -252,7 +252,7 @@ function taskCellToBody(r,body){ const P=S.fk, cell=r.at.cell, tier=r.at.tier; P
   const L=locS(bx,S.bw[body][1]); L.zIn=ZS-AX;
   P.toAisle('ZL',bx); const h=approach(P,bx,RHO,VL,L.need); P.arc(h==='E'?R90:L90,aL); P.close();
   P.Tl(-0.02,1.0); P.Lf(HOLDY,2.4); P.hold(0.2); c.up=P.tc; P.fwdZ(ZS-AX,0.6); P.close(); c.in=P.tc; P.hold(0.3); P.Tl(0,0.8); P.pocket=L;
-  S.kzE[body].push([c.in,-0.004,0.003]);
+  S.kzE[body].push([c.in,-0.004,0.003],[c.in+0.7,0.004,-0.003]);   // стойка касается кромки пола: кузов вздрагивает и возвращается (держит её погрузчик, не кузов)
   S.hold={rack:r,body,c,at:P.tc}; r.at={kind:'body',body};
   S.log.push('FIFO: '+DAYN[r.day]+' из '+cell.c.id+' → '+(body?'прицеп':'грузовик'));
   return {name:'стойка из '+cell.c.id+' → '+(body?'прицеп':'грузовик'),hold:true};
@@ -324,7 +324,8 @@ function startUnload(){ const h=S.hold, r=h.rack, body=h.body, t0=S.T+0.6, wn=CR
     const rel=t1+0.5; trk.key(t1+0.9,L.stand[0],L.stand[1],L.yaw,{bend:0.05});
     const bd=F.bod[body], bb=b;
     S.ev.push({T:grab-0.01,f:()=>{ takeRack(bb); job(bb,H,grab,rel,T2=>{ rackSlotPut(bb,r,s,9); },dt=>{ putSlot(bb.o,bd,L.lp.x+bb.pl.jx,L.lp.y,L.lp.z+bb.pl.jz,PI/2+bb.pl.jy,dt,bb.pl); },()=>{ bb.mode='body'; bb.body=body; bd.attach(bb.o); S.loaded++; }); }});
-    S.kzE[body].push([rel,0,4.2e-5*T.kg*(L.lp.z-(RB.z+q.z))]);
+    S.kzE[body].push([rel,-7e-6*T.kg,2.0e-5*T.kg*L.lp.z]);                           // подвеска: ≈7 мм на тонну груза; крен — от плеча короба до оси кузова (тяжёлые D у правого борта)
+    S.ev.push({T:rel,f:()=>loadAdd(body,T.kg,L.lp.x)});
     free[w]=t1+0.92; cur[w]=L.stand; tEnd=Math.max(tEnd,rel+0.5);
   }
   for(const w of CREW[body]){ const p=S.kPos[w], t=free[w]+Math.max(0.4,hyp2(cur[w],p)/1.35); S.hum[w].tr.key(t,p[0],p[1],S.kIdle[w],{}); S.hum[w].tr.fin(); S.hum[w].free=t; S.hum[w].x=p[0]; S.hum[w].z=p[1]; }
@@ -416,7 +417,7 @@ function tickTrucks(){ const T=S.T, cn=S.cn, kz=S.kz;
   const haveCargo=S.cells.some(c=>c.tiers.some(r=>r.n>0))||S.rk&&S.rk.n>0||cn.state!=='away'||S.inLeft>0;
   if(kz.state==='away'&&!S.kzNext&&haveCargo) S.kzNext=T+(kz.n?30:40);
   if(kz.state==='away'&&S.kzNext&&T>=S.kzNext&&S.cells.some(c=>c.tiers.some(r=>r.n>0))){ const k0=F.kz0; kz.t0=T; kz.path=mkPath([{t0:T+3.2,t1:T+14.2,pts:[[k0.x+34,k0.z],[k0.x+14,k0.z],[k0.x,k0.z]],ease:'brake',u0:0.5}]);
-    kz.state='arrive'; kz.n++; S.kzNext=null; F.kzT.visible=true; kz.lanes=[0,1].map(()=>({S:{0:0,1:0,2:0,3:0},N:{0:0,1:0,2:0,3:0}})); S.kzDone=[false,false]; S.kzE=[[],[]];
+    kz.state='arrive'; kz.n++; S.kzNext=null; F.kzT.visible=true; kz.lanes=[0,1].map(()=>({S:{0:0,1:0,2:0,3:0},N:{0:0,1:0,2:0,3:0}})); S.kzDone=[false,false]; S.kzE=[[],[]]; S.kzB0=[[0,0],[0,0]]; loadReset();
     { const gone=[]; F.bod.forEach(b=>b.traverse(o=>{ if(o.userData.simBox&&o.userData.simBox.mode==='body') gone.push(o); })); gone.forEach(o=>{ S.grp.attach(o); o.visible=false; o.userData.simBox.mode='gone'; }); }   // груз прошлого рейса уехал
     S.log.push('автопоезд №'+kz.n+' — через П2 на пост'); }
   if(kz.state==='arrive'){ doorSet(DOOR.P2,kv(T,[[kz.t0,0],[kz.t0+2.6,1],[kz.t0+15.4,1],[kz.t0+18.2,0]]));
@@ -447,7 +448,7 @@ function planCrewOut(){ const kz=S.kz, T=S.T, byaw=F.kz0.r, yAlong=d=>byaw+(d>0?
       W.key(tjw+tf,e.x,e.z,byaw,{squat:0.3,bend:0.1,reach:0.3}); W.key(tjw+tf+0.15,e.x,e.z,byaw,{squat:0.72,bend:0.35}); W.key(tjw+tf+0.8,e2[0],e2[1],byaw,{});
       const ta=route(W,tjw+tf+0.8,[e2,pt],1.35,{}); h.J={tj:tjw,tf,s,e,W,last:pt}; h.state='inJump'; h.free=ta; last=Math.max(last,ta);
       S.ev.push({T:tjw,f:()=>{ h.state='jump'; }}); S.ev.push({T:tjw+tf,f:()=>{ h.state='out'; h.tr=W; h.x=pt[0]; h.z=pt[1]; h.yaw=pt[2]; }});
-      S.kzE[r].push([tjw,0.002,-0.001]); }); tj0=tj+1.0; });
+      S.kzE[r].push([tjw,0.0012,-0.0008]); }); tj0=tj+1.0; });
   /* кладовщик фотографирует, K2/K4 закрывают шторы, упоры убраны, выезд задним ходом */
   const tw=last+0.5, w3=S.hum.W3, w3x=S.bw[1][0]+1.1, ly=PI+0.12, tr3=newTrack(w3,T);
   const twa=route(tr3,tw,[[w3.x,w3.z],[47.0,8.6],[47.0,12.7],[w3x,13.75,ly]],1.35,{});
@@ -502,9 +503,11 @@ function applyVis(T){
     F.cnT.rotation.set(0,F.cn0.r,S.cnB||0); if(F.cnCab) F.cnCab.rotation.z=S.cnC||0;
     const kz=S.kz; if(kz.path&&(kz.state==='arrive'||kz.state==='leave')){ const p=pathAt(kz.path,T); F.kzT.position.set(p.x,F.kz0.y,p.z); const r=roll(kz.path,T); F.kzW.forEach(w=>w.rotation.z=r/w.userData.r); }
     F.kzT.rotation.set(0,F.kz0.r,S.kzB||0); if(F.kzCab) F.kzCab.rotation.z=S.kzC||0;
-    F.bod.forEach((b,i)=>{ const E=S.kzE[i]; let rl=0, y=0; for(const e of E){ if(T>e[0]&&T<e[0]+6){ rl+=e[2]*stepR(T-e[0],7.6,0.22); y+=e[1]*stepR(T-e[0],8.8,0.24); } else if(T>=e[0]+6){ rl+=e[2]; y+=e[1]; } } b.position.y=y; b.rotation.x=rl;
+    F.bod.forEach((b,i)=>{ const E=S.kzE[i], B0=(S.kzB0||[[0,0],[0,0]])[i]; let rl=B0[1], y=B0[0]; for(const e of E){ if(T>e[0]&&T<e[0]+6){ rl+=e[2]*stepR(T-e[0],7.6,0.22); y+=e[1]*stepR(T-e[0],8.8,0.24); } else if(T>=e[0]+6){ rl+=e[2]; y+=e[1]; } } b.position.y=y; b.rotation.x=rl;
       const C=S.kzCurt&&S.kzCurt[i]; if(C){ const d=C.t1-C.t0, edge=(s,dur)=>trap(c01(s),Math.min(0.45,0.35/dur+0.05)); const yv=C.open?edge((T-C.t0)/d,d):1-edge((T-C.t0)/d,d); curtainSet(b,0.5-Math.sin(Math.asin(1-2*yv)/3)); } });
-    F.kzT.updateMatrixWorld(true); S.kzE.forEach(E=>{ while(E.length>40) E.shift(); }); }
+    F.kzT.updateMatrixWorld(true);
+    if(!S.kzB0) S.kzB0=[[0,0],[0,0]];                             // старые (отыгравшие) события — в базу, чтобы просадка и крен от всего груза не терялись
+    S.kzE.forEach((E,i)=>{ while(E.length>40&&E[0][0]+6<T){ const e=E.shift(); S.kzB0[i][0]+=e[1]; S.kzB0[i][1]+=e[2]; } }); }
   /* грузчик в кузове, лента */
   if(F.boom){ F.boom.updateMatrixWorld(true); if(S.cn.state==='in') F.tlRuns.forEach(b=>{ b.tex.offset.x=(((-Math.sign(b.sp||1)*0.55*T)%1)+1)%1; }); }
   if(F.WTr.visible){ const st=S.wt.tr?S.wt.tr.at(T):{x:-0.32,z:0.62,yaw:0,pose:{},walk:0,phase:0}; F.WTr.position.set(st.x,F.WTy,st.z); F.WTr.rotation.y=st.yaw; HUM.pose(F.WT,Object.assign({t:T,walk:st.walk*0.6,phase:st.phase},st.pose)); }
@@ -534,10 +537,21 @@ SIM.tick=function(dt){ if(!SIM.on) return; let left=Math.min(dt,0.25)*SIM.speed;
   while(left>1e-6){ const d=Math.min(h,left); substep(d); left-=d; }
   if(S.done&&S.T>=S.endT){ teardown(); setup(); }
   applyVis(S.T); SIM.T=S.T; SIM.stat=status(); };
+/* ---------- масса груза в кузовах и нагрузки на оси (оценка по рычагу) ----------
+   Грузовик: передняя ось под кабиной (x −12,9), задняя тележка (x −3,9); прицеп с центральными осями — почти весь груз на его осях.
+   Положение короба вдоль кузова lp.x → плечо до осей. Собственная масса не учитывается: показывается прибавка от груза. */
+const AXF=-12.9, AXR=-3.875, KZO1=-5.8;
+function loadReset(){ S.load=[{m:0,mx:0},{m:0,mx:0}]; }
+function loadAdd(body,kg,lx){ if(!S.load) loadReset(); const L=S.load[body]; L.m+=kg; L.mx+=kg*lx; }
+function axleInfo(){ if(!S.load) return null; const a=S.load[0], b=S.load[1];
+  const xb=a.m?KZO1+a.mx/a.m:0, fr=a.m?a.m*Math.max(0,Math.min(1,(AXR-xb)/(AXR-AXF))):0;
+  return {m1:a.m,m2:b.m,front:fr,rear:a.m-fr,cg1:a.m?a.mx/a.m:0,cg2:b.m?b.mx/b.m:0}; }
+SIM.axles=axleInfo;
+const tt=v=>(v/1000).toFixed(2).replace('.',',');
 function status(){ const racks=S.cells.reduce((a,c)=>a+c.tiers.filter(r=>r.n>0).length,0), boxes=S.cells.reduce((a,c)=>a+c.tiers.reduce((s,r)=>s+r.n,0),0);
   const t=S.T, mm=Math.floor(t/60), ss=Math.floor(t%60);
   const now=S.fkTask?S.fkTask.name:'погрузчик ждёт';
-  return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded} · ${now}`; }
+  return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded}${(()=>{ const A=axleInfo(); return A&&(A.m1+A.m2)>0?` · в кузовах ${tt(A.m1)} + ${tt(A.m2)} т (оси грузовика +${tt(A.front)} / +${tt(A.rear)} т)`:''; })()} · ${now}`; }
 SIM.enter=function(){ if(SIM.on) return; if(F.on) exit(); prepScene(true);
   const keep=new Set([F.fk,F.CT.root,F.W3.root,F.W5.root,F.W4.root,F.tl2,F.dws].concat(Object.values(F.KH).map(H=>H.root)));
   S.filmVis=F.grp.children.map(o=>[o,o.visible]); F.grp.children.forEach(o=>{ o.visible=keep.has(o); });

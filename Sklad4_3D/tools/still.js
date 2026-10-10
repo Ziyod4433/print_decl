@@ -22,6 +22,7 @@ fs.mkdirSync(OUT,{recursive:true});
      if(s.roof!==undefined){ G.roof.visible=s.roof; interior.intensity=s.roof?LIGHT.inRoof:LIGHT.inOpen; }
      if(s.js) (0,eval)(s.js);
      camera.fov=s.fov||45; camera.position.set(...s.pos); camera.lookAt(...s.look); camera.updateProjectionMatrix(); camera.updateMatrixWorld();
+     if(s.jsAfter) (0,eval)(s.jsAfter);                       // после установки камеры (например, экспозиция по положению камеры)
      if(s.post!==undefined) POST.P.on=s.post;
      Object.assign(POST.P,s.P||{});
      renderer.shadowMap.needsUpdate=true;

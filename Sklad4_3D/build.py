@@ -350,8 +350,10 @@ import base64
 _gl=open(os.path.join(ROOT,'vendor','GLTFLoader.js'),encoding='utf-8').read()          # three r128, examples/js
 _su=open(os.path.join(ROOT,'vendor','SkeletonUtils.js'),encoding='utf-8').read()
 _rpm=base64.b64encode(open(os.path.join(ROOT,'assets','readyplayer.me.glb'),'rb').read()).decode()
+_three=open(os.path.join(ROOT,'vendor','three.min.js'),encoding='utf-8').read()        # three r128 встроен: модель открывается без интернета
+assert '</script' not in _three
 rep('<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>',
-    '<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>\n<script>'+_gl+'</script>\n<script>'+_su+'</script>\n'
+    '<script>/* three.js r128 (MIT) — встроен в файл */\n'+_three+'</script>\n<script>'+_gl+'</script>\n<script>'+_su+'</script>\n'
     '<script>/* модель человека: Ready Player Me (glb, скелет Mixamo) */\nconst RPM_GLB="'+_rpm+'";</script>')
 
 # ---------- 19b. поток груза убран; уклон конвейера; обход; живой процесс ----------
@@ -375,6 +377,61 @@ rep("    tipEl.innerHTML='<b>W A S D</b> идти · <b>мышь</b> смотр�
 rep("  if(!reduceMotion&&G.people.visible){ const tt=now/1000; for(const H of PEOPLE){ if(H.root.parent&&H.root.visible) HUM.pose(H,Object.assign({t:tt},H.base)); } }",
     "  if(!reduceMotion&&G.people.visible){ const tt=now/1000; for(const H of PEOPLE){ if(H.root.parent&&H.root.visible&&!(typeof SIM!=='undefined'&&SIM.owns&&SIM.owns(H))) HUM.pose(H,Object.assign({t:tt},H.base)); } }")
 
+
+# ---------- 21. зал как на фото: потолок, фонари с проёмами, остекление, сетка, занавес; свет «как в цеху» ----------
+rep("/* ============================================================== КАРКАС */",part('hall.js')+"\n/* ============================================================== КАРКАС */")
+rep("""  const panel=(x0,x1)=>{
+    const y0=roofY(x0),y1=roofY(x1),L=Math.hypot(x1-x0,y1-y0);
+    const m=box(L,0.14,D+1.0,std(PAL.roof,.6,.5),(x0+x1)/2,(y0+y1)/2+0.06,D/2,G.roof);
+    m.rotation.z=Math.atan2(y1-y0,x1-x0);
+  };
+  panel(-0.5,W/2); panel(W/2,W+0.5);""",
+"""  const panel=(x0,x1,z0,z1)=>{                                 // кусок ската; z0…z1 — по длине зала
+    const y0=roofY(x0),y1=roofY(x1),L=Math.hypot(x1-x0,y1-y0);
+    const m=box(L,0.14,z1-z0,HALL.roofM,(x0+x1)/2,(y0+y1)/2+0.06,(z0+z1)/2,G.roof);
+    m.rotation.z=Math.atan2(y1-y0,x1-x0);
+  };
+  /* под световыми фонарями (x 8, 20, 28, 40 ± 1 м; z 4 … D−4) в кровле проём: дневной свет и солнце идут в зал */
+  { const SK=[8,20,28,40], Z0=-0.5, Z1=D+0.5, cuts=[];
+    [[-0.5,W/2],[W/2,W+0.5]].forEach(([a,b])=>{ let x=a; SK.filter(k=>k>a&&k<b).forEach(k=>{ cuts.push([x,k-1]); x=k+1; }); cuts.push([x,b]); });
+    cuts.forEach(([a,b])=>panel(a,b,Z0,Z1));
+    SK.forEach(k=>{ panel(k-1,k+1,Z0,4.0); panel(k-1,k+1,D-4.0,Z1); }); }""")
+rep("const skyM=std(0xdfeaf5,.3,0,{emissive:0xcfe0f0,emissiveIntensity:.35,transparent:true,opacity:.85});","const skyM=HALL.skyM;")
+rep("const lampM=std(0xfff8e8,.35,0,{emissive:0xfff2d4,emissiveIntensity:1.5});","const lampM=std(0xfff8e8,.35,0,{emissive:0xfff2d4,emissiveIntensity:4.0});   // светодиодные колокола: ярче, дают свечение")
+rep("const gl=box(0.12,EAVE-WALL_H-0.1,d,M.glass,","const gl=box(0.12,EAVE-WALL_H-0.1,d,HALL.glassM,")
+rep("box(0.12,EAVE-WALL_H-0.1,gw+0.4,M.glass,","box(0.12,EAVE-WALL_H-0.1,gw+0.4,HALL.glassM,")
+rep("box(step,0.7,0.12,M.glass,xm,WALL_H+0.4,z,g)","box(step,0.7,0.12,HALL.glassM,xm,WALL_H+0.4,z,g)")
+rep("/* боковые стены x=0 и x=48 — с двумя воротами каждая */","HALL.curtain();\n/* боковые стены x=0 и x=48 — с двумя воротами каждая */")
+rep("const LIGHT={sun:2.6,hemi:.30,inRoof:.40,inOpen:.12};                // баланс под HDR-окружение цеха",
+    "const LIGHT={sun:2.6,hemi:.30,inRoof:.40,inOpen:.12};                // баланс под HDR-окружение цеха\n"
+    "hemi.color.set(0xc6d5e4); hemi.groundColor.set(0x8a8780);            // снизу — отражённый от светлого бетона свет (он и освещает потолок)\n"
+    "LIGHT.sun=3.4; sun.intensity=LIGHT.sun;                              // прямое солнце сильнее рассеянного в разы: пятна от фонарей и ворот читаются")
+rep("bumpMap:T(corrCanvas,len/0.32,1,false), bumpScale:0.05, roughness:0.55, metalness:0.32, envMapIntensity:0.8}),{dirtY:2.2,dirtK:.32});",
+    "bumpMap:T(corrCanvas,len/0.32,1,false), bumpScale:0.05, roughness:0.6, metalness:0.12, envMapIntensity:1.0}),{dirtY:2.2,dirtK:.32});")   # профлист стен — окрашенный, светлый (как на фото), а не голый металл
+rep("POST.P.time=now/1000; POST.P.exposure=G.roof.visible?(walk?1.1:1.0):0.62;","POST.P.time=now/1000; WIND.value=POST.P.time; iblUpdate(); POST.P.exposure=EXPO.at(camera,walk);")
+
+# ---------- 22. детализация моделей: рохли и электротележки, вентиляторы ----------
+cut("function palletJack(x,z,rot,electric){","function trolleyCart(x,z,rot){",part('models.js')+"\n")
+
+# ---------- 23. обход с физикой тела: столкновения, гравитация, лестницы у платформ, прыжок, присед ----------
+cut("function tryMove(mx,mz){","mkBtn('Скачать кадр PNG',true,()=>{",part('walk_phys.js')+"\n")
+rep("walkLbl=[G.labels.visible,G.addr.visible]; G.labels.visible=false; G.addr.visible=false;   // глазами человека: без висящих в воздухе подписей",
+    "walkLbl=[G.labels.visible,G.addr.visible]; G.labels.visible=false; G.addr.visible=false;   // глазами человека: без висящих в воздухе подписей\n"
+    "    walkRoof=[G.roof.visible,interior.intensity]; G.roof.visible=true; interior.intensity=LIGHT.inRoof; renderer.shadowMap.needsUpdate=true;   // внутри зала — под кровлей\n"
+    "    WALKP.enter();")
+rep("    if(walkLbl){ G.labels.visible=walkLbl[0]; G.addr.visible=walkLbl[1]; walkLbl=null; }",
+    "    if(walkLbl){ G.labels.visible=walkLbl[0]; G.addr.visible=walkLbl[1]; walkLbl=null; }\n"
+    "    if(walkRoof){ G.roof.visible=walkRoof[0]; interior.intensity=walkRoof[1]; walkRoof=null; renderer.shadowMap.needsUpdate=true; }\n"
+    "    WALKP.exit();")
+rep("let walk=false, wYaw=0, wPitch=0, saved_pr=0, walkLbl=null;","let walk=false, wYaw=0, wPitch=0, saved_pr=0, walkLbl=null, walkRoof=null;")
+rep("tipEl.innerHTML='<b>W A S D</b> идти · <b>мышь</b> смотреть<br><b>Shift</b> бегом · <b>Esc</b> выход<br>склад работает: живой процесс идёт';",
+    "tipEl.innerHTML='<b>W A S D</b> идти · <b>мышь</b> смотреть<br><b>Shift</b> бегом · <b>Пробел</b> прыжок · <b>C</b> присесть · <b>Esc</b> выход<br>склад работает: живой процесс идёт · сквозь стойки и технику не пройти';")
+rep('<button data-k="ShiftLeft" class="run">БЕГ</button>','<button data-k="ShiftLeft" class="run">БЕГ</button><button data-k="Space" class="jump">ПРЫЖОК</button><button data-k="KeyC" class="crouch">ПРИСЕСТЬ</button>')
+rep("  #pad button.exit{grid-column:1;grid-row:1;font-size:16px}",
+    "  #pad button.exit{grid-column:1;grid-row:1;font-size:16px}\n"
+    "  #pad{grid-template-rows:repeat(3,52px)}\n"
+    "  #pad button.jump{grid-column:1/span 2;grid-row:3;font-size:12px;letter-spacing:.1em}\n"
+    "  #pad button.crouch{grid-column:3;grid-row:3;font-size:11px;letter-spacing:.06em}")
 
 # ---------- 20. блок правки в файле и исходный текст файла для кнопки «Скачать» ----------
 i=s.index("<script>/* модель человека: Ready Player Me")

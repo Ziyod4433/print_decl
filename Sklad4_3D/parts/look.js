@@ -47,7 +47,7 @@ const LOOK={};
   for(let x=8.0;x<MW;x+=8.0) joint(x,0,x,MD);
   for(let z=3.525;z<MD;z+=3.525) joint(0,z,MW,z);
   /* следы шин: пары дуг вдоль проездов и развороты у ворот (как на фото объекта) */
-  const track=(pts,w,a,gap)=>{ for(const s of [-1,1]){ g2.strokeStyle=`rgba(40,40,42,${a})`; g2.lineWidth=w*PX; g2.lineCap='round'; g2.beginPath();
+  const track=(pts,w,a,gap)=>{ for(const s of [-1,1]){ g2.strokeStyle=`rgba(40,40,42,${a*0.6})`; g2.lineWidth=w*PX; g2.lineCap='round'; g2.beginPath();
       pts.forEach((p,i)=>{ const q=pts[Math.min(i+1,pts.length-1)], o=pts[Math.max(i-1,0)]; let dx=q[0]-o[0], dz=q[1]-o[1]; const L=Math.hypot(dx,dz)||1;
         const nx=-dz/L*gap/2*s, nz=dx/L*gap/2*s; const x=X(p[0]+nx), y=Z(p[1]+nz); i?g2.lineTo(x,y):g2.moveTo(x,y); }); g2.stroke(); } };
   const arc=(cx,cz,r,a0,a1,n)=>Array.from({length:n||24},(_,i)=>{ const a=a0+(a1-a0)*i/((n||24)-1); return [cx+Math.cos(a)*r,cz+Math.sin(a)*r]; });
@@ -163,6 +163,7 @@ function worldMacro(mat,o){                                     // o: {map, box:
         float st=smoothstep(.72,.95,wn(vec2((vWP.x+vWP.z)*3.1,vWP.y*.35)))*smoothstep(0.,6.,vWP.y)*.5; diffuseColor.rgb*=1.-dK*.35*st; }`:''}`)
       .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
       roughnessFactor=clamp(roughnessFactor*mix(1.,.55+.55*macL,mRough),.04,1.);`);
+    if(typeof IBLK!=='undefined') IBLK(sh);                   // рассеянный свет под кровлей (hall.js)
   };
   return mat;
 }

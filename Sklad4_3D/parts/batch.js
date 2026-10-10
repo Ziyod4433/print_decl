@@ -12,7 +12,7 @@ function batchStatic(){
   const PICK=new Set(pickables);
   /* подвижное и то, на что ссылаются фильм и анимации */
   Object.values(DOOR).forEach(d=>d.panels.forEach(keep));
-  beltCargo.forEach(c=>keep(c.o)); spinAnim.forEach(s=>keep(s.o));
+  beltCargo.forEach(c=>keep(c.o)); spinAnim.forEach(s=>keep(s.o)); if(typeof HALL!=='undefined'&&HALL.spin) HALL.spin.forEach(s=>keep(s.o));   // крыльчатки вентиляторов
   flexAnim.forEach(f=>{ (f.spin||[]).forEach(keep); (f.cargo||[]).forEach(c=>keep(c.o||c)); });
   flowMeshes.forEach(keep); keep(CHOCKS);
   const isCartonMat=m=>LOOK.cartons.includes(m)||(Array.isArray(m)&&LOOK.ctypeM.includes(m[0]))||LOOK.ctypeM.includes(m);

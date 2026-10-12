@@ -15,7 +15,8 @@
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/pick.js` | выбор объектов мышью (подпись `sig`) | сравнивать `sig` до/после |
 | `NOBATCH=1 node tools/ev.js Sklad4_realistic_film.html tools/checks/obb.js` | пересечения коробов в фильме | нет постоянных пересечений > 7 мм |
 | `bash tools/run_coll.sh` | столкновения в фильме: погрузчик, вилы, стойка, люди | пустой список |
-| `node tools/simrun.js Sklad4_realistic_film.html 12000` | живой процесс: полный цикл (~115 мин процесса, ~3,5 мин счёта) со столкновениями | доходит до `=== НОВЫЙ ЦИКЛ 2`, `HITS` пусто |
+| `node tools/ev.js Sklad4_realistic_film.html tools/checks/walk_knock.js` | обход: наезд погрузчика — падение и подъём | `hits` 1, камера опускается до ~0,23 м и через ~3,5 с встаёт |
+| `node tools/simrun.js Sklad4_realistic_film.html 30000 3` | живой процесс: два полных цикла (третий аргумент — на каком цикле остановиться, по умолчанию 2) со столкновениями погрузчика и людей; ~12 мин счёта | доходит до `=== НОВЫЙ ЦИКЛ 3`, `HITS` пусто, `HUM {}` |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/sim_timeline.js` | хронология цикла (машины, задачи погрузчика, журнал) | — |
 | `node tools/test_save.js` | автосохранение правки в сам файл и открытие копии | шаг 2 видит правку |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/walk_phys.js` | физика обхода: колонна, решётка, спрыгнуть с платформы Л2, подняться по лестнице, прыжок | нормы — в шапке файла |
@@ -23,5 +24,5 @@
 | `node tools/filmtest.js <html> out/ft 960 540 6,14,22,…` | контрольные кадры фильма в моменты t (с) | смотреть глазами |
 | `node tools/still.js <html> out/st 1600 900 shots.json` | стоп-кадры с постобработкой; в кадре можно задать `js` (до камеры) и `jsAfter` (после — например, `POST.P.exposure=EXPO.at(camera,false)`) | — |
 | `node tools/close.js <html> out/cl 1280 720 shots.json` | крупные планы фильма у объектов | — |
-| `node tools/simshot.js <html> out/sim 1280 720 tools/checks/sim_shots_example.json` | кадры живого процесса (по времени T или по условию `until`) | смотреть глазами |
+| `node tools/simshot.js <html> out/sim 1280 720 tools/checks/sim_shots_example.json` | кадры живого процесса (по времени T или по условию `until`), с постобработкой и экспозицией как у пользователя | смотреть глазами |
 | `node tools/exportgl.js`, `node tools/overlay.js` | экспорт фильма для Blender | см. `blender/README.md` |

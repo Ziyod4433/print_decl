@@ -23,7 +23,7 @@ fs.mkdirSync(OUT,{recursive:true});
      if(s.pos) camera.position.set(...s.pos); else camera.position.set(c.x+s.off[0],c.y+s.off[1],c.z+s.off[2]);
      camera.up.set(0,1,0); if(s.look) camera.lookAt(...s.look); else camera.lookAt(c.x+s.la[0],c.y+s.la[1],c.z+s.la[2]);
      camera.fov=s.fov||45; camera.updateProjectionMatrix(); camera.updateMatrixWorld();
-     G.roof.visible=s.roof!==false; interior.intensity=G.roof.visible?LIGHT.inRoof:LIGHT.inOpen; renderer.shadowMap.needsUpdate=true; renderer.render(scene,camera);
+     G.roof.visible=s.roof!==false; interior.intensity=G.roof.visible?LIGHT.inRoof:LIGHT.inOpen; renderer.shadowMap.needsUpdate=true; if(typeof POST!=='undefined'&&POST.P.on){ POST.P.exposure=(typeof EXPO!=='undefined'&&EXPO.at)?EXPO.at(camera,false):1; POST.P.time=S.T; POST.render(scene,camera); } else renderer.render(scene,camera);   // как видит пользователь: с постобработкой
      return {img:renderer.domElement.toDataURL('image/jpeg',0.9),stat:SIM.stat,T:S.T}; }catch(e){ return {err:'ERR '+e.message+' '+(e.stack||'').split('\n').slice(0,4).join(' | ')}; } },s,base);
    if(res.err){ console.log(s.name,res.err); continue; }
    fs.writeFileSync(`${OUT}/${s.name}.jpg`,Buffer.from(res.img.split(',')[1],'base64')); console.log(s.name,'T='+res.T.toFixed(1),res.stat.slice(0,80));

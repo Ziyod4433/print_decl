@@ -3,7 +3,8 @@
    · не проходит сквозь колонны, стойки, ограждения, ленту, DWS, стены и машины — скользит вдоль них;
    · движущийся погрузчик, машины, стойки на вилах и люди расталкивают его, рядом с едущим погрузчиком — предупреждение;
    · гравитация: с платформы у Л2 (перепад 1 м) можно спрыгнуть, обратно — по лестнице; ступени до 0,36 м перешагивает;
-   · разгон и торможение (инерция), прыжок (пробел), присед (C), покачивание головы в такт шагу, «просадка» при приземлении.
+   · разгон и торможение (инерция), прыжок (пробел), присед (C), покачивание головы в такт шагу, «просадка» при приземлении;
+   · наезд едущего погрузчика сбивает с ног: отбрасывает, человек падает на бок на пол, лежит ~2 с и поднимается (через колено).
    Неподвижное окружение растеризуется один раз при входе в обход в сетку 10 см с полосами высоты по 25 см (что в клетке
    и на какой высоте); подвижное (погрузчики, машины, стойки, створки ворот, лента, люди) проверяется каждый кадр по
    ориентированным коробкам. */
@@ -11,7 +12,9 @@ const STAIRS=[];                                                // лестни�
 const WALKP=(()=>{
   const R=0.32, STEP=0.36, GRAV=9.81, BODY=1.85, BODYC=1.2, EYE=1.66, EYEC=1.02;
   const CS=0.1, X0=-32, Z0=-32, NX=1140, NZ=1180, Y0=-1.25, BH=0.25, NB=31;
-  const S={feet:0,vy:0,vx:0,vz:0,grounded:true,crouch:0,bob:0,bobA:0,dip:0,dipV:0,jumpHeld:false,warn:0,ms:0,cells:0,units:0};
+  const S={feet:0,vy:0,vx:0,vz:0,grounded:true,crouch:0,bob:0,bobA:0,dip:0,dipV:0,jumpHeld:false,warn:0,ms:0,cells:0,units:0,down:null,immune:0,hits:0};
+  const FALL=0.42, LIE=1.9, RISE=1.3;                         // падение, лежит, встаёт (с)
+  const c01=v=>Math.max(0,Math.min(1,v)), ez=u=>{u=c01(u); return u*u*u*(u*(u*6-15)+10);};   // свои: помощники фильма живут внутри его модуля
   let grid=null, units=[], unitT=0, lastFk=new Map(), hud=null;
   const disc=[]; for(let i=-4;i<=4;i++) for(let j=-4;j<=4;j++) if(Math.hypot(i,j)*CS<=R+0.02) disc.push([i,j]);
 
@@ -102,8 +105,10 @@ const WALKP=(()=>{
         const e=[[_p.x-b.min.x,-1,0],[b.max.x-_p.x,1,0],[_p.z-b.min.z,0,-1],[b.max.z-_p.z,0,1]].map(v=>[v[0]*(v[1]?sx:sz),v[1],v[2],v[0]]).sort((a,c)=>a[0]-c[0])[0];
         if(e[1]) nx=(e[1]<0?b.min.x-rx:b.max.x+rx); else nz=(e[2]<0?b.min.z-rz:b.max.z+rz);
       } else { const dw=Math.hypot(lx*sx,lz*sz); if(dw>=R) continue; const k=R/dw; nx=qx+lx*k; nz=qz+lz*k; }
-      _p.x=nx; _p.z=nz; _p.applyMatrix4(o.matrixWorld); px=_p.x; pz=_p.z;
+      _p.x=nx; _p.z=nz; _p.applyMatrix4(o.matrixWorld);
       if(u.kind==='fk') out.fk=true;
+      if(u.kind==='fk'||u.kind==='rk'||u.kind==='tr'){ const dx=_p.x-px, dz=_p.z-pz, dl=Math.hypot(dx,dz); if(dl>0.004&&(!out.hit||dl>out.hit.d)) out.hit={d:dl,nx:dx/dl,nz:dz/dl,u}; }
+      px=_p.x; pz=_p.z;
     }
     return [px,pz];
   }
@@ -131,34 +136,45 @@ const WALKP=(()=>{
   function step(dtAll){
     if(!grid) build();
     unitT-=dtAll; if(unitT<=0){ collectUnits(); unitT=1.0; }
+    /* скорость всего, что ездит: погрузчик, стойка на вилах, машины */
+    for(const u of units){ if(u.kind==='h'||u.kind==='dr') continue; u.o.getWorldPosition(_c); if(u.prev&&dtAll>0){ u.vx=(_c.x-u.prev.x)/dtAll; u.vz=(_c.z-u.prev.z)/dtAll; } else { u.vx=u.vz=0; } u.prev=(u.prev||new THREE.Vector3()).copy(_c); }
+    if(S.immune>0) S.immune-=dtAll;
+    if(S.down){ S.down.t+=dtAll; if(S.down.t>=FALL+LIE+RISE){ S.down=null; S.immune=2.0; } }
+    const downNow=!!S.down;
     const fx=-Math.sin(wYaw), fz=-Math.cos(wYaw), rx=Math.cos(wYaw), rz=-Math.sin(wYaw);
     let mx=0, mz=0;
     if(keys.KeyW||keys.ArrowUp){ mx+=fx; mz+=fz; }   if(keys.KeyS||keys.ArrowDown){ mx-=fx; mz-=fz; }
     if(keys.KeyD||keys.ArrowRight){ mx+=rx; mz+=rz; } if(keys.KeyA||keys.ArrowLeft){ mx-=rx; mz-=rz; }
+    if(downNow){ mx=mz=0; }                                     // сбит с ног: ноги не слушаются, пока не встал
     const run=(keys.ShiftLeft||keys.ShiftRight)&&S.crouch<0.5, Lm=Math.hypot(mx,mz);
-    const crouchK=!!keys.KeyC;
+    const crouchK=!!keys.KeyC&&!downNow;
     let n=Math.max(1,Math.ceil(dtAll/(1/90))), dt=dtAll/n, out={fk:false};
     for(let it=0;it<n;it++){
       /* присед: встать можно, только если над головой свободно */
       const wantC=crouchK?1:(hitStatic(wPos.x,wPos.z,S.feet,S.feet+BODY)&&S.crouch>0.5?1:0);
       S.crouch+=(wantC-S.crouch)*Math.min(1,dt*9);
       const vmax=S.crouch>0.5?0.9:(run?5.0:1.9);              // шаг 1,9 м/с, бег 5 м/с, вприсядку 0,9 м/с
-      const tx=Lm?mx/Lm*vmax:0, tz=Lm?mz/Lm*vmax:0, acc=S.grounded?(Lm?7.5:10):1.2;
+      const tx=Lm?mx/Lm*vmax:0, tz=Lm?mz/Lm*vmax:0, acc=downNow?(S.down.t<FALL?1.5:4.5):S.grounded?(Lm?7.5:10):1.2;   // сбитого протаскивает по полу
       const ddx=tx-S.vx, ddz=tz-S.vz, dl=Math.hypot(ddx,ddz), st=Math.min(dl,acc*dt);
       if(dl>1e-6){ S.vx+=ddx/dl*st; S.vz+=ddz/dl*st; }
       const [bx,bz]=move(S.vx*dt,S.vz*dt); if(bx) S.vx*=0.2; if(bz) S.vz*=0.2;
       /* толчки от подвижного: погрузчик, машины, стойки, люди */
       const top=S.feet+(S.crouch>0.5?BODYC:BODY);
       for(let k=0;k<2;k++){ const [px,pz]=pushDynamic(wPos.x,wPos.z,S.feet,top,out); if(!hitStatic(px,pz,S.feet,top)){ wPos.x=px; wPos.z=pz; } }
+      /* наезд: погрузчик едет на человека быстрее 0,5 м/с — сбивает с ног и отбрасывает по направлению удара */
+      if(out.hit&&!S.down&&S.immune<=0){ const h=out.hit, v=Math.hypot(h.u.vx||0,h.u.vz||0), into=(h.u.vx||0)*h.nx+(h.u.vz||0)*h.nz;
+        if(v>0.5&&into>0.3){ const kb=1.4+0.9*v; S.vx=h.nx*kb; S.vz=h.nz*kb; S.vy=Math.min(1.6,0.4+0.5*v); S.grounded=false;
+          const side=Math.sign(h.nx*rx+h.nz*rz)||1; S.down={t:0,side,eye0:EYE+(EYEC-EYE)*S.crouch,v,yaw:wYaw}; S.hits++; S.crouch=0; } }
+      out.hit=null;
       /* вертикаль: земля, ступени, падение, прыжок */
       const gy=ground(wPos.x,wPos.z);
-      if(keys.Space&&!S.jumpHeld&&S.grounded&&S.crouch<0.5){ S.vy=3.1; S.grounded=false; }
+      if(keys.Space&&!S.jumpHeld&&S.grounded&&S.crouch<0.5&&!downNow){ S.vy=3.1; S.grounded=false; }
       S.jumpHeld=!!keys.Space;
       if(S.grounded){
         if(gy<S.feet-0.04){ S.grounded=false; S.vy=0; }
         else { const d=gy-S.feet; S.feet+=d*Math.min(1,dt*16); if(d>0.05) S.dipV-=d*2.2*dt*16; } }
       if(!S.grounded){ S.vy-=GRAV*dt; S.feet+=S.vy*dt;
-        if(S.feet<=gy){ const imp=-S.vy; S.feet=gy; S.vy=0; S.grounded=true; S.dipV-=Math.min(imp*0.55,2.6); } }
+        if(S.feet<=gy){ const imp=-S.vy; S.feet=gy; S.vy=0; S.grounded=true; if(!S.down) S.dipV-=Math.min(imp*0.55,2.6); } }
       /* «колени»: пружина просадки при приземлении и на ступенях */
       S.dipV+=(-90*S.dip-15*S.dipV)*dt; S.dip+=S.dipV*dt; S.dip=Math.max(-0.35,Math.min(0.08,S.dip));
       /* покачивание головы: два толчка на цикл шага */
@@ -171,10 +187,30 @@ const WALKP=(()=>{
     wPos.y=S.feet+eye+S.dip-A*(1-Math.cos(2*S.bob))*0.5;
     const lat=0.012*S.bobA*Math.sin(S.bob)*Math.min(1,sp/1.9);
     camera.position.set(wPos.x+rx*lat,wPos.y,wPos.z+rz*lat);
-    wDir.set(-Math.sin(wYaw)*Math.cos(wPitch), Math.sin(wPitch), -Math.cos(wYaw)*Math.cos(wPitch));
+    let pitch=wPitch, roll=0.006*S.bobA*Math.sin(S.bob)*Math.min(1,sp/1.9);
+    if(S.down){ /* падение: голова уходит вниз и вбок (на ту сторону, куда толкнуло), удар о пол с отскоком, лежит, встаёт через колено */
+      const D=S.down, t=D.t, side=D.side, LY=0.23; let ey, rl, pa;
+      if(t<FALL){ const u=t/FALL, e=u*u; ey=D.eye0+(LY-D.eye0)*e; rl=1.32*e; pa=0.42*e; }
+      else if(t<FALL+LIE){ const u=t-FALL, b=Math.exp(-u*6)*Math.sin(u*24); ey=LY+0.035*Math.abs(b)+0.006*Math.sin(u*2.1); rl=1.32+0.06*b; pa=0.42+0.04*Math.sin(u*0.9); }
+      else { const u=c01((t-FALL-LIE)/RISE); ey=u<0.55?LY+(0.95-LY)*ez(u/0.55):0.95+(D.eye0-0.95)*ez((u-0.55)/0.45); rl=1.32*(1-ez(Math.min(1,u*1.7))); pa=0.42*(1-ez(u)); }
+      camera.position.set(wPos.x,S.feet+ey,wPos.z); wPos.y=camera.position.y; pitch=wPitch+pa; roll=-side*rl; }
+    wDir.set(-Math.sin(wYaw)*Math.cos(pitch), Math.sin(pitch), -Math.cos(wYaw)*Math.cos(pitch));
     camera.lookAt(camera.position.x+wDir.x, camera.position.y+wDir.y, camera.position.z+wDir.z);
-    camera.rotateZ(0.006*S.bobA*Math.sin(S.bob)*Math.min(1,sp/1.9));
-    warnFk(dtAll);
+    camera.rotateZ(roll);
+    hitFx(); warnFk(dtAll);
+  }
+  /* ---------- сбит погрузчиком: красная вспышка по краям кадра и надпись ---------- */
+  let fx=null;
+  function hitFx(){
+    if(!fx){ fx=document.createElement('div'); fx.id='walkhit';
+      fx.style.cssText='position:absolute;inset:0;z-index:7;pointer-events:none;display:none;align-items:center;justify-content:center;flex-direction:column;'+
+        'background:radial-gradient(ellipse at center,rgba(150,0,0,0) 35%,rgba(150,0,0,.75) 100%);color:#fff;font:700 26px/1.25 "IBM Plex Sans",sans-serif;text-shadow:0 2px 8px #000;text-align:center';
+      view.appendChild(fx); }
+    const D=S.down; if(!D||!walk){ fx.style.display='none'; return; }
+    const t=D.t, a=t<0.15?t/0.15:Math.max(0,1-(t-0.15)/(FALL+LIE+RISE-0.3));
+    fx.style.display='flex'; fx.style.opacity=a.toFixed(3);
+    if(!fx.dataset.n||+fx.dataset.n!==S.hits){ fx.dataset.n=S.hits;
+      fx.innerHTML='Вас сбил погрузчик<div style="font:500 15px/1.4 \'IBM Plex Sans\',sans-serif;margin-top:6px">скорость '+D.v.toFixed(1).replace('.',',')+' м/с · в жизни это травма · держитесь пешеходных дорожек, не ближе 3 м к едущему погрузчику</div>'; }
   }
   /* ---------- предупреждение: едущий погрузчик ближе 4 м ---------- */
   function warnFk(dt){
@@ -193,9 +229,9 @@ const WALKP=(()=>{
   }
   let nearSaved=0;
   function enter(){ grid=null; build(); units=[]; collectUnits(); unitT=1.0; lastFk.clear();
-    S.feet=ground(wPos.x,wPos.z); S.vx=S.vz=S.vy=0; S.grounded=true; S.dip=S.dipV=0; S.crouch=0; unstick();
+    S.feet=ground(wPos.x,wPos.z); S.vx=S.vz=S.vy=0; S.grounded=true; S.dip=S.dipV=0; S.crouch=0; S.down=null; S.immune=0; unstick();
     nearSaved=camera.near; camera.near=0.12; camera.updateProjectionMatrix(); }
-  function exit(){ if(hud) hud.style.display='none'; if(nearSaved){ camera.near=nearSaved; camera.updateProjectionMatrix(); nearSaved=0; } }
+  function exit(){ if(hud) hud.style.display='none'; S.down=null; if(fx) fx.style.display='none'; if(nearSaved){ camera.near=nearSaved; camera.updateProjectionMatrix(); nearSaved=0; } }
   return {S,ground,build,enter,exit,step,move,hitStatic,units:()=>units,info:()=>({ms:S.ms,cells:S.cells,units:S.units})};
 })();
 function tryMove(mx,mz){ WALKP.move(mx,mz); }

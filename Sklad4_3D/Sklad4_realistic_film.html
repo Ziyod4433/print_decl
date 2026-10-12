@@ -6894,11 +6894,57 @@ const HUM=(()=>{
     }
     if(scan>0) arm(H,'Right',1.05,-0.1,1.05,scan);
     if(p.look){ rot(H,'Neck',Y,p.look*0.5); rot(H,'Head',Y,p.look*0.5); }
+    gestures(H,p,t);
     H.scanner.visible=!!p.scanner;
     H.st=p;
     if(H.post) H.post(H,p);                                   // донастройка позы (ИК: руки на руле, ноги на педалях)
     if(H.rb) rpmSync(H);
   }
+  /* ---- жесты и занятия в покое (ИК рук по точкам относительно тела): руки на поясе, скрещены, за спиной, разговор с жестами,
+     планшет в руках, телефон у уха; голова поворачивается к цели (едущий погрузчик рядом). Вес 0…1 — плавный переход. ---- */
+  const _g={o:new THREE.Vector3(),f:new THREE.Vector3(),l:new THREE.Vector3(),u:new THREE.Vector3(0,1,0),hp:new THREE.Vector3(),sp:new THREE.Vector3(),
+    hd:new THREE.Vector3(),cur:new THREE.Vector3(),T:new THREE.Vector3(),P:new THREE.Vector3(),q:new THREE.Quaternion(),tmp:new THREE.Vector3()};
+  const API={attn:null,lookSign:1};                            // HUM ещё не определён, пока строится модуль: свои ссылки
+  const PROP={tab:std(0x1b1e22,.4,.3), scr:std(0x9fd2ff,.2,0,{emissive:0x3d7fc0,emissiveIntensity:1.2}), ph:std(0x16181b,.3,.4)};
+  function propOf(H,k){ H.props=H.props||{}; if(H.props[k]) return H.props[k]; const g=new THREE.Group();
+    if(k==='tab'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.26,0.012,0.18),PROP.tab)); const sc=new THREE.Mesh(new THREE.BoxGeometry(0.235,0.002,0.155),PROP.scr); sc.position.y=0.007; g.add(sc); }
+    else { const m=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.15,0.012),PROP.ph); g.add(m); }
+    g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } }); H.root.add(g); H.props[k]=g; return g; }
+  function armTo(H,L,k,tx,pole){ if(k<=0.001) return; const hand=H.B[L+'Hand']; hand.getWorldPosition(_g.cur);
+    _g.T.copy(_g.cur).lerp(tx,Math.min(1,k)); ik2(H,L+'Arm',L+'ForeArm',L+'Hand',_g.T,pole); }
+  function gestures(H,p,t){
+    const ak=p.akimbo||0, cr=p.cross||0, bh=p.behind||0, tk=p.talk||0, tb=p.tablet||0, ph=p.phone||0;
+    const anyArm=ak+cr+bh+tk+tb+ph>0.001;
+    let lookW=null;
+    if(!anyArm&&!p.lookAt&&!API.attn){ if(H.props) for(const k in H.props) H.props[k].visible=false; return; }
+    H.root.updateMatrixWorld(true); H.B.Hips.updateWorldMatrix(true,true);
+    H.root.getWorldQuaternion(_g.q); _g.f.set(0,0,1).applyQuaternion(_g.q); _g.l.set(1,0,0).applyQuaternion(_g.q);   // вперёд и влево (человек смотрит в +Z)
+    H.B.Hips.getWorldPosition(_g.hp); H.B.Spine2.getWorldPosition(_g.sp); H.B.Head.getWorldPosition(_g.hd);
+    const at=(base,dl,du,df,out)=>(out||_g.P).copy(base).addScaledVector(_g.l,dl).addScaledVector(_g.u,du).addScaledVector(_g.f,df);
+    const sd={Left:1,Right:-1};
+    if(ak>0) for(const L of ['Left','Right']){ const s=sd[L]; armTo(H,L,ak,at(_g.hp,0.19*s,0.07,0.01,_g.tmp).clone(),at(_g.hp,0.6*s,0.3,-0.3)); }
+    if(bh>0) for(const L of ['Left','Right']){ const s=sd[L]; armTo(H,L,bh,at(_g.hp,0.07*s,0.03,-0.2,_g.tmp).clone(),at(_g.hp,0.45*s,0.15,-0.45)); }
+    if(cr>0) for(const L of ['Left','Right']){ const s=sd[L];                   // руки сцеплены спереди (ждёт)
+      armTo(H,L,cr,at(_g.hp,0.035*s,0.1,0.17,_g.tmp).clone(),at(_g.hp,0.5*s,0.35,-0.15)); }
+    if(tk>0){ const a=Math.sin(t*1.9+H.seed), b=Math.sin(t*2.7+H.seed*2), c=Math.sin(t*1.3+H.seed*3);
+      armTo(H,'Right',tk,at(_g.sp,-0.16+0.07*a,-0.2+0.07*b,0.33+0.05*c,_g.tmp).clone(),at(_g.sp,-0.6,-0.45,0.0));
+      armTo(H,'Left',tk*0.55,at(_g.sp,0.17,-0.3+0.04*c,0.27,_g.tmp).clone(),at(_g.sp,0.6,-0.45,0.0));
+      rot(H,'Neck',X,0.05*Math.sin(t*2.2+H.seed)*tk); rot(H,'Head',Y,0.12*Math.sin(t*0.7+H.seed)*tk); }
+    if(tb>0){ for(const L of ['Left','Right']){ const s=sd[L]; armTo(H,L,tb,at(_g.sp,0.12*s,-0.12,0.29,_g.tmp).clone(),at(_g.sp,0.55*s,-0.5,0.0)); }
+      rot(H,'Neck',X,-0.3*tb); rot(H,'Head',X,-0.16*tb); }                     // смотрит в планшет
+    if(ph>0){ armTo(H,'Right',ph,at(_g.hd,-0.085,0.07,0.03,_g.tmp).clone(),at(_g.sp,-0.5,-0.4,-0.1)); rot(H,'Head',Zv,0.12*ph); }
+    /* реквизит: планшет между ладонями, телефон в правой руке */
+    const tab=tb>0.5?propOf(H,'tab'):(H.props&&H.props.tab), phn=ph>0.5?propOf(H,'ph'):(H.props&&H.props.ph);
+    if(tab){ tab.visible=tb>0.5; if(tab.visible){ H.B.LeftHand.getWorldPosition(_g.T); H.B.RightHand.getWorldPosition(_g.cur); _g.T.add(_g.cur).multiplyScalar(0.5).addScaledVector(_g.f,0.04).addScaledVector(_g.u,0.03);
+      tab.position.copy(H.root.worldToLocal(_g.T)); tab.rotation.set(0.75,0,0); } }
+    if(phn){ phn.visible=ph>0.5; if(phn.visible){ H.B.RightHand.getWorldPosition(_g.T); _g.T.addScaledVector(_g.u,0.06).addScaledVector(_g.l,0.02); phn.position.copy(H.root.worldToLocal(_g.T)); phn.rotation.set(0,0.3,0.2); } }
+    /* взгляд: явная цель или «внимание» (едущий погрузчик рядом) — голова и шея поворачиваются, не больше ±70° */
+    const L=p.lookAt||(API.attn&&!(p.walk>0.3)&&!p.carry&&!p.sit&&!p.drive?API.attn(H):null);
+    if(L){ _g.tmp.copy(L).sub(_g.hd); const lx=_g.tmp.dot(_g.l), lz=_g.tmp.dot(_g.f), ly=_g.tmp.y, hz=Math.hypot(lx,lz);
+      if(hz>0.3){ const yaw=Math.max(-1.2,Math.min(1.2,Math.atan2(lx,lz))), pit=Math.max(-0.4,Math.min(0.3,Math.atan2(ly,hz)));
+        const w=p.lookW!==undefined?p.lookW:1; rot(H,'Neck',Y,API.lookSign*yaw*0.45*w); rot(H,'Head',Y,API.lookSign*yaw*0.45*w); rot(H,'Head',X,pit*0.6*w); if(Math.abs(yaw)>0.8) rot(H,'Spine2',Y,API.lookSign*(Math.abs(yaw)-0.8)*Math.sign(yaw)*0.6*w); } }
+  }
+
   /* двухзвенная ИК в мировых координатах: A→B→C (плечо–локоть–кисть, бедро–колено–стопа).
      T — куда поставить C; pole — точка, в сторону которой сгибается средний сустав; endQ — мировой поворот C (необязательно) */
   const _ia=new THREE.Vector3(), _ib=new THREE.Vector3(), _ic=new THREE.Vector3(), _iu=new THREE.Vector3(), _iw=new THREE.Vector3(), _ix=new THREE.Vector3(),
@@ -6985,7 +7031,7 @@ const HUM=(()=>{
   let GAIT=null; try{ GAIT=fixGait('Walk',0.55); }catch(e){ GAIT={err:e.message}; }
   const CYC={walk:{speed:1.35,len:1.4},run:{speed:3.2,len:2.2},gait:GAIT};
   try{ CYC.walk=cycleLen('Walk'); CYC.run=cycleLen('Run'); CYC.gait=GAIT; }catch(e){}
-  return {build,pose,rot,ik2,rotW,sync:H=>{ if(H.rb) rpmSync(H); },MT,CYC,ROLE,ALL,RP,onReady:f=>{ if(RP.ready) f(); else RP.cb.push(f); }};
+  return Object.assign(API,{build,pose,rot,ik2,rotW,sync:H=>{ if(H.rb) rpmSync(H); },MT,CYC,ROLE,ALL,RP,onReady:f=>{ if(RP.ready) f(); else RP.cb.push(f); }});
 })();
 var HUM_MT;
 
@@ -6995,7 +7041,11 @@ function person(x,z,rot,pose,role,p){
   const H=HUM.build({role:role||'ГРУЗЧИК',rnd:LOOK.R});
   const g=H.root; g.position.set(x,0,z); g.rotation.y=rot||0; (p||G.people).add(g);
   g.userData.nm=role||'Человек'; g.userData.role=role||'';
-  H.base=pose?{bend:0.18,reach:0.55}:{};
+  /* в покое — занятие по роли (раньше «в работе» стояли с вытянутыми вперёд руками, как манекены) */
+  const n=PEOPLE.length, IDLE={'ОХРАННИК':[{behind:1}],'СТАРШИЙ СМЕНЫ':[{tablet:1}],'БРИГАДИР':[{tablet:1},{talk:1}],'КЛАДОВЩИК':[{tablet:1}],
+    'КОНТРОЛЁР':[{tablet:1}],'ОПЕРАТОР':[{tablet:1}],'ВОДИТЕЛЬ ПОГРУЗЧИКА':[{phone:1},{akimbo:1}],'ВОДИТЕЛЬ':[{phone:1},{cross:1}],
+    'ГРУЗЧИК-УПАКОВЩИК':[{akimbo:1},{cross:1}],'ГРУЗЧИК':[{cross:1},{talk:1},{akimbo:1}]}, FREE=[{behind:1},{},{akimbo:1}];
+  H.base=Object.assign({},pose?(IDLE[role]||IDLE['ГРУЗЧИК'])[n%(IDLE[role]||IDLE['ГРУЗЧИК']).length]:role==='ОХРАННИК'?{behind:1}:FREE[n%FREE.length]);
   HUM.pose(H,Object.assign({t:LOOK.R()*2},H.base));
   PEOPLE.push(H);
   if(role) label(role,x,2.35,z,'#f2b705',38,0.85,G.roles);
@@ -7986,7 +8036,8 @@ padEl.querySelectorAll('button').forEach(b=>{
    · не проходит сквозь колонны, стойки, ограждения, ленту, DWS, стены и машины — скользит вдоль них;
    · движущийся погрузчик, машины, стойки на вилах и люди расталкивают его, рядом с едущим погрузчиком — предупреждение;
    · гравитация: с платформы у Л2 (перепад 1 м) можно спрыгнуть, обратно — по лестнице; ступени до 0,36 м перешагивает;
-   · разгон и торможение (инерция), прыжок (пробел), присед (C), покачивание головы в такт шагу, «просадка» при приземлении.
+   · разгон и торможение (инерция), прыжок (пробел), присед (C), покачивание головы в такт шагу, «просадка» при приземлении;
+   · наезд едущего погрузчика сбивает с ног: отбрасывает, человек падает на бок на пол, лежит ~2 с и поднимается (через колено).
    Неподвижное окружение растеризуется один раз при входе в обход в сетку 10 см с полосами высоты по 25 см (что в клетке
    и на какой высоте); подвижное (погрузчики, машины, стойки, створки ворот, лента, люди) проверяется каждый кадр по
    ориентированным коробкам. */
@@ -7994,7 +8045,9 @@ const STAIRS=[];                                                // лестни�
 const WALKP=(()=>{
   const R=0.32, STEP=0.36, GRAV=9.81, BODY=1.85, BODYC=1.2, EYE=1.66, EYEC=1.02;
   const CS=0.1, X0=-32, Z0=-32, NX=1140, NZ=1180, Y0=-1.25, BH=0.25, NB=31;
-  const S={feet:0,vy:0,vx:0,vz:0,grounded:true,crouch:0,bob:0,bobA:0,dip:0,dipV:0,jumpHeld:false,warn:0,ms:0,cells:0,units:0};
+  const S={feet:0,vy:0,vx:0,vz:0,grounded:true,crouch:0,bob:0,bobA:0,dip:0,dipV:0,jumpHeld:false,warn:0,ms:0,cells:0,units:0,down:null,immune:0,hits:0};
+  const FALL=0.42, LIE=1.9, RISE=1.3;                         // падение, лежит, встаёт (с)
+  const c01=v=>Math.max(0,Math.min(1,v)), ez=u=>{u=c01(u); return u*u*u*(u*(u*6-15)+10);};   // свои: помощники фильма живут внутри его модуля
   let grid=null, units=[], unitT=0, lastFk=new Map(), hud=null;
   const disc=[]; for(let i=-4;i<=4;i++) for(let j=-4;j<=4;j++) if(Math.hypot(i,j)*CS<=R+0.02) disc.push([i,j]);
 
@@ -8085,8 +8138,10 @@ const WALKP=(()=>{
         const e=[[_p.x-b.min.x,-1,0],[b.max.x-_p.x,1,0],[_p.z-b.min.z,0,-1],[b.max.z-_p.z,0,1]].map(v=>[v[0]*(v[1]?sx:sz),v[1],v[2],v[0]]).sort((a,c)=>a[0]-c[0])[0];
         if(e[1]) nx=(e[1]<0?b.min.x-rx:b.max.x+rx); else nz=(e[2]<0?b.min.z-rz:b.max.z+rz);
       } else { const dw=Math.hypot(lx*sx,lz*sz); if(dw>=R) continue; const k=R/dw; nx=qx+lx*k; nz=qz+lz*k; }
-      _p.x=nx; _p.z=nz; _p.applyMatrix4(o.matrixWorld); px=_p.x; pz=_p.z;
+      _p.x=nx; _p.z=nz; _p.applyMatrix4(o.matrixWorld);
       if(u.kind==='fk') out.fk=true;
+      if(u.kind==='fk'||u.kind==='rk'||u.kind==='tr'){ const dx=_p.x-px, dz=_p.z-pz, dl=Math.hypot(dx,dz); if(dl>0.004&&(!out.hit||dl>out.hit.d)) out.hit={d:dl,nx:dx/dl,nz:dz/dl,u}; }
+      px=_p.x; pz=_p.z;
     }
     return [px,pz];
   }
@@ -8114,34 +8169,45 @@ const WALKP=(()=>{
   function step(dtAll){
     if(!grid) build();
     unitT-=dtAll; if(unitT<=0){ collectUnits(); unitT=1.0; }
+    /* скорость всего, что ездит: погрузчик, стойка на вилах, машины */
+    for(const u of units){ if(u.kind==='h'||u.kind==='dr') continue; u.o.getWorldPosition(_c); if(u.prev&&dtAll>0){ u.vx=(_c.x-u.prev.x)/dtAll; u.vz=(_c.z-u.prev.z)/dtAll; } else { u.vx=u.vz=0; } u.prev=(u.prev||new THREE.Vector3()).copy(_c); }
+    if(S.immune>0) S.immune-=dtAll;
+    if(S.down){ S.down.t+=dtAll; if(S.down.t>=FALL+LIE+RISE){ S.down=null; S.immune=2.0; } }
+    const downNow=!!S.down;
     const fx=-Math.sin(wYaw), fz=-Math.cos(wYaw), rx=Math.cos(wYaw), rz=-Math.sin(wYaw);
     let mx=0, mz=0;
     if(keys.KeyW||keys.ArrowUp){ mx+=fx; mz+=fz; }   if(keys.KeyS||keys.ArrowDown){ mx-=fx; mz-=fz; }
     if(keys.KeyD||keys.ArrowRight){ mx+=rx; mz+=rz; } if(keys.KeyA||keys.ArrowLeft){ mx-=rx; mz-=rz; }
+    if(downNow){ mx=mz=0; }                                     // сбит с ног: ноги не слушаются, пока не встал
     const run=(keys.ShiftLeft||keys.ShiftRight)&&S.crouch<0.5, Lm=Math.hypot(mx,mz);
-    const crouchK=!!keys.KeyC;
+    const crouchK=!!keys.KeyC&&!downNow;
     let n=Math.max(1,Math.ceil(dtAll/(1/90))), dt=dtAll/n, out={fk:false};
     for(let it=0;it<n;it++){
       /* присед: встать можно, только если над головой свободно */
       const wantC=crouchK?1:(hitStatic(wPos.x,wPos.z,S.feet,S.feet+BODY)&&S.crouch>0.5?1:0);
       S.crouch+=(wantC-S.crouch)*Math.min(1,dt*9);
       const vmax=S.crouch>0.5?0.9:(run?5.0:1.9);              // шаг 1,9 м/с, бег 5 м/с, вприсядку 0,9 м/с
-      const tx=Lm?mx/Lm*vmax:0, tz=Lm?mz/Lm*vmax:0, acc=S.grounded?(Lm?7.5:10):1.2;
+      const tx=Lm?mx/Lm*vmax:0, tz=Lm?mz/Lm*vmax:0, acc=downNow?(S.down.t<FALL?1.5:4.5):S.grounded?(Lm?7.5:10):1.2;   // сбитого протаскивает по полу
       const ddx=tx-S.vx, ddz=tz-S.vz, dl=Math.hypot(ddx,ddz), st=Math.min(dl,acc*dt);
       if(dl>1e-6){ S.vx+=ddx/dl*st; S.vz+=ddz/dl*st; }
       const [bx,bz]=move(S.vx*dt,S.vz*dt); if(bx) S.vx*=0.2; if(bz) S.vz*=0.2;
       /* толчки от подвижного: погрузчик, машины, стойки, люди */
       const top=S.feet+(S.crouch>0.5?BODYC:BODY);
       for(let k=0;k<2;k++){ const [px,pz]=pushDynamic(wPos.x,wPos.z,S.feet,top,out); if(!hitStatic(px,pz,S.feet,top)){ wPos.x=px; wPos.z=pz; } }
+      /* наезд: погрузчик едет на человека быстрее 0,5 м/с — сбивает с ног и отбрасывает по направлению удара */
+      if(out.hit&&!S.down&&S.immune<=0){ const h=out.hit, v=Math.hypot(h.u.vx||0,h.u.vz||0), into=(h.u.vx||0)*h.nx+(h.u.vz||0)*h.nz;
+        if(v>0.5&&into>0.3){ const kb=1.4+0.9*v; S.vx=h.nx*kb; S.vz=h.nz*kb; S.vy=Math.min(1.6,0.4+0.5*v); S.grounded=false;
+          const side=Math.sign(h.nx*rx+h.nz*rz)||1; S.down={t:0,side,eye0:EYE+(EYEC-EYE)*S.crouch,v,yaw:wYaw}; S.hits++; S.crouch=0; } }
+      out.hit=null;
       /* вертикаль: земля, ступени, падение, прыжок */
       const gy=ground(wPos.x,wPos.z);
-      if(keys.Space&&!S.jumpHeld&&S.grounded&&S.crouch<0.5){ S.vy=3.1; S.grounded=false; }
+      if(keys.Space&&!S.jumpHeld&&S.grounded&&S.crouch<0.5&&!downNow){ S.vy=3.1; S.grounded=false; }
       S.jumpHeld=!!keys.Space;
       if(S.grounded){
         if(gy<S.feet-0.04){ S.grounded=false; S.vy=0; }
         else { const d=gy-S.feet; S.feet+=d*Math.min(1,dt*16); if(d>0.05) S.dipV-=d*2.2*dt*16; } }
       if(!S.grounded){ S.vy-=GRAV*dt; S.feet+=S.vy*dt;
-        if(S.feet<=gy){ const imp=-S.vy; S.feet=gy; S.vy=0; S.grounded=true; S.dipV-=Math.min(imp*0.55,2.6); } }
+        if(S.feet<=gy){ const imp=-S.vy; S.feet=gy; S.vy=0; S.grounded=true; if(!S.down) S.dipV-=Math.min(imp*0.55,2.6); } }
       /* «колени»: пружина просадки при приземлении и на ступенях */
       S.dipV+=(-90*S.dip-15*S.dipV)*dt; S.dip+=S.dipV*dt; S.dip=Math.max(-0.35,Math.min(0.08,S.dip));
       /* покачивание головы: два толчка на цикл шага */
@@ -8154,10 +8220,30 @@ const WALKP=(()=>{
     wPos.y=S.feet+eye+S.dip-A*(1-Math.cos(2*S.bob))*0.5;
     const lat=0.012*S.bobA*Math.sin(S.bob)*Math.min(1,sp/1.9);
     camera.position.set(wPos.x+rx*lat,wPos.y,wPos.z+rz*lat);
-    wDir.set(-Math.sin(wYaw)*Math.cos(wPitch), Math.sin(wPitch), -Math.cos(wYaw)*Math.cos(wPitch));
+    let pitch=wPitch, roll=0.006*S.bobA*Math.sin(S.bob)*Math.min(1,sp/1.9);
+    if(S.down){ /* падение: голова уходит вниз и вбок (на ту сторону, куда толкнуло), удар о пол с отскоком, лежит, встаёт через колено */
+      const D=S.down, t=D.t, side=D.side, LY=0.23; let ey, rl, pa;
+      if(t<FALL){ const u=t/FALL, e=u*u; ey=D.eye0+(LY-D.eye0)*e; rl=1.32*e; pa=0.42*e; }
+      else if(t<FALL+LIE){ const u=t-FALL, b=Math.exp(-u*6)*Math.sin(u*24); ey=LY+0.035*Math.abs(b)+0.006*Math.sin(u*2.1); rl=1.32+0.06*b; pa=0.42+0.04*Math.sin(u*0.9); }
+      else { const u=c01((t-FALL-LIE)/RISE); ey=u<0.55?LY+(0.95-LY)*ez(u/0.55):0.95+(D.eye0-0.95)*ez((u-0.55)/0.45); rl=1.32*(1-ez(Math.min(1,u*1.7))); pa=0.42*(1-ez(u)); }
+      camera.position.set(wPos.x,S.feet+ey,wPos.z); wPos.y=camera.position.y; pitch=wPitch+pa; roll=-side*rl; }
+    wDir.set(-Math.sin(wYaw)*Math.cos(pitch), Math.sin(pitch), -Math.cos(wYaw)*Math.cos(pitch));
     camera.lookAt(camera.position.x+wDir.x, camera.position.y+wDir.y, camera.position.z+wDir.z);
-    camera.rotateZ(0.006*S.bobA*Math.sin(S.bob)*Math.min(1,sp/1.9));
-    warnFk(dtAll);
+    camera.rotateZ(roll);
+    hitFx(); warnFk(dtAll);
+  }
+  /* ---------- сбит погрузчиком: красная вспышка по краям кадра и надпись ---------- */
+  let fx=null;
+  function hitFx(){
+    if(!fx){ fx=document.createElement('div'); fx.id='walkhit';
+      fx.style.cssText='position:absolute;inset:0;z-index:7;pointer-events:none;display:none;align-items:center;justify-content:center;flex-direction:column;'+
+        'background:radial-gradient(ellipse at center,rgba(150,0,0,0) 35%,rgba(150,0,0,.75) 100%);color:#fff;font:700 26px/1.25 "IBM Plex Sans",sans-serif;text-shadow:0 2px 8px #000;text-align:center';
+      view.appendChild(fx); }
+    const D=S.down; if(!D||!walk){ fx.style.display='none'; return; }
+    const t=D.t, a=t<0.15?t/0.15:Math.max(0,1-(t-0.15)/(FALL+LIE+RISE-0.3));
+    fx.style.display='flex'; fx.style.opacity=a.toFixed(3);
+    if(!fx.dataset.n||+fx.dataset.n!==S.hits){ fx.dataset.n=S.hits;
+      fx.innerHTML='Вас сбил погрузчик<div style="font:500 15px/1.4 \'IBM Plex Sans\',sans-serif;margin-top:6px">скорость '+D.v.toFixed(1).replace('.',',')+' м/с · в жизни это травма · держитесь пешеходных дорожек, не ближе 3 м к едущему погрузчику</div>'; }
   }
   /* ---------- предупреждение: едущий погрузчик ближе 4 м ---------- */
   function warnFk(dt){
@@ -8176,9 +8262,9 @@ const WALKP=(()=>{
   }
   let nearSaved=0;
   function enter(){ grid=null; build(); units=[]; collectUnits(); unitT=1.0; lastFk.clear();
-    S.feet=ground(wPos.x,wPos.z); S.vx=S.vz=S.vy=0; S.grounded=true; S.dip=S.dipV=0; S.crouch=0; unstick();
+    S.feet=ground(wPos.x,wPos.z); S.vx=S.vz=S.vy=0; S.grounded=true; S.dip=S.dipV=0; S.crouch=0; S.down=null; S.immune=0; unstick();
     nearSaved=camera.near; camera.near=0.12; camera.updateProjectionMatrix(); }
-  function exit(){ if(hud) hud.style.display='none'; if(nearSaved){ camera.near=nearSaved; camera.updateProjectionMatrix(); nearSaved=0; } }
+  function exit(){ if(hud) hud.style.display='none'; S.down=null; if(fx) fx.style.display='none'; if(nearSaved){ camera.near=nearSaved; camera.updateProjectionMatrix(); nearSaved=0; } }
   return {S,ground,build,enter,exit,step,move,hitStatic,units:()=>units,info:()=>({ms:S.ms,cells:S.cells,units:S.units})};
 })();
 function tryMove(mx,mz){ WALKP.move(mx,mz); }
@@ -10311,6 +10397,35 @@ const DEP={7:[14,15],8:[15,16],9:[17,18],10:[18,19],0:[7],1:[8],2:[9],3:[10],5:[
 let rng=1; const R=()=>{ rng=(rng*1664525+1013904223)>>>0; return rng/4294967296; };
 const hyp2=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 
+/* ---------- фазы процесса: сначала машина из Китая выгружается целиком, потом бригада переходит на погрузку автопоезда ----------
+   Пока идёт выгрузка, грузчики K1…K4 ждут у комнаты смены (перед зданием охраны — туда погрузчик не заезжает: проверено
+   картой его проездов за цикл); когда последняя стойка стоит в ячейке и приёмка готова к следующей машине — идут к посту П2
+   перед будущей кабиной автопоезда и вдоль поста, и только тогда заезжает автопоезд. Автопоезд уехал, а машины из Китая
+   ещё будут — бригада возвращается к комнате смены. */
+const REC_SPOT={K1:[17.2,7.75],K2:[17.95,8.4],K3:[18.9,7.8],K4:[19.55,8.45]}, REC_YAW=0;
+/* чем заняты, пока ждут: у приёмки K1 и K2 разговаривают лицом друг к другу, K3 — руки на поясе, K4 — с телефоном;
+   у поста — руки за спиной, сцеплены, разговор, на поясе */
+const IDLE_AT={rec:{K1:[{cross:1},0.86],K2:[{talk:1},-2.28],K3:[{akimbo:1},0.4],K4:[{phone:1},-0.3]},
+               post:{K1:[{behind:1},PI],K2:[{cross:1},PI],K3:[{talk:1},PI-0.5],K4:[{akimbo:1},PI]}};
+const WALKWAY=[[21.9,9.25],[22.0,12.65],[24.7,12.65],[25.4,13.2]];   // от комнаты смены: перед кабиной автопоезда (x 21,8), мимо рохлей у поста
+/* по посту — напрямую вдоль z 13,2; к комнате смены и от неё — по линии z 9,25 севернее мест ожидания (до стоящих ≥0,8 м) */
+function crewPath(a,b){ const atPost=p=>p[0]>23&&p[1]>12, RZ=9.25; if(atPost(a)&&atPost(b)) return [];
+  const pts=WALKWAY.slice(); return atPost(b)?[[a[0],RZ],...pts]:[...pts.reverse(),[b[0],RZ]]; }
+/* порядок выхода: на пост первым идёт тот, чьё место дальше по линии z 13,2, обратно — ближний к проходу;
+   так никто не проходит сквозь уже стоящего товарища; интервал 1 с — около 1,3 м между идущими */
+function crewMove(kind){ const T=S.T; let last=T;
+  const ws=CREW.flat().sort((u,v)=>kind==='post'?S.hum[v].spot[0]-S.hum[u].spot[0]:S.hum[u].x-S.hum[v].x), t00=Math.max(T,...ws.map(w=>S.hum[w].free));
+  ws.forEach((w,i)=>{ const h=S.hum[w], to=kind==='post'?h.spot:h.rec, [ip,iy]=IDLE_AT[kind][w];
+    const t0=t00+0.4+i*1.0; h.state='wait';
+    const tr=new Track().key(t0,h.x,h.z,h.yaw,h.idle||{}).key(t0+0.6,h.x,h.z,h.yaw,{}); h.tr=tr;      // сначала опустил руки, потом пошёл
+    const ta=route(tr,t0+0.6,[[h.x,h.z],...crewPath([h.x,h.z],to),[to[0],to[1],iy]],1.3,{});
+    finTrack(h,to[0],to[1],iy,ta); tr.key(ta+0.7,to[0],to[1],iy,ip); tr.fin(); h.idle=ip; last=Math.max(last,ta); });
+  S.crewAt=kind; S.crewT=last; return last; }
+/* внимание: стоящие рядом люди поворачивают голову к едущему погрузчику (ближе 7 м) */
+const _att=V(0,0,0);
+function attnFn(H){ if(!SIM.on||!F.fk) return null; const k=S.kinFk; if(!k||Math.abs(k.v)<0.3) return null;
+  const p=F.fk.position, r=H.root.position; if(Math.hypot(p.x-r.x,p.z-r.z)>7) return null; return _att.set(p.x,1.25,p.z); }
+
 /* ---------- пружина с демпфером, считается по ходу ---------- */
 function Spring(f,z,lim){ this.w=2*PI*f; this.z=z; this.x=0; this.v=0; this.lim=lim; }
 Spring.prototype.step=function(u,dt){ const n=Math.max(1,Math.ceil(dt/(1/240))), h=dt/n; u=Math.max(-this.lim,Math.min(this.lim,u));
@@ -10379,6 +10494,7 @@ function setRest(r,x,y,z,yaw){ r.restP=V(x,y,z); r.restQ=new THREE.Quaternion().
 /* ---------- сборка ---------- */
 function setup(){
   rng=20261009;
+  scene.updateMatrixWorld(true);   // машины только что вернулись на места (teardown): без этого проёмы кузовов считались по матрице «во дворе» — со 2-го цикла погрузчик ехал к x≈64 сквозь стену П2
   S.grp=new THREE.Group(); scene.add(S.grp); S.racks=[]; S.boxes=[]; S.belt=[]; S.jobs=[]; S.ev=[];
   S.T=0; S.cycle=(S.cycle||0)+1; S.log=[];
   /* ячейки: свои стойки вместо штатных штабелей */
@@ -10419,7 +10535,9 @@ function setup(){
   S.bw=F.bod.map(b=>{ b.updateMatrixWorld(true); const p=b.localToWorld(V(RB.x,0,RB.z)); return [p.x,p.z]; });
   S.kPos={K1:[1.9,-0.4],K2:[-1.9,-0.3],K3:[1.9,-0.4],K4:[-1.9,-0.3]}; S.kIdle={K1:-PI/2,K2:PI/2,K3:-PI/2,K4:PI/2};
   CREW.forEach((cw,r)=>{ const bx=S.bw[r][0]; const spot={[cw[0]]:[bx+1.5,13.2],[cw[1]]:[bx+4.75,13.2]};
-    cw.forEach(w=>{ mkH(w,F.KH[w],spot[w][0],spot[w][1],PI); S.hum[w].spot=spot[w]; S.hum[w].body=r; S.hum[w].state='wait'; }); });
+    cw.forEach(w=>{ const rp=REC_SPOT[w], [ip,iy]=IDLE_AT.rec[w]; mkH(w,F.KH[w],rp[0],rp[1],iy); const h=S.hum[w]; h.tr=new Track().key(0,rp[0],rp[1],iy,ip).fin(); h.idle=ip;
+      h.spot=spot[w]; h.rec=rp; h.body=r; h.state='wait'; }); });
+  S.phase='unload'; S.cnDone=false; S.kzGone=false; S.crewAt='rec'; S.crewT=0;
   { const C=F.bod[0].userData.curt, n=C.strips.length; S.cEdge=[C.x0+0.05+(n-1)*C.pitch,C.x0+C.w*(n-0.5)]; }
   S.kzE=[[],[]]; S.kzB0=[[0,0],[0,0]]; S.ringA=[];
   S.done=false; S.endT=null; S.inLeft=S.cfg().inTrucks; S.outN=0; S.loaded=0; S.placed=0; loadReset();
@@ -10582,7 +10700,8 @@ function planFk(){ const P=S.fk; if(S.fkTask) return;
       const r=oldestRack(); if(!r){ S.kzDone[body]=true; continue; }
       fkLeavePocket(r.at.cell.x); S.fkTask=taskCellToBody(r,body); S.fkTask.t1=P.tc; return; } }
   /* 3. приёмка пуста — привезти пустую стойку (если есть что выгружать) */
-  if(!S.rk&&!S.rkNext&&(S.cn.state!=='away'||S.inLeft>0)&&emptySource()){ fkLeavePocket(14); const t=taskEoToRk(); if(t){ S.fkTask=t; S.fkTask.t1=P.tc; return; } }
+  /* пустую стойку на приёмку — когда бригада уже дошла до комнаты смены */
+  if(S.phase==='unload'&&S.T>=(S.crewT||0)&&!S.rk&&!S.rkNext&&(S.cn.state!=='away'||S.inLeft>0)&&emptySource()){ fkLeavePocket(14); const t=taskEoToRk(); if(t){ S.fkTask=t; S.fkTask.t1=P.tc; return; } }
 }
 function tickFk(){ const P=S.fk; if(S.fkTask){ if(S.fkTask.hold){ if(S.T>=S.fkTask.t1&&!S.unload) startUnload(); if(S.unload&&S.unload.done){ S.unload=null; S.fkTask=taskBodyToEo(); S.fkTask.t1=P.tc; } }
     else if(S.T>=S.fkTask.t1+0.3){ S.fkTask=null; if(S.rkNext){ S.rk=S.rkNext; S.rkNext=null; } } }
@@ -10698,29 +10817,37 @@ function planLabel(){ const h=S.hum.CT, r=S.rk, T=S.T, tr=newTrack(h,T); r.label
 /* ---------- машины ---------- */
 function tickTrucks(){ const T=S.T, cn=S.cn, kz=S.kz;
   /* из Китая: приезд, выгрузка, отъезд */
-  if(cn.state==='away'&&S.inLeft>0&&!S.cnNext){ S.cnNext=T+(cn.n?25:3); }
+  /* фазы: выгрузка → погрузка → выгрузка … */
+  const cellsCargo=S.cells.some(c=>c.tiers.some(r=>r.n>0));
+  if(S.phase==='unload'&&S.cnDone&&cn.state==='away'&&!S.belt.length&&!(S.rk&&S.rk.n>0)&&!S.rkReady&&!S.fkTask&&!S.wt.job&&cellsCargo){
+    S.phase='load'; S.cnDone=false; S.kzGone=false; const ta=crewMove('post'); S.kzNext=Math.max(T+3,ta+1);
+    S.log.push('выгрузка закончена — бригада переходит на погрузку автопоезда'); }
+  if(S.phase==='load'&&S.kzGone&&kz.state==='away'){ S.kzGone=false;
+    if(S.inLeft>0){ S.phase='unload'; const ta=crewMove('rec'); S.cnNext=Math.max(T+3,ta-3); S.log.push('автопоезд ушёл — бригада возвращается на приёмку'); }
+    else if(cellsCargo) crewMove('post'); }
+  if(S.phase==='unload'&&cn.state==='away'&&S.inLeft>0&&!S.cnNext&&!S.cnDone){ S.cnNext=T+(cn.n?25:3); }   // в фазе выгрузки — одна машина; следующая только после погрузки
   if(cn.state==='away'&&S.cnNext&&T>=S.cnNext){ const c0=F.cn0; cn.path=mkPath([{t0:T,t1:T+9,pts:[[c0.x,c0.z-58],[c0.x,c0.z-20],[c0.x,c0.z]],ease:'brake',u0:0.5}]);
     cn.state='arrive'; cn.n++; S.inLeft--; S.cnNext=null; F.cnT.visible=true; cn.cargo=cnCargoBuild(); cn.t0=T; cn.tag=null; S.log.push('машина из Китая №'+cn.n+' — к Л2'); }
   if(cn.state==='arrive'){ doorSet(DOOR.L2,kv(T,[[cn.t0+5.5,0],[cn.t0+8.0,0.97]])); if(T>=cn.t0+9.3){ cn.state='in'; F.WTr.visible=true; S.wt.free=T+1.2; } }
   if(cn.state==='in'&&!cn.cargo.length&&!S.wt.job){ cn.state='leave'; cn.t1=T+2.0; const c0=F.cn0; cn.path=mkPath([{t0:cn.t1,t1:cn.t1+10,pts:[[c0.x,c0.z],[c0.x,c0.z+16],[c0.x,c0.z+60]],ease:'go',u0:0.45}]);
     S.ev.push({T:cn.t1-0.2,f:()=>{ F.WTr.visible=false; }}); S.log.push('машина из Китая №'+cn.n+' выгружена, уезжает'); }
-  if(cn.state==='leave'){ doorSet(DOOR.L2,kv(T,[[cn.t1+1.5,0.97],[cn.t1+4.0,0]])); if(T>=cn.t1+10.5){ cn.state='away'; F.cnT.visible=false; F.cnT.position.z=F.cn0.z-70; } }
+  if(cn.state==='leave'){ doorSet(DOOR.L2,kv(T,[[cn.t1+1.5,0.97],[cn.t1+4.0,0]])); if(T>=cn.t1+10.5){ cn.state='away'; S.cnDone=true; F.cnT.visible=false; F.cnT.position.z=F.cn0.z-70; } }
   /* автопоезд: пока есть что грузить */
   const haveCargo=S.cells.some(c=>c.tiers.some(r=>r.n>0))||S.rk&&S.rk.n>0||cn.state!=='away'||S.inLeft>0;
-  if(kz.state==='away'&&!S.kzNext&&haveCargo) S.kzNext=T+(kz.n?30:40);
-  if(kz.state==='away'&&S.kzNext&&T>=S.kzNext&&S.cells.some(c=>c.tiers.some(r=>r.n>0))){ const k0=F.kz0; kz.t0=T; kz.path=mkPath([{t0:T+3.2,t1:T+14.2,pts:[[k0.x+34,k0.z],[k0.x+14,k0.z],[k0.x,k0.z]],ease:'brake',u0:0.5}]);
+  if(S.phase==='load'&&kz.state==='away'&&!S.kzNext&&haveCargo) S.kzNext=Math.max(T+(kz.n?30:40),(S.crewT||0)+1);
+  if(S.phase==='load'&&kz.state==='away'&&S.kzNext&&T>=S.kzNext&&S.cells.some(c=>c.tiers.some(r=>r.n>0))){ const k0=F.kz0; kz.t0=T; kz.path=mkPath([{t0:T+3.2,t1:T+14.2,pts:[[k0.x+34,k0.z],[k0.x+14,k0.z],[k0.x,k0.z]],ease:'brake',u0:0.5}]);
     kz.state='arrive'; kz.n++; S.kzNext=null; F.kzT.visible=true; kz.lanes=[0,1].map(()=>({S:{0:0,1:0,2:0,3:0},N:{0:0,1:0,2:0,3:0}})); S.kzDone=[false,false]; S.kzE=[[],[]]; S.kzB0=[[0,0],[0,0]]; loadReset();
     { const gone=[]; F.bod.forEach(b=>b.traverse(o=>{ if(o.userData.simBox&&o.userData.simBox.mode==='body') gone.push(o); })); gone.forEach(o=>{ S.grp.attach(o); o.visible=false; o.userData.simBox.mode='gone'; }); }   // груз прошлого рейса уехал
     S.log.push('автопоезд №'+kz.n+' — через П2 на пост'); }
   if(kz.state==='arrive'){ doorSet(DOOR.P2,kv(T,[[kz.t0,0],[kz.t0+2.6,1],[kz.t0+15.4,1],[kz.t0+18.2,0]]));
     if(T>=kz.t0+14.4){ kz.state='in'; kz.tIn=T; CHOCKS.visible=false; S.ev.push({T:T+1.4,f:()=>{ CHOCKS.visible=true; }});
-      CREW.forEach((cw,r)=>{ const t=T+1.8+r*0.3; planCrewIn(cw,r,t); }); } }
+      CREW.forEach((cw,r)=>{ const t=Math.max(T+1.8,Math.max(...cw.map(w=>S.hum[w].free))+0.3)+r*0.3; planCrewIn(cw,r,t); }); } }   // бригада сначала дошла до поста
   if(kz.state==='in'){ const allDone=S.kzDone&&S.kzDone[0]&&S.kzDone[1]&&!S.fkTask&&!S.hold;
     if(allDone&&!kz.finishing){ kz.finishing=true; planCrewOut(); } }
-  if(kz.state==='leave'){ doorSet(DOOR.P2,kv(T,[[kz.t1-3.4,0],[kz.t1-0.8,1],[kz.t1+12,1],[kz.t1+14.5,0]])); if(T>=kz.t1+12.5){ kz.state='away'; kz.finishing=false; F.kzT.visible=false; F.kzT.position.x=F.kz0.x+40; } }
+  if(kz.state==='leave'){ doorSet(DOOR.P2,kv(T,[[kz.t1-3.4,0],[kz.t1-0.8,1],[kz.t1+12,1],[kz.t1+14.5,0]])); if(T>=kz.t1+12.5){ kz.state='away'; kz.finishing=false; S.kzGone=true; F.kzT.visible=false; F.kzT.position.x=F.kz0.x+40; } }
 }
 function inBody(r,x,z){ const p=F.bod[r].localToWorld(V(x,0,z)); return [p.x,p.z]; }
-function planCrewIn(cw,r,t){ const [wn,ws]=cw, byaw=F.kz0.r, yAlong=d=>byaw+(d>0?PI/2:-PI/2), [XO,XC]=S.cEdge, xin={[wn]:0.45,[ws]:-0.45};
+function planCrewIn(cw,r,t){ cw.forEach(w=>{ S.hum[w].idle={}; }); const [wn,ws]=cw, byaw=F.kz0.r, yAlong=d=>byaw+(d>0?PI/2:-PI/2), [XO,XC]=S.cEdge, xin={[wn]:0.45,[ws]:-0.45};
   const cop0=t+0.4, cop1=cop0+3.6, tci={[wn]:cop1+0.7,[ws]:cop1+3.4};
   S.kzCurt=S.kzCurt||[]; S.kzCurt[r]={t0:cop0,t1:cop1,open:true};
   for(const w of cw){ const h=S.hum[w], tr=newTrack(h,S.T); let tt=t;
@@ -10754,7 +10881,7 @@ function planCrewOut(){ const kz=S.kz, T=S.T, byaw=F.kz0.r, yAlong=d=>byaw+(d>0?
   S.ev.push({T:curt0-1.0,f:()=>{ CHOCKS.visible=false; }});
   const k0=F.kz0; kz.path=mkPath([{t0:kz.t1,t1:kz.t1+12,pts:[[k0.x,k0.z],[k0.x+12,k0.z],[k0.x+36,k0.z]],ease:'go',u0:0.45,rev:true}]);
   S.ev.push({T:kz.t1-0.5,f:()=>{ kz.state='leave'; S.outN++; S.log.push('автопоезд №'+kz.n+' загружен: '+S.loaded+' коробов всего · выезд через П2');
-    CREW.flat().forEach(w=>{ const h=S.hum[w]; S.ev.push({T:kz.t1+13,f:()=>{ h.state='wait'; const tr=newTrack(h,S.T); const ta=route(tr,S.T+0.5,[[h.x,h.z],[h.spot[0],h.spot[1],PI]],1.3,{}); finTrack(h,h.spot[0],h.spot[1],PI,ta); }}); }); }});
+    CREW.flat().forEach(w=>{ S.hum[w].state='wait'; }); }});
 }
 
 /* ---------- шаг времени ---------- */
@@ -10843,12 +10970,12 @@ const tt=v=>(v/1000).toFixed(2).replace('.',',');
 function status(){ const racks=S.cells.reduce((a,c)=>a+c.tiers.filter(r=>r.n>0).length,0), boxes=S.cells.reduce((a,c)=>a+c.tiers.reduce((s,r)=>s+r.n,0),0);
   const t=S.T, mm=Math.floor(t/60), ss=Math.floor(t%60);
   const now=S.fkTask?S.fkTask.name:'погрузчик ждёт';
-  return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded}${(()=>{ const A=axleInfo(); return A&&(A.m1+A.m2)>0?` · в кузовах ${tt(A.m1)} + ${tt(A.m2)} т (оси грузовика +${tt(A.front)} / +${tt(A.rear)} т)`:''; })()} · ${now}`; }
-SIM.enter=function(){ if(SIM.on) return; if(F.on) exit(); prepScene(true);
+  return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')} · ${S.phase==='unload'?'ВЫГРУЗКА машины из Китая':'ПОГРУЗКА автопоезда'} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded}${(()=>{ const A=axleInfo(); return A&&(A.m1+A.m2)>0?` · в кузовах ${tt(A.m1)} + ${tt(A.m2)} т (оси грузовика +${tt(A.front)} / +${tt(A.rear)} т)`:''; })()} · ${now}`; }
+SIM.enter=function(){ if(SIM.on) return; if(F.on) exit(); prepScene(true); HUM.attn=attnFn;
   const keep=new Set([F.fk,F.CT.root,F.W3.root,F.W5.root,F.W4.root,F.tl2,F.dws].concat(Object.values(F.KH).map(H=>H.root)));
   S.filmVis=F.grp.children.map(o=>[o,o.visible]); F.grp.children.forEach(o=>{ o.visible=keep.has(o); });
   setup(); SIM.on=true; SIM.T=0; applyVis(0); if(SIM.onChange) SIM.onChange(); };
-SIM.exit=function(){ if(!SIM.on) return; SIM.on=false; teardown(); (S.filmVis||[]).forEach(([o,v])=>o.visible=v); unprepScene(); if(SIM.onChange) SIM.onChange(); };
+SIM.exit=function(){ if(!SIM.on) return; SIM.on=false; HUM.attn=null; teardown(); (S.filmVis||[]).forEach(([o,v])=>o.visible=v); unprepScene(); if(SIM.onChange) SIM.onChange(); };
 SIM.state=()=>S; SIM.log=()=>S.log;
 SIM.owns=H=>SIM.on&&(H===F.PW||H===F.WP||H===F.SUP);
 /* ---------- кнопки: запуск, скорость, строка состояния ---------- */

@@ -4,7 +4,11 @@ function person(x,z,rot,pose,role,p){
   const H=HUM.build({role:role||'ГРУЗЧИК',rnd:LOOK.R});
   const g=H.root; g.position.set(x,0,z); g.rotation.y=rot||0; (p||G.people).add(g);
   g.userData.nm=role||'Человек'; g.userData.role=role||'';
-  H.base=pose?{bend:0.18,reach:0.55}:{};
+  /* в покое — занятие по роли (раньше «в работе» стояли с вытянутыми вперёд руками, как манекены) */
+  const n=PEOPLE.length, IDLE={'ОХРАННИК':[{behind:1}],'СТАРШИЙ СМЕНЫ':[{tablet:1}],'БРИГАДИР':[{tablet:1},{talk:1}],'КЛАДОВЩИК':[{tablet:1}],
+    'КОНТРОЛЁР':[{tablet:1}],'ОПЕРАТОР':[{tablet:1}],'ВОДИТЕЛЬ ПОГРУЗЧИКА':[{phone:1},{akimbo:1}],'ВОДИТЕЛЬ':[{phone:1},{cross:1}],
+    'ГРУЗЧИК-УПАКОВЩИК':[{akimbo:1},{cross:1}],'ГРУЗЧИК':[{cross:1},{talk:1},{akimbo:1}]}, FREE=[{behind:1},{},{akimbo:1}];
+  H.base=Object.assign({},pose?(IDLE[role]||IDLE['ГРУЗЧИК'])[n%(IDLE[role]||IDLE['ГРУЗЧИК']).length]:role==='ОХРАННИК'?{behind:1}:FREE[n%FREE.length]);
   HUM.pose(H,Object.assign({t:LOOK.R()*2},H.base));
   PEOPLE.push(H);
   if(role) label(role,x,2.35,z,'#f2b705',38,0.85,G.roles);

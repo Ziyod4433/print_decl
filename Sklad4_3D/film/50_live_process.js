@@ -19,6 +19,35 @@ const DEP={7:[14,15],8:[15,16],9:[17,18],10:[18,19],0:[7],1:[8],2:[9],3:[10],5:[
 let rng=1; const R=()=>{ rng=(rng*1664525+1013904223)>>>0; return rng/4294967296; };
 const hyp2=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 
+/* ---------- фазы процесса: сначала машина из Китая выгружается целиком, потом бригада переходит на погрузку автопоезда ----------
+   Пока идёт выгрузка, грузчики K1…K4 ждут у комнаты смены (перед зданием охраны — туда погрузчик не заезжает: проверено
+   картой его проездов за цикл); когда последняя стойка стоит в ячейке и приёмка готова к следующей машине — идут к посту П2
+   перед будущей кабиной автопоезда и вдоль поста, и только тогда заезжает автопоезд. Автопоезд уехал, а машины из Китая
+   ещё будут — бригада возвращается к комнате смены. */
+const REC_SPOT={K1:[17.2,7.75],K2:[17.95,8.4],K3:[18.9,7.8],K4:[19.55,8.45]}, REC_YAW=0;
+/* чем заняты, пока ждут: у приёмки K1 и K2 разговаривают лицом друг к другу, K3 — руки на поясе, K4 — с телефоном;
+   у поста — руки за спиной, сцеплены, разговор, на поясе */
+const IDLE_AT={rec:{K1:[{cross:1},0.86],K2:[{talk:1},-2.28],K3:[{akimbo:1},0.4],K4:[{phone:1},-0.3]},
+               post:{K1:[{behind:1},PI],K2:[{cross:1},PI],K3:[{talk:1},PI-0.5],K4:[{akimbo:1},PI]}};
+const WALKWAY=[[21.9,9.25],[22.0,12.65],[24.7,12.65],[25.4,13.2]];   // от комнаты смены: перед кабиной автопоезда (x 21,8), мимо рохлей у поста
+/* по посту — напрямую вдоль z 13,2; к комнате смены и от неё — по линии z 9,25 севернее мест ожидания (до стоящих ≥0,8 м) */
+function crewPath(a,b){ const atPost=p=>p[0]>23&&p[1]>12, RZ=9.25; if(atPost(a)&&atPost(b)) return [];
+  const pts=WALKWAY.slice(); return atPost(b)?[[a[0],RZ],...pts]:[...pts.reverse(),[b[0],RZ]]; }
+/* порядок выхода: на пост первым идёт тот, чьё место дальше по линии z 13,2, обратно — ближний к проходу;
+   так никто не проходит сквозь уже стоящего товарища; интервал 1 с — около 1,3 м между идущими */
+function crewMove(kind){ const T=S.T; let last=T;
+  const ws=CREW.flat().sort((u,v)=>kind==='post'?S.hum[v].spot[0]-S.hum[u].spot[0]:S.hum[u].x-S.hum[v].x), t00=Math.max(T,...ws.map(w=>S.hum[w].free));
+  ws.forEach((w,i)=>{ const h=S.hum[w], to=kind==='post'?h.spot:h.rec, [ip,iy]=IDLE_AT[kind][w];
+    const t0=t00+0.4+i*1.0; h.state='wait';
+    const tr=new Track().key(t0,h.x,h.z,h.yaw,h.idle||{}).key(t0+0.6,h.x,h.z,h.yaw,{}); h.tr=tr;      // сначала опустил руки, потом пошёл
+    const ta=route(tr,t0+0.6,[[h.x,h.z],...crewPath([h.x,h.z],to),[to[0],to[1],iy]],1.3,{});
+    finTrack(h,to[0],to[1],iy,ta); tr.key(ta+0.7,to[0],to[1],iy,ip); tr.fin(); h.idle=ip; last=Math.max(last,ta); });
+  S.crewAt=kind; S.crewT=last; return last; }
+/* внимание: стоящие рядом люди поворачивают голову к едущему погрузчику (ближе 7 м) */
+const _att=V(0,0,0);
+function attnFn(H){ if(!SIM.on||!F.fk) return null; const k=S.kinFk; if(!k||Math.abs(k.v)<0.3) return null;
+  const p=F.fk.position, r=H.root.position; if(Math.hypot(p.x-r.x,p.z-r.z)>7) return null; return _att.set(p.x,1.25,p.z); }
+
 /* ---------- пружина с демпфером, считается по ходу ---------- */
 function Spring(f,z,lim){ this.w=2*PI*f; this.z=z; this.x=0; this.v=0; this.lim=lim; }
 Spring.prototype.step=function(u,dt){ const n=Math.max(1,Math.ceil(dt/(1/240))), h=dt/n; u=Math.max(-this.lim,Math.min(this.lim,u));
@@ -87,6 +116,7 @@ function setRest(r,x,y,z,yaw){ r.restP=V(x,y,z); r.restQ=new THREE.Quaternion().
 /* ---------- сборка ---------- */
 function setup(){
   rng=20261009;
+  scene.updateMatrixWorld(true);   // машины только что вернулись на места (teardown): без этого проёмы кузовов считались по матрице «во дворе» — со 2-го цикла погрузчик ехал к x≈64 сквозь стену П2
   S.grp=new THREE.Group(); scene.add(S.grp); S.racks=[]; S.boxes=[]; S.belt=[]; S.jobs=[]; S.ev=[];
   S.T=0; S.cycle=(S.cycle||0)+1; S.log=[];
   /* ячейки: свои стойки вместо штатных штабелей */
@@ -127,7 +157,9 @@ function setup(){
   S.bw=F.bod.map(b=>{ b.updateMatrixWorld(true); const p=b.localToWorld(V(RB.x,0,RB.z)); return [p.x,p.z]; });
   S.kPos={K1:[1.9,-0.4],K2:[-1.9,-0.3],K3:[1.9,-0.4],K4:[-1.9,-0.3]}; S.kIdle={K1:-PI/2,K2:PI/2,K3:-PI/2,K4:PI/2};
   CREW.forEach((cw,r)=>{ const bx=S.bw[r][0]; const spot={[cw[0]]:[bx+1.5,13.2],[cw[1]]:[bx+4.75,13.2]};
-    cw.forEach(w=>{ mkH(w,F.KH[w],spot[w][0],spot[w][1],PI); S.hum[w].spot=spot[w]; S.hum[w].body=r; S.hum[w].state='wait'; }); });
+    cw.forEach(w=>{ const rp=REC_SPOT[w], [ip,iy]=IDLE_AT.rec[w]; mkH(w,F.KH[w],rp[0],rp[1],iy); const h=S.hum[w]; h.tr=new Track().key(0,rp[0],rp[1],iy,ip).fin(); h.idle=ip;
+      h.spot=spot[w]; h.rec=rp; h.body=r; h.state='wait'; }); });
+  S.phase='unload'; S.cnDone=false; S.kzGone=false; S.crewAt='rec'; S.crewT=0;
   { const C=F.bod[0].userData.curt, n=C.strips.length; S.cEdge=[C.x0+0.05+(n-1)*C.pitch,C.x0+C.w*(n-0.5)]; }
   S.kzE=[[],[]]; S.kzB0=[[0,0],[0,0]]; S.ringA=[];
   S.done=false; S.endT=null; S.inLeft=S.cfg().inTrucks; S.outN=0; S.loaded=0; S.placed=0; loadReset();
@@ -290,7 +322,8 @@ function planFk(){ const P=S.fk; if(S.fkTask) return;
       const r=oldestRack(); if(!r){ S.kzDone[body]=true; continue; }
       fkLeavePocket(r.at.cell.x); S.fkTask=taskCellToBody(r,body); S.fkTask.t1=P.tc; return; } }
   /* 3. приёмка пуста — привезти пустую стойку (если есть что выгружать) */
-  if(!S.rk&&!S.rkNext&&(S.cn.state!=='away'||S.inLeft>0)&&emptySource()){ fkLeavePocket(14); const t=taskEoToRk(); if(t){ S.fkTask=t; S.fkTask.t1=P.tc; return; } }
+  /* пустую стойку на приёмку — когда бригада уже дошла до комнаты смены */
+  if(S.phase==='unload'&&S.T>=(S.crewT||0)&&!S.rk&&!S.rkNext&&(S.cn.state!=='away'||S.inLeft>0)&&emptySource()){ fkLeavePocket(14); const t=taskEoToRk(); if(t){ S.fkTask=t; S.fkTask.t1=P.tc; return; } }
 }
 function tickFk(){ const P=S.fk; if(S.fkTask){ if(S.fkTask.hold){ if(S.T>=S.fkTask.t1&&!S.unload) startUnload(); if(S.unload&&S.unload.done){ S.unload=null; S.fkTask=taskBodyToEo(); S.fkTask.t1=P.tc; } }
     else if(S.T>=S.fkTask.t1+0.3){ S.fkTask=null; if(S.rkNext){ S.rk=S.rkNext; S.rkNext=null; } } }
@@ -406,29 +439,37 @@ function planLabel(){ const h=S.hum.CT, r=S.rk, T=S.T, tr=newTrack(h,T); r.label
 /* ---------- машины ---------- */
 function tickTrucks(){ const T=S.T, cn=S.cn, kz=S.kz;
   /* из Китая: приезд, выгрузка, отъезд */
-  if(cn.state==='away'&&S.inLeft>0&&!S.cnNext){ S.cnNext=T+(cn.n?25:3); }
+  /* фазы: выгрузка → погрузка → выгрузка … */
+  const cellsCargo=S.cells.some(c=>c.tiers.some(r=>r.n>0));
+  if(S.phase==='unload'&&S.cnDone&&cn.state==='away'&&!S.belt.length&&!(S.rk&&S.rk.n>0)&&!S.rkReady&&!S.fkTask&&!S.wt.job&&cellsCargo){
+    S.phase='load'; S.cnDone=false; S.kzGone=false; const ta=crewMove('post'); S.kzNext=Math.max(T+3,ta+1);
+    S.log.push('выгрузка закончена — бригада переходит на погрузку автопоезда'); }
+  if(S.phase==='load'&&S.kzGone&&kz.state==='away'){ S.kzGone=false;
+    if(S.inLeft>0){ S.phase='unload'; const ta=crewMove('rec'); S.cnNext=Math.max(T+3,ta-3); S.log.push('автопоезд ушёл — бригада возвращается на приёмку'); }
+    else if(cellsCargo) crewMove('post'); }
+  if(S.phase==='unload'&&cn.state==='away'&&S.inLeft>0&&!S.cnNext&&!S.cnDone){ S.cnNext=T+(cn.n?25:3); }   // в фазе выгрузки — одна машина; следующая только после погрузки
   if(cn.state==='away'&&S.cnNext&&T>=S.cnNext){ const c0=F.cn0; cn.path=mkPath([{t0:T,t1:T+9,pts:[[c0.x,c0.z-58],[c0.x,c0.z-20],[c0.x,c0.z]],ease:'brake',u0:0.5}]);
     cn.state='arrive'; cn.n++; S.inLeft--; S.cnNext=null; F.cnT.visible=true; cn.cargo=cnCargoBuild(); cn.t0=T; cn.tag=null; S.log.push('машина из Китая №'+cn.n+' — к Л2'); }
   if(cn.state==='arrive'){ doorSet(DOOR.L2,kv(T,[[cn.t0+5.5,0],[cn.t0+8.0,0.97]])); if(T>=cn.t0+9.3){ cn.state='in'; F.WTr.visible=true; S.wt.free=T+1.2; } }
   if(cn.state==='in'&&!cn.cargo.length&&!S.wt.job){ cn.state='leave'; cn.t1=T+2.0; const c0=F.cn0; cn.path=mkPath([{t0:cn.t1,t1:cn.t1+10,pts:[[c0.x,c0.z],[c0.x,c0.z+16],[c0.x,c0.z+60]],ease:'go',u0:0.45}]);
     S.ev.push({T:cn.t1-0.2,f:()=>{ F.WTr.visible=false; }}); S.log.push('машина из Китая №'+cn.n+' выгружена, уезжает'); }
-  if(cn.state==='leave'){ doorSet(DOOR.L2,kv(T,[[cn.t1+1.5,0.97],[cn.t1+4.0,0]])); if(T>=cn.t1+10.5){ cn.state='away'; F.cnT.visible=false; F.cnT.position.z=F.cn0.z-70; } }
+  if(cn.state==='leave'){ doorSet(DOOR.L2,kv(T,[[cn.t1+1.5,0.97],[cn.t1+4.0,0]])); if(T>=cn.t1+10.5){ cn.state='away'; S.cnDone=true; F.cnT.visible=false; F.cnT.position.z=F.cn0.z-70; } }
   /* автопоезд: пока есть что грузить */
   const haveCargo=S.cells.some(c=>c.tiers.some(r=>r.n>0))||S.rk&&S.rk.n>0||cn.state!=='away'||S.inLeft>0;
-  if(kz.state==='away'&&!S.kzNext&&haveCargo) S.kzNext=T+(kz.n?30:40);
-  if(kz.state==='away'&&S.kzNext&&T>=S.kzNext&&S.cells.some(c=>c.tiers.some(r=>r.n>0))){ const k0=F.kz0; kz.t0=T; kz.path=mkPath([{t0:T+3.2,t1:T+14.2,pts:[[k0.x+34,k0.z],[k0.x+14,k0.z],[k0.x,k0.z]],ease:'brake',u0:0.5}]);
+  if(S.phase==='load'&&kz.state==='away'&&!S.kzNext&&haveCargo) S.kzNext=Math.max(T+(kz.n?30:40),(S.crewT||0)+1);
+  if(S.phase==='load'&&kz.state==='away'&&S.kzNext&&T>=S.kzNext&&S.cells.some(c=>c.tiers.some(r=>r.n>0))){ const k0=F.kz0; kz.t0=T; kz.path=mkPath([{t0:T+3.2,t1:T+14.2,pts:[[k0.x+34,k0.z],[k0.x+14,k0.z],[k0.x,k0.z]],ease:'brake',u0:0.5}]);
     kz.state='arrive'; kz.n++; S.kzNext=null; F.kzT.visible=true; kz.lanes=[0,1].map(()=>({S:{0:0,1:0,2:0,3:0},N:{0:0,1:0,2:0,3:0}})); S.kzDone=[false,false]; S.kzE=[[],[]]; S.kzB0=[[0,0],[0,0]]; loadReset();
     { const gone=[]; F.bod.forEach(b=>b.traverse(o=>{ if(o.userData.simBox&&o.userData.simBox.mode==='body') gone.push(o); })); gone.forEach(o=>{ S.grp.attach(o); o.visible=false; o.userData.simBox.mode='gone'; }); }   // груз прошлого рейса уехал
     S.log.push('автопоезд №'+kz.n+' — через П2 на пост'); }
   if(kz.state==='arrive'){ doorSet(DOOR.P2,kv(T,[[kz.t0,0],[kz.t0+2.6,1],[kz.t0+15.4,1],[kz.t0+18.2,0]]));
     if(T>=kz.t0+14.4){ kz.state='in'; kz.tIn=T; CHOCKS.visible=false; S.ev.push({T:T+1.4,f:()=>{ CHOCKS.visible=true; }});
-      CREW.forEach((cw,r)=>{ const t=T+1.8+r*0.3; planCrewIn(cw,r,t); }); } }
+      CREW.forEach((cw,r)=>{ const t=Math.max(T+1.8,Math.max(...cw.map(w=>S.hum[w].free))+0.3)+r*0.3; planCrewIn(cw,r,t); }); } }   // бригада сначала дошла до поста
   if(kz.state==='in'){ const allDone=S.kzDone&&S.kzDone[0]&&S.kzDone[1]&&!S.fkTask&&!S.hold;
     if(allDone&&!kz.finishing){ kz.finishing=true; planCrewOut(); } }
-  if(kz.state==='leave'){ doorSet(DOOR.P2,kv(T,[[kz.t1-3.4,0],[kz.t1-0.8,1],[kz.t1+12,1],[kz.t1+14.5,0]])); if(T>=kz.t1+12.5){ kz.state='away'; kz.finishing=false; F.kzT.visible=false; F.kzT.position.x=F.kz0.x+40; } }
+  if(kz.state==='leave'){ doorSet(DOOR.P2,kv(T,[[kz.t1-3.4,0],[kz.t1-0.8,1],[kz.t1+12,1],[kz.t1+14.5,0]])); if(T>=kz.t1+12.5){ kz.state='away'; kz.finishing=false; S.kzGone=true; F.kzT.visible=false; F.kzT.position.x=F.kz0.x+40; } }
 }
 function inBody(r,x,z){ const p=F.bod[r].localToWorld(V(x,0,z)); return [p.x,p.z]; }
-function planCrewIn(cw,r,t){ const [wn,ws]=cw, byaw=F.kz0.r, yAlong=d=>byaw+(d>0?PI/2:-PI/2), [XO,XC]=S.cEdge, xin={[wn]:0.45,[ws]:-0.45};
+function planCrewIn(cw,r,t){ cw.forEach(w=>{ S.hum[w].idle={}; }); const [wn,ws]=cw, byaw=F.kz0.r, yAlong=d=>byaw+(d>0?PI/2:-PI/2), [XO,XC]=S.cEdge, xin={[wn]:0.45,[ws]:-0.45};
   const cop0=t+0.4, cop1=cop0+3.6, tci={[wn]:cop1+0.7,[ws]:cop1+3.4};
   S.kzCurt=S.kzCurt||[]; S.kzCurt[r]={t0:cop0,t1:cop1,open:true};
   for(const w of cw){ const h=S.hum[w], tr=newTrack(h,S.T); let tt=t;
@@ -462,7 +503,7 @@ function planCrewOut(){ const kz=S.kz, T=S.T, byaw=F.kz0.r, yAlong=d=>byaw+(d>0?
   S.ev.push({T:curt0-1.0,f:()=>{ CHOCKS.visible=false; }});
   const k0=F.kz0; kz.path=mkPath([{t0:kz.t1,t1:kz.t1+12,pts:[[k0.x,k0.z],[k0.x+12,k0.z],[k0.x+36,k0.z]],ease:'go',u0:0.45,rev:true}]);
   S.ev.push({T:kz.t1-0.5,f:()=>{ kz.state='leave'; S.outN++; S.log.push('автопоезд №'+kz.n+' загружен: '+S.loaded+' коробов всего · выезд через П2');
-    CREW.flat().forEach(w=>{ const h=S.hum[w]; S.ev.push({T:kz.t1+13,f:()=>{ h.state='wait'; const tr=newTrack(h,S.T); const ta=route(tr,S.T+0.5,[[h.x,h.z],[h.spot[0],h.spot[1],PI]],1.3,{}); finTrack(h,h.spot[0],h.spot[1],PI,ta); }}); }); }});
+    CREW.flat().forEach(w=>{ S.hum[w].state='wait'; }); }});
 }
 
 /* ---------- шаг времени ---------- */
@@ -551,12 +592,12 @@ const tt=v=>(v/1000).toFixed(2).replace('.',',');
 function status(){ const racks=S.cells.reduce((a,c)=>a+c.tiers.filter(r=>r.n>0).length,0), boxes=S.cells.reduce((a,c)=>a+c.tiers.reduce((s,r)=>s+r.n,0),0);
   const t=S.T, mm=Math.floor(t/60), ss=Math.floor(t%60);
   const now=S.fkTask?S.fkTask.name:'погрузчик ждёт';
-  return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded}${(()=>{ const A=axleInfo(); return A&&(A.m1+A.m2)>0?` · в кузовах ${tt(A.m1)} + ${tt(A.m2)} т (оси грузовика +${tt(A.front)} / +${tt(A.rear)} т)`:''; })()} · ${now}`; }
-SIM.enter=function(){ if(SIM.on) return; if(F.on) exit(); prepScene(true);
+  return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')} · ${S.phase==='unload'?'ВЫГРУЗКА машины из Китая':'ПОГРУЗКА автопоезда'} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded}${(()=>{ const A=axleInfo(); return A&&(A.m1+A.m2)>0?` · в кузовах ${tt(A.m1)} + ${tt(A.m2)} т (оси грузовика +${tt(A.front)} / +${tt(A.rear)} т)`:''; })()} · ${now}`; }
+SIM.enter=function(){ if(SIM.on) return; if(F.on) exit(); prepScene(true); HUM.attn=attnFn;
   const keep=new Set([F.fk,F.CT.root,F.W3.root,F.W5.root,F.W4.root,F.tl2,F.dws].concat(Object.values(F.KH).map(H=>H.root)));
   S.filmVis=F.grp.children.map(o=>[o,o.visible]); F.grp.children.forEach(o=>{ o.visible=keep.has(o); });
   setup(); SIM.on=true; SIM.T=0; applyVis(0); if(SIM.onChange) SIM.onChange(); };
-SIM.exit=function(){ if(!SIM.on) return; SIM.on=false; teardown(); (S.filmVis||[]).forEach(([o,v])=>o.visible=v); unprepScene(); if(SIM.onChange) SIM.onChange(); };
+SIM.exit=function(){ if(!SIM.on) return; SIM.on=false; HUM.attn=null; teardown(); (S.filmVis||[]).forEach(([o,v])=>o.visible=v); unprepScene(); if(SIM.onChange) SIM.onChange(); };
 SIM.state=()=>S; SIM.log=()=>S.log;
 SIM.owns=H=>SIM.on&&(H===F.PW||H===F.WP||H===F.SUP);
 /* ---------- кнопки: запуск, скорость, строка состояния ---------- */

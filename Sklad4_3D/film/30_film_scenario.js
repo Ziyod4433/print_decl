@@ -5,6 +5,11 @@ function inHands(H,box,ys){ const rb=H.rb; H.root.updateMatrixWorld(true);
   if(rb&&rb.LeftHand&&rb.RightHand){ rb.LeftHand.getWorldPosition(_a); rb.RightHand.getWorldPosition(_b); _a.add(_b).multiplyScalar(0.5); }
   else H.root.localToWorld(_a.set(0,0.98,0.42));
   const c=box.userData.carton, hh=c?c.hh:0.4;
+  /* сбит с ног (удар в обходе): короб выпадает из рук, падает на пол с ударом ребром и покачиванием, лежит, пока человек не встал */
+  const K=H.knock; if(K&&K.e!==undefined){ if(!K.bx) K.bx={x:_a.x,y:_a.y,z:_a.z,t:K.u,th:(0.2+0.3*Math.abs(Math.sin(H.seed)))*(H.seed>5?-1:1),yaw:(H.seed%1)*0.8,hh};
+    const B=K.bx, dt=Math.max(0,K.u-B.t), fy=K.fy+hh*0.5+0.004, drop=Math.max(0,B.y-fy);
+    const st=settle(dt,{h:drop,th:B.th,half:(c?Math.max(c.l,c.w):0.4)*0.5});
+    box.position.set(B.x+K.wx*0.25*Math.min(1,dt*3),fy+st.dy,B.z+K.wz*0.25*Math.min(1,dt*3)); box.rotation.set(0,B.yaw,0); box.rotateOnAxis(Xv,st.th); return; }
   _eu.setFromQuaternion(H.root.getWorldQuaternion(_q),'YXZ');
   const yn=_eu.y+(c&&c.l>0.62?Math.PI/2:0);                // естественный хват; если известно, куда ставить, — короб уже в руках развёрнут
   let yy=(ys===undefined||ys===null)?yn:ys+Math.PI*Math.round((yn-ys)/Math.PI);     //   как в слоте (с точностью до 180°), без поворота в последний миг

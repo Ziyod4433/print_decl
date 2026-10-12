@@ -194,6 +194,7 @@ const WALKP=(()=>{
     const lat=0.012*S.bobA*Math.sin(S.bob)*Math.min(1,sp/1.9);
     camera.position.set(wPos.x+rx*lat,wPos.y,wPos.z+rz*lat);
     let pitch=wPitch, roll=0.006*S.bobA*Math.sin(S.bob)*Math.min(1,sp/1.9);
+    if(punchT>=0&&punchT<0.28){ const k=Math.sin(Math.PI*punchT/0.28); pitch-=0.035*k; roll+=0.02*k; }   // отдача от удара
     if(S.down){ /* падение: голова уходит вниз и вбок (на ту сторону, куда толкнуло), удар о пол с отскоком, лежит, встаёт через колено */
       const D=S.down, t=D.t, side=D.side, LY=0.23; let ey, rl, pa;
       if(t<FALL){ const u=t/FALL, e=u*u; ey=D.eye0+(LY-D.eye0)*e; rl=1.32*e; pa=0.42*e; }

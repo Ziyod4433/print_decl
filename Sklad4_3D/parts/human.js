@@ -170,8 +170,19 @@ const HUM=(()=>{
   const KF=0.5, KL=1.7, KR=1.3, KB=0.45;                       // падает, лежит, встаёт, возвращается на маршрут (с)
   function knock(H,dx,dz){ if(H.knock) return false; const r=H.root; _kv.set(dx,0,dz);
     if(r.parent){ r.parent.getWorldQuaternion(_kq); _kv.applyQuaternion(_kq.invert()); }                 // направление толчка — в системе родителя (человек может стоять в кузове)
-    H.knock={t0:API.now(),dx:_kv.x,dz:_kv.z,p:[r.position.x,r.position.z,r.rotation.y],y0:r.position.y}; return true; }
-  function knockPose(H,p){ const K=H.knock, u=API.now()-K.t0; if(u>=KF+KL+KR+KB){ H.knock=null; H.root.rotation.x=0; H.root.position.y=K.y0; return p; }
+    r.getWorldPosition(_hw); const K={t0:API.now(),dx:_kv.x,dz:_kv.z,p:[r.position.x,r.position.z,r.rotation.y],y0:r.position.y,fy:_hw.y,wx:dx,wz:dz,last:API.now()};
+    /* каска слетает: отцепляется от головы и летит по баллистике, подпрыгивает на полу; когда человек встал — снова на голове */
+    const hat=H.hat; if(hat&&hat.parent&&typeof scene!=='undefined'){ if(!H.hat0) H.hat0={p:hat.position.clone(),r:hat.rotation.clone(),par:hat.parent};
+      hat.updateWorldMatrix(true,false); scene.attach(hat); K.hat={v:new THREE.Vector3(dx*1.7+0.3*(Math.sin(H.seed)),2.2,dz*1.7),w:new THREE.Vector3(3+2*Math.cos(H.seed),1.5,4),bounces:0}; }
+    H.knock=K; return true; }
+  const _hw=new THREE.Vector3();
+  function hatStep(H,K,dt){ const h=K.hat, hat=H.hat; if(!h||!hat||dt<=0) return; const v=h.v, p=hat.position, fy=K.fy+0.075;
+    v.y-=9.81*dt; p.addScaledVector(v,dt); hat.rotation.x+=h.w.x*dt; hat.rotation.y+=h.w.y*dt; hat.rotation.z+=h.w.z*dt;
+    if(p.y<fy){ p.y=fy; if(Math.abs(v.y)>0.6&&h.bounces<4){ v.y=-v.y*0.38; v.x*=0.7; v.z*=0.7; h.w.multiplyScalar(0.6); h.bounces++; }
+      else { v.set(0,0,0); h.w.set(0,0,0); const k=Math.min(1,dt*6); hat.rotation.x+=(Math.round(hat.rotation.x/Math.PI)*Math.PI-hat.rotation.x)*k; hat.rotation.z+=(Math.round(hat.rotation.z/Math.PI)*Math.PI-hat.rotation.z)*k; } } }   // лёг на пол: выравнивается донышком или верхом
+  function hatBack(H){ const h0=H.hat0; if(!H.hat||!h0) return; h0.par.add(H.hat); H.hat.position.copy(h0.p); H.hat.rotation.copy(h0.r); }
+  function knockPose(H,p){ const K=H.knock, now=API.now(), u=now-K.t0; if(u>=KF+KL+KR+KB){ H.knock=null; H.root.rotation.x=0; H.root.position.y=K.y0; hatBack(H); return p; }
+    hatStep(H,K,Math.min(0.1,now-K.last)); K.last=now;
     const e=u<KF?ezk(u/KF):u<KF+KL?1:1-ezk((u-KF-KL)/KR); K.e=e; K.u=u;
     return Object.assign({},p,{walk:(p.walk||0)*(1-e),run:0,bend:Math.max(p.bend||0,0.3*e),squat:Math.max(p.squat||0,0.5*e),reach:(p.reach||0)*(1-e),scan:0,lookAt:null,talk:0,phone:0,tablet:0}); }
   function knockRoot(H){ const K=H.knock; if(!K||K.e===undefined) return; const r=H.root, u=K.u, e=K.e, bl=u<KF+KL+KR?0:ezk((u-KF-KL-KR)/KB);

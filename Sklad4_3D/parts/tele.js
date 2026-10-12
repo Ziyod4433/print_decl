@@ -107,7 +107,7 @@ function telescopicConveyor(x,z,rotY,lift,tilt,ext,dir){
   }
   const tele={boom,secG,dir,get ext(){ return ext; },
     setExt(e){ ext=Math.max(0,Math.min(1,e)); const midX1=4.5*ext, tipX1=0.1+9.0*ext;
-      secG[1].position.x=midX1-PX; secG[2].position.x=tipX1-PX;
+      secG[0].position.x=-PX; secG[1].position.x=midX1-PX; secG[2].position.x=tipX1-PX;   // передние края секций в координатах стрелы (база: нос в x=0 конвейера)
       const cx1=bp(tipX1-0.35,0)[0]; cargo.forEach(c=>{ if(dir>0) c.x1=cx1; else c.x0=cx1; });
       g.userData.teleExt=ext; }};
   tele.setExt(ext);

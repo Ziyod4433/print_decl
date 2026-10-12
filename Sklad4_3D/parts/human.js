@@ -120,6 +120,7 @@ const HUM=(()=>{
   }
   /* ---- поза: p = {t, walk, run, phase, carry, push, scan, bend, reach, sit, drive, look} ---- */
   function pose(H,p){
+    if(H.knock) p=knockPose(H,p);                             // сбит с ног (удар в обходе): поза падения поверх сценария
     const t=p.t||0, walk=p.walk||0, run=p.run||0;
     let hz=neutral(H,t);
     if(walk>0){ const hw=sampleInto(H,'Walk',p.phase!==undefined?warpPhase(CYC.walk,p.phase)*clips.Walk.d:t,walk); hz=hz+(hw-hz)*walk; }
@@ -159,13 +160,29 @@ const HUM=(()=>{
     H.scanner.visible=!!p.scanner;
     H.st=p;
     if(H.post) H.post(H,p);                                   // донастройка позы (ИК: руки на руле, ноги на педалях)
+    if(H.knock) knockRoot(H);
     if(H.rb) rpmSync(H);
   }
+  /* ---- удар или толчок (режим обхода): человек отшатывается, падает на спину, лежит и поднимается; на это время сценарий
+     его не ведёт (стоит там, где упал), потом за полсекунды возвращается на свой маршрут. Время — реальное, не процесса. ---- */
+  const _kq=new THREE.Quaternion(), _kv=new THREE.Vector3(), c01k=v=>Math.max(0,Math.min(1,v)), ezk=u=>{ u=c01k(u); return u*u*u*(u*(u*6-15)+10); };
+  const wrapK=a=>Math.atan2(Math.sin(a),Math.cos(a));
+  const KF=0.5, KL=1.7, KR=1.3, KB=0.45;                       // падает, лежит, встаёт, возвращается на маршрут (с)
+  function knock(H,dx,dz){ if(H.knock) return false; const r=H.root; _kv.set(dx,0,dz);
+    if(r.parent){ r.parent.getWorldQuaternion(_kq); _kv.applyQuaternion(_kq.invert()); }                 // направление толчка — в системе родителя (человек может стоять в кузове)
+    H.knock={t0:API.now(),dx:_kv.x,dz:_kv.z,p:[r.position.x,r.position.z,r.rotation.y],y0:r.position.y}; return true; }
+  function knockPose(H,p){ const K=H.knock, u=API.now()-K.t0; if(u>=KF+KL+KR+KB){ H.knock=null; H.root.rotation.x=0; H.root.position.y=K.y0; return p; }
+    const e=u<KF?ezk(u/KF):u<KF+KL?1:1-ezk((u-KF-KL)/KR); K.e=e; K.u=u;
+    return Object.assign({},p,{walk:(p.walk||0)*(1-e),run:0,bend:Math.max(p.bend||0,0.3*e),squat:Math.max(p.squat||0,0.5*e),reach:(p.reach||0)*(1-e),scan:0,lookAt:null,talk:0,phone:0,tablet:0}); }
+  function knockRoot(H){ const K=H.knock; if(!K||K.e===undefined) return; const r=H.root, u=K.u, e=K.e, bl=u<KF+KL+KR?0:ezk((u-KF-KL-KR)/KB);
+    const push=0.6*ezk(c01k(u/0.45)), x=K.p[0]+K.dx*push, z=K.p[1]+K.dz*push;
+    r.position.x+=(x-r.position.x)*(1-bl); r.position.z+=(z-r.position.z)*(1-bl); r.rotation.y+=wrapK(K.p[2]-r.rotation.y)*(1-bl);
+    r.rotation.x=-1.42*e; r.position.y=K.y0+0.10*e; }
   /* ---- жесты и занятия в покое (ИК рук по точкам относительно тела): руки на поясе, скрещены, за спиной, разговор с жестами,
      планшет в руках, телефон у уха; голова поворачивается к цели (едущий погрузчик рядом). Вес 0…1 — плавный переход. ---- */
   const _g={o:new THREE.Vector3(),f:new THREE.Vector3(),l:new THREE.Vector3(),u:new THREE.Vector3(0,1,0),hp:new THREE.Vector3(),sp:new THREE.Vector3(),
     hd:new THREE.Vector3(),cur:new THREE.Vector3(),T:new THREE.Vector3(),P:new THREE.Vector3(),q:new THREE.Quaternion(),tmp:new THREE.Vector3()};
-  const API={attn:null,lookSign:1};                            // HUM ещё не определён, пока строится модуль: свои ссылки
+  const API={attn:null,lookSign:1,now:()=>performance.now()/1000};   // HUM ещё не определён, пока строится модуль: свои ссылки; now — часы для ударов (в проверках подменяются)
   const PROP={tab:std(0x1b1e22,.4,.3), scr:std(0x9fd2ff,.2,0,{emissive:0x3d7fc0,emissiveIntensity:1.2}), ph:std(0x16181b,.3,.4)};
   function propOf(H,k){ H.props=H.props||{}; if(H.props[k]) return H.props[k]; const g=new THREE.Group();
     if(k==='tab'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.26,0.012,0.18),PROP.tab)); const sc=new THREE.Mesh(new THREE.BoxGeometry(0.235,0.002,0.155),PROP.scr); sc.position.y=0.007; g.add(sc); }
@@ -174,8 +191,8 @@ const HUM=(()=>{
   function armTo(H,L,k,tx,pole){ if(k<=0.001) return; const hand=H.B[L+'Hand']; hand.getWorldPosition(_g.cur);
     _g.T.copy(_g.cur).lerp(tx,Math.min(1,k)); ik2(H,L+'Arm',L+'ForeArm',L+'Hand',_g.T,pole); }
   function gestures(H,p,t){
-    const ak=p.akimbo||0, cr=p.cross||0, bh=p.behind||0, tk=p.talk||0, tb=p.tablet||0, ph=p.phone||0;
-    const anyArm=ak+cr+bh+tk+tb+ph>0.001;
+    const ak=p.akimbo||0, cr=p.cross||0, bh=p.behind||0, tk=p.talk||0, tb=p.tablet||0, ph=p.phone||0, pn=p.punch||0;
+    const anyArm=ak+cr+bh+tk+tb+ph+pn>0.001;
     let lookW=null;
     if(!anyArm&&!p.lookAt&&!API.attn){ if(H.props) for(const k in H.props) H.props[k].visible=false; return; }
     H.root.updateMatrixWorld(true); H.B.Hips.updateWorldMatrix(true,true);
@@ -194,6 +211,7 @@ const HUM=(()=>{
     if(tb>0){ for(const L of ['Left','Right']){ const s=sd[L]; armTo(H,L,tb,at(_g.sp,0.12*s,-0.12,0.29,_g.tmp).clone(),at(_g.sp,0.55*s,-0.5,0.0)); }
       rot(H,'Neck',X,-0.3*tb); rot(H,'Head',X,-0.16*tb); }                     // смотрит в планшет
     if(ph>0){ armTo(H,'Right',ph,at(_g.hd,-0.085,0.07,0.03,_g.tmp).clone(),at(_g.sp,-0.5,-0.4,-0.1)); rot(H,'Head',Zv,0.12*ph); }
+    if(pn>0){ armTo(H,'Right',pn,at(_g.sp,-0.12,0.06,0.66,_g.tmp).clone(),at(_g.sp,-0.55,-0.1,0.2)); rot(H,'Spine2',Y,-0.35*pn); rot(H,'Spine1',Y,-0.15*pn); }   // удар правой (обход от третьего лица)
     /* реквизит: планшет между ладонями, телефон в правой руке */
     const tab=tb>0.5?propOf(H,'tab'):(H.props&&H.props.tab), phn=ph>0.5?propOf(H,'ph'):(H.props&&H.props.ph);
     if(tab){ tab.visible=tb>0.5; if(tab.visible){ H.B.LeftHand.getWorldPosition(_g.T); H.B.RightHand.getWorldPosition(_g.cur); _g.T.add(_g.cur).multiplyScalar(0.5).addScaledVector(_g.f,0.04).addScaledVector(_g.u,0.03);
@@ -292,6 +310,6 @@ const HUM=(()=>{
   let GAIT=null; try{ GAIT=fixGait('Walk',0.55); }catch(e){ GAIT={err:e.message}; }
   const CYC={walk:{speed:1.35,len:1.4},run:{speed:3.2,len:2.2},gait:GAIT};
   try{ CYC.walk=cycleLen('Walk'); CYC.run=cycleLen('Run'); CYC.gait=GAIT; }catch(e){}
-  return Object.assign(API,{build,pose,rot,ik2,rotW,sync:H=>{ if(H.rb) rpmSync(H); },MT,CYC,ROLE,ALL,RP,onReady:f=>{ if(RP.ready) f(); else RP.cb.push(f); }});
+  return Object.assign(API,{build,pose,rot,ik2,rotW,knock,sync:H=>{ if(H.rb) rpmSync(H); },MT,CYC,ROLE,ALL,RP,onReady:f=>{ if(RP.ready) f(); else RP.cb.push(f); }});
 })();
 var HUM_MT;

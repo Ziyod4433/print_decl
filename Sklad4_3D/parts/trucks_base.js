@@ -16,7 +16,7 @@ const TRK={n:0};
   M.tyreS=new THREE.MeshStandardMaterial({color:0x9a9ea4,map:TRK.sideT,roughness:.85,metalness:0,envMapIntensity:.3});
   M.rimSilver=std(0xc4c9ce,.32,.75,{envMapIntensity:1.0}); M.rimGrey=std(0x8e959c,.45,.6); M.rimFork=std(0x34383d,.5,.35); M.rimWhite=std(0xe9ebec,.4,.25);
   M.hubDark=std(0x2d3136,.5,.6);
-  M.cabGlass=new THREE.MeshStandardMaterial({color:0x0e1419,roughness:.06,metalness:.1,envMapIntensity:1.6});
+  M.cabGlass=new THREE.MeshStandardMaterial({color:0x7d8f9b,roughness:.07,metalness:.05,envMapIntensity:.45,transparent:true,opacity:.3});   // лёгкая тонировка: виден салон и водитель   // тонированное, но прозрачное: виден салон и водитель
   M.blackPl=std(0x1c1e21,.62,.05); M.greyPl=std(0x3a3e44,.55,.1);
   M.ledW=std(0xffffff,.2,0,{emissive:0xf2f6ff,emissiveIntensity:2.2}); M.lensAmber=std(0xffa21a,.25,0,{emissive:0xff8a00,emissiveIntensity:.35});
   M.lensRed=std(0xc0271f,.25,0,{emissive:0xa01010,emissiveIntensity:.5}); M.reflRed=std(0xc81e1e,.3,.2,{emissive:0x600000,emissiveIntensity:.2});
@@ -35,6 +35,14 @@ const TRK={n:0};
   M.tarp=new THREE.MeshStandardMaterial({color:0xd4d8dc,roughness:.78,metalness:0,bumpMap:TRK.tarpBump,bumpScale:.004,envMapIntensity:.5});
   M.tarpBlue=new THREE.MeshStandardMaterial({color:0x27528f,roughness:.8,metalness:0,bumpMap:TRK.tarpBump,bumpScale:.004,envMapIntensity:.5});
 }
+/* надпись перевозчика на двери кабины и на тенте: canvas → плоскость с полигональным смещением (не мерцает на краске) */
+function decalMat(lines,bg,fg,w,h){
+  const c=cnv(w||512,h||128), g=c.getContext('2d'); if(bg){ g.fillStyle=bg; g.fillRect(0,0,c.width,c.height); }
+  g.fillStyle=fg||'#1b2a44'; g.textBaseline='middle';
+  lines.forEach((L,i)=>{ g.font=L.font||'700 54px "Barlow Condensed","Noto Sans SC",sans-serif'; g.textAlign=L.align||'left'; g.fillText(L.t,L.x!==undefined?L.x:16,L.y!==undefined?L.y:c.height/2); });
+  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; t.anisotropy=ANISO;
+  return new THREE.MeshStandardMaterial({map:t,transparent:!bg,roughness:.5,metalness:0,polygonOffset:true,polygonOffsetFactor:-2,envMapIntensity:.6}); }
+function trkDecal(par,mat,w,h,x,y,z,ry){ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat); m.position.set(x,y,z); m.rotation.y=ry||0; m.castShadow=false; m.receiveShadow=true; par.add(m); return m; }
 /* номерной знак: китайский жёлтый (крупнотоннажный) или казахстанский */
 function plateMat(text,kind){
   const c=cnv(440,140), g=c.getContext('2d');

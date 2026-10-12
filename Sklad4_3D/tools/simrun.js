@@ -1,11 +1,11 @@
-// длинный прогон живого процесса кусками: node simrun.js <html> <Tend> [MAXC]
+// длинный прогон живого процесса кусками: node simrun.js <html> <Tend> [MAXC]; SIMV=2 — вариант приёмки через П1
 const puppeteer=require('puppeteer-core'); const fs=require('fs');
 // MAXC — на каком цикле остановиться (по умолчанию 2: один полный цикл)
 const [FILE,TEND,MAXC]=process.argv.slice(2); const threeSrc=fs.readFileSync(require.resolve('three/build/three.min.js'));
 const setup=fs.readFileSync(require('path').join(__dirname,'simcoll.js'),'utf8');
 (async()=>{ const b=await puppeteer.launch({executablePath:require('./_chrome.js'),headless:true,protocolTimeout:3600000,
  args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--hide-scrollbars'],defaultViewport:{width:640,height:360}});
- const p=await b.newPage(); await p.evaluateOnNewDocument(()=>{ window.__NOBATCH=true; let q=12345; Math.random=()=>{ q=(q*1664525+1013904223)>>>0; return q/4294967296; }; });
+ const p=await b.newPage(); await p.evaluateOnNewDocument(v=>{ window.__NOBATCH=true; window.__SIMV=v; let q=12345; Math.random=()=>{ q=(q*1664525+1013904223)>>>0; return q/4294967296; }; },+(process.env.SIMV||0));
  await p.setRequestInterception(true);
  p.on('request',r=>{const u=r.url(); if(u.includes('three')&&u.endsWith('.js')) r.respond({status:200,contentType:'application/javascript',body:threeSrc}); else if(u.startsWith('file:')||u.startsWith('data:')||u.startsWith('blob:')) r.continue(); else r.abort();});
  p.on('pageerror',e=>console.log('PAGEERROR',e.message));

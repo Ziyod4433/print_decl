@@ -4,7 +4,9 @@
    · движущийся погрузчик, машины, стойки на вилах и люди расталкивают его, рядом с едущим погрузчиком — предупреждение;
    · гравитация: с платформы у Л2 (перепад 1 м) можно спрыгнуть, обратно — по лестнице; ступени до 0,36 м перешагивает;
    · разгон и торможение (инерция), прыжок (пробел), присед (C), покачивание головы в такт шагу, «просадка» при приземлении;
-   · наезд едущего погрузчика сбивает с ног: отбрасывает, человек падает на бок на пол, лежит ~2 с и поднимается (через колено).
+   · наезд едущего погрузчика сбивает с ног: отбрасывает, человек падает на бок на пол, лежит ~2 с и поднимается (через колено);
+   · вид от третьего лица (V): аватар — та же модель человека, идёт и бежит по мокапу, камера за правым плечом, не заходит в стены;
+   · удар (F или левая кнопка мыши): ближайший человек перед вами отшатывается, падает на спину, лежит и встаёт.
    Неподвижное окружение растеризуется один раз при входе в обход в сетку 10 см с полосами высоты по 25 см (что в клетке
    и на какой высоте); подвижное (погрузчики, машины, стойки, створки ворот, лента, люди) проверяется каждый кадр по
    ориентированным коробкам. */
@@ -12,7 +14,7 @@ const STAIRS=[];                                                // лестни�
 const WALKP=(()=>{
   const R=0.32, STEP=0.36, GRAV=9.81, BODY=1.85, BODYC=1.2, EYE=1.66, EYEC=1.02;
   const CS=0.1, X0=-32, Z0=-32, NX=1140, NZ=1180, Y0=-1.25, BH=0.25, NB=31;
-  const S={feet:0,vy:0,vx:0,vz:0,grounded:true,crouch:0,bob:0,bobA:0,dip:0,dipV:0,jumpHeld:false,warn:0,ms:0,cells:0,units:0,down:null,immune:0,hits:0};
+  const S={feet:0,vy:0,vx:0,vz:0,grounded:true,crouch:0,bob:0,bobA:0,dip:0,dipV:0,jumpHeld:false,warn:0,ms:0,cells:0,units:0,down:null,immune:0,hits:0,view:1,punches:0,punchHits:0};
   const FALL=0.42, LIE=1.9, RISE=1.3;                         // падение, лежит, встаёт (с)
   const c01=v=>Math.max(0,Math.min(1,v)), ez=u=>{u=c01(u); return u*u*u*(u*(u*6-15)+10);};   // свои: помощники фильма живут внутри его модуля
   let grid=null, units=[], unitT=0, lastFk=new Map(), hud=null;
@@ -76,8 +78,10 @@ const WALKP=(()=>{
   function collectUnits(){
     const list=[], seen=new Set(units.map(u=>u.o));
     const add=(o,kind)=>{ let u=units.find(v=>v.o===o); if(!u){ u={o,kind,bb:null}; } list.push(u); };
-    scene.traverse(o=>{ const d=o.userData; if(d.isHuman) add(o,'h'); else if(d.rig) add(o,'fk'); else if(d.truck) add(o,'tr'); else if(d.rack) add(o,'rk'); else if(d.teleExt) add(o,'tl'); });
+    /* сидящие (водители) и свой аватар — не препятствие */
+    scene.traverse(o=>{ const d=o.userData; if(d.isHuman){ if(!d.walkMe&&!(d.H&&d.H.st&&d.H.st.sit)) add(o,'h'); } else if(d.rig) add(o,'fk'); else if(d.truck) add(o,'tr'); else if(d.rack) add(o,'rk'); else if(d.teleExt) add(o,'tl'); });
     if(typeof DOORS!=='undefined') DOORS.forEach(d=>d.panels.forEach(p=>add(p,'dr')));
+    for(const u of list) if(u.kind==='tl'&&u.ext!==u.o.userData.teleExt){ u.bb=null; u.ext=u.o.userData.teleExt; }   // конвейер выдвинулся или сложился — габарит заново
     for(const u of list) if(!u.bb&&u.kind!=='h'){ u.bb=new THREE.Box3(); u.o.updateMatrixWorld(true); _inv.copy(u.o.matrixWorld).invert();
       u.o.traverse(m=>{ if(!m.isMesh||!m.geometry||m.userData.isAO) return; if(!m.geometry.boundingBox) m.geometry.computeBoundingBox(); const b=m.geometry.boundingBox.clone();
         b.applyMatrix4(new THREE.Matrix4().multiplyMatrices(_inv,m.matrixWorld)); if(b.max.y-b.min.y<0.03&&b.max.y<0.1) return; u.bb.union(b); });
@@ -146,6 +150,8 @@ const WALKP=(()=>{
     if(keys.KeyW||keys.ArrowUp){ mx+=fx; mz+=fz; }   if(keys.KeyS||keys.ArrowDown){ mx-=fx; mz-=fz; }
     if(keys.KeyD||keys.ArrowRight){ mx+=rx; mz+=rz; } if(keys.KeyA||keys.ArrowLeft){ mx-=rx; mz-=rz; }
     if(downNow){ mx=mz=0; }                                     // сбит с ног: ноги не слушаются, пока не встал
+    if(keys.KeyV&&!vHeld) setView(S.view===3?1:3); vHeld=!!keys.KeyV;
+    if(keys.KeyF&&!fHeld) punch(); fHeld=!!keys.KeyF;
     const run=(keys.ShiftLeft||keys.ShiftRight)&&S.crouch<0.5, Lm=Math.hypot(mx,mz);
     const crouchK=!!keys.KeyC&&!downNow;
     let n=Math.max(1,Math.ceil(dtAll/(1/90))), dt=dtAll/n, out={fk:false};
@@ -197,8 +203,51 @@ const WALKP=(()=>{
     wDir.set(-Math.sin(wYaw)*Math.cos(pitch), Math.sin(pitch), -Math.cos(wYaw)*Math.cos(pitch));
     camera.lookAt(camera.position.x+wDir.x, camera.position.y+wDir.y, camera.position.z+wDir.z);
     camera.rotateZ(roll);
-    hitFx(); warnFk(dtAll);
+    if(S.view===3) thirdPerson(dtAll,roll); else if(me) me.root.visible=false;
+    hitFx(); warnFk(dtAll); armFx(dtAll);
   }
+  /* ---------- вид от третьего лица: аватар и камера за правым плечом ---------- */
+  let me=null, ph=0, punchT=-1, punchCd=0, fHeld=false, vHeld=false, arm=null, msgEl=null, msgT=0;
+  const _d=new THREE.Vector3(), _pv=new THREE.Vector3(), _cp=new THREE.Vector3();
+  function avatar(){ if(me) return me; let q=20261012; const rnd=()=>{ q=(q*1664525+1013904223)>>>0; return q/4294967296; };
+    me=HUM.build({role:'КЛАДОВЩИК',rnd}); me.root.userData.walkMe=true; me.root.visible=false; scene.add(me.root); return me; }
+  function setView(v){ S.view=v===3?3:1; if(S.view===3) avatar(); if(me) me.root.visible=S.view===3&&walk; }
+  function thirdPerson(dt,roll){ const H=avatar(); H.root.visible=true;
+    const sp=Math.hypot(S.vx,S.vz), mv=S.grounded&&sp>0.1, run=c01((sp-2.2)/1.8), wk=mv?c01(sp/1.5)*(1-run):0;
+    if(mv) ph+=sp*dt/(run>0.5?HUM.CYC.run.len:HUM.CYC.walk.len);
+    const D=S.down; let e=0, side=1; if(D){ side=D.side; const t=D.t; e=t<FALL?ez(t/FALL):t<FALL+LIE?1:1-ez((t-FALL-LIE)/RISE); }
+    H.root.position.set(wPos.x,S.feet+0.1*e,wPos.z); H.root.rotation.set(0,wYaw+Math.PI,side*1.5*e);       // падает на тот же бок, куда уходит камера
+    const pn=punchT>=0?Math.sin(Math.PI*c01(punchT/0.5)):0;
+    HUM.pose(H,{t:performance.now()/1000,walk:wk,run:mv?run:0,phase:ph,squat:Math.max(S.crouch*0.85,D?0.45*e:0,!S.grounded&&!D?0.25:0),bend:D?0.3*e:(!S.grounded?0.1:0),punch:pn,lookAt:null});
+    /* камера: за спиной и чуть справа, не ближе 0,6 м; если позади стена — подъезжает к человеку */
+    _pv.set(wPos.x,S.feet+1.5+S.dip*0.5-0.9*e-0.4*S.crouch,wPos.z);
+    _d.set(-Math.sin(wYaw)*Math.cos(wPitch),Math.sin(wPitch),-Math.cos(wYaw)*Math.cos(wPitch));
+    const rx=Math.cos(wYaw), rz=-Math.sin(wYaw), lat=0.42; let k=2.8;
+    for(;k>0.6;k-=0.1){ const l=lat*Math.min(1,k/1.5); _cp.copy(_pv).addScaledVector(_d,-k); _cp.x+=rx*l; _cp.z+=rz*l;
+      if(_cp.y>ground(_cp.x,_cp.z)+0.25&&!hitStatic(_cp.x,_cp.z,_cp.y-0.55,_cp.y+0.25)) break; }
+    camera.position.copy(_cp); camera.lookAt(_pv.x+_d.x*1.5+rx*lat*0.6,_pv.y+_d.y*1.5,_pv.z+_d.z*1.5+rz*lat*0.6); camera.rotateZ(roll*0.5); }
+  /* ---------- удар: F или левая кнопка мыши ---------- */
+  function punch(){ if(!walk||S.down||punchCd>0) return; punchCd=0.7; punchT=0; S.punches++;
+    const fx=-Math.sin(wYaw), fz=-Math.cos(wYaw); let best=null, bd=1.45;
+    for(const u of units){ if(u.kind!=='h'||!visChain(u.o)) continue; const H=u.o.userData.H; if(!H||H===me||(H.st&&(H.st.sit||H.st.drive))) continue;
+      u.o.getWorldPosition(_c); const dx=_c.x-wPos.x, dz=_c.z-wPos.z, d=Math.hypot(dx,dz); if(d>bd||Math.abs(_c.y-S.feet)>1.6) continue;
+      if((dx*fx+dz*fz)/Math.max(d,1e-3)<0.64) continue; best=u; bd=d; }
+    if(best){ const H=best.o.userData.H; best.o.getWorldPosition(_c); const dx=_c.x-wPos.x, dz=_c.z-wPos.z, d=Math.hypot(dx,dz)||1;
+      if(HUM.knock(H,dx/d,dz/d)){ S.punchHits++; msg('Вы ударили: '+(H.role||'человек').toLowerCase()+' · упал · в жизни это драка на складе: увольнение и полиция'); } } }
+  function msg(t){ if(!msgEl){ msgEl=document.createElement('div'); msgEl.id='walkmsg';
+      msgEl.style.cssText='position:absolute;left:50%;top:58px;transform:translateX(-50%);z-index:7;display:none;padding:7px 12px;border-radius:6px;background:rgba(20,24,30,.85);color:#ffd27a;font:600 13px/1.3 "IBM Plex Sans",sans-serif;pointer-events:none;white-space:nowrap';
+      view.appendChild(msgEl); } msgEl.textContent=t; msgEl.style.display='block'; msgT=3.0; }
+  /* кулак от первого лица: предплечье и перчатка в углу кадра на время удара */
+  function armFx(dt){ if(punchT>=0){ punchT+=dt; if(punchT>0.5) punchT=-1; } punchCd=Math.max(0,punchCd-dt);
+    if(msgEl&&msgT>0){ msgT-=dt; if(msgT<=0) msgEl.style.display='none'; else msgEl.style.opacity=Math.min(1,msgT/0.6).toFixed(2); }
+    if(S.view===3||punchT<0||!walk){ if(arm) arm.visible=false; return; }
+    if(!arm){ arm=new THREE.Group(); const gl=HUM.MT.glove[0], sl=HUM.MT.shirt[0];
+      const fa=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.055,0.30,12),sl); fa.rotation.x=Math.PI/2; fa.position.z=-0.15; arm.add(fa);
+      const cuff=new THREE.Mesh(new THREE.CylinderGeometry(0.058,0.058,0.05,12),gl); cuff.rotation.x=Math.PI/2; cuff.position.z=-0.27; arm.add(cuff);
+      const fi=new THREE.Mesh(new THREE.SphereGeometry(0.062,14,10),gl); fi.scale.set(1,0.85,1.1); fi.position.z=-0.33; arm.add(fi);
+      arm.traverse(o=>{ if(o.isMesh){ o.castShadow=false; o.receiveShadow=false; } }); if(camera.parent!==scene) scene.add(camera); camera.add(arm); }
+    const k=Math.sin(Math.PI*c01(punchT/0.5)); arm.visible=true; arm.position.set(0.22-0.10*k,-0.22+0.05*k,-0.30-0.42*k); arm.rotation.set(0.15-0.1*k,-0.25+0.3*k,0.2); }
+  document.addEventListener('mousedown',e=>{ if(walk&&e.button===0&&document.pointerLockElement===canvas) punch(); });
   /* ---------- сбит погрузчиком: красная вспышка по краям кадра и надпись ---------- */
   let fx=null;
   function hitFx(){
@@ -228,11 +277,11 @@ const WALKP=(()=>{
     if(S.warn) hud.textContent='⚠ Погрузчик рядом — '+best.toFixed(1).replace('.',',')+' м · уступите дорогу';
   }
   let nearSaved=0;
-  function enter(){ grid=null; build(); units=[]; collectUnits(); unitT=1.0; lastFk.clear();
+  function enter(){ grid=null; build(); units=[]; collectUnits(); unitT=1.0; lastFk.clear(); punchT=-1; punchCd=0; if(me) me.root.visible=S.view===3;
     S.feet=ground(wPos.x,wPos.z); S.vx=S.vz=S.vy=0; S.grounded=true; S.dip=S.dipV=0; S.crouch=0; S.down=null; S.immune=0; unstick();
     nearSaved=camera.near; camera.near=0.12; camera.updateProjectionMatrix(); }
-  function exit(){ if(hud) hud.style.display='none'; S.down=null; if(fx) fx.style.display='none'; if(nearSaved){ camera.near=nearSaved; camera.updateProjectionMatrix(); nearSaved=0; } }
-  return {S,ground,build,enter,exit,step,move,hitStatic,units:()=>units,info:()=>({ms:S.ms,cells:S.cells,units:S.units})};
+  function exit(){ if(hud) hud.style.display='none'; S.down=null; if(fx) fx.style.display='none'; if(me) me.root.visible=false; if(arm) arm.visible=false; if(msgEl) msgEl.style.display='none'; if(nearSaved){ camera.near=nearSaved; camera.updateProjectionMatrix(); nearSaved=0; } }
+  return {S,ground,build,enter,exit,step,move,hitStatic,setView,punch,avatar:()=>me,units:()=>units,info:()=>({ms:S.ms,cells:S.cells,units:S.units})};
 })();
 function tryMove(mx,mz){ WALKP.move(mx,mz); }
 function walkStep(dt){ WALKP.step(dt); }

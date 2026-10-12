@@ -7,12 +7,12 @@ const threeSrc = fs.readFileSync(require.resolve('three/build/three.min.js'));
 fs.mkdirSync(OUT,{recursive:true});
 (async()=>{ const b=await puppeteer.launch({executablePath:require('./_chrome.js'),headless:true,protocolTimeout:1800000,
  args:['--no-sandbox','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage','--hide-scrollbars'],defaultViewport:{width:1620,height:900}});
- const p=await b.newPage(); await p.evaluateOnNewDocument(() => { let q = 12345; Math.random = () => { q = (q * 1664525 + 1013904223) >>> 0; return q / 4294967296; }; });
+ const p=await b.newPage(); await p.evaluateOnNewDocument((v) => { window.__SIMV=v; let q = 12345; Math.random = () => { q = (q * 1664525 + 1013904223) >>> 0; return q / 4294967296; }; },+(process.env.SIMV||0));
  await p.setRequestInterception(true);
  p.on('request',r=>{const u=r.url(); if(u.includes('three')&&u.endsWith('.js')) r.respond({status:200,contentType:'application/javascript',body:threeSrc}); else if(u.startsWith('file:')||u.startsWith('data:')||u.startsWith('blob:')) r.continue(); else r.abort();});
  p.on('pageerror',e=>console.log('PAGEERROR',e.message)); p.on('console',m=>{ if(m.type()==='error'&&!/ERR_FAILED/.test(m.text())) console.log('CONSOLE',m.text().slice(0,300)); });
  await p.goto(require('url').pathToFileURL(require('path').resolve(FILE)).href,{waitUntil:'load',timeout:180000}); await p.waitForFunction('typeof HUM!=="undefined"&&HUM.RP.ready',{timeout:120000}); await new Promise(r=>setTimeout(r,500));
- const err=await p.evaluate((W,H)=>{ window.requestAnimationFrame=()=>0; try{ renderer.setPixelRatio(1); renderer.setSize(W,H,false); camera.aspect=W/H; camera.updateProjectionMatrix(); SIM.enter(); }catch(e){ return 'enter: '+e.message; } return ''; },W,H);
+ const err=await p.evaluate((W,H)=>{ window.requestAnimationFrame=()=>0; try{ renderer.setPixelRatio(1); renderer.setSize(W,H,false); camera.aspect=W/H; camera.updateProjectionMatrix(); if(window.__SIMV) SIM.cfg.variant=window.__SIMV; SIM.enter(); }catch(e){ return 'enter: '+e.message; } return ''; },W,H);
  if(err){ console.log('ERR',err); await b.close(); process.exit(2); }
  let base=0;
  for(const s of shots){

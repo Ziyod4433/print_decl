@@ -69,7 +69,7 @@ function unloadPlan(r,t0){                                // кузов r (0 —
 
 /* ===================== расписание ===================== */
 function plan(){
-  const MK=F.MK={}, PI=Math.PI;
+  const MK=F.MK={}, PI=Math.PI; teleSet(TELE_EXT);                 // расписание ленты — по выдвинутому конвейеру
   LB=(F.bTip-F.bBase)/BELTV; A0=E0+LB+SLIP;
   const a=k=>E0+OFF[k]+LB+SLIP;
   /* накопление на ленте: короб едет со скоростью ленты (с проскальзыванием при разгоне), упирается в упор или в предыдущий
@@ -285,7 +285,7 @@ function plan(){
     .key(46,39.9,14.75,PI*0.9,{scan:1,scanner:true}).key(60,26.5,14.85,-PI/2,{}).key(66.4,18.6,14.85,-PI/2,{}).key(68.4,17.8,17.1,PI*0.7,{}).key(900,17.8,17.1,PI*0.7,{}).fin();
   /* --- таймлапсы и подписи --- */
   MK.tl1a=PICK[0].rel+2.4; MK.tl1b=MK.lab0+4.1; F.w4off=lerp(MK.tl1a,MK.tl1b,0.36);
-  const WARPS=[[MK.tl1a,MK.tl1b,8],[MK.in1+3.2,MK.tr1b-0.4,4],[MK.tr1b+0.3,MK.at6-1.4,2],[MK.seat1+1.6,MK.out6+0.2,4],
+  const WARPS=[[TELE_T0+0.6,TELE_T1-0.6,4],[MK.tl1a,MK.tl1b,8],[MK.in1+3.2,MK.tr1b-0.4,4],[MK.tr1b+0.3,MK.at6-1.4,2],[MK.seat1+1.6,MK.out6+0.2,4],
     [MK.kst+0.9,MK.cop0-0.3,2],[MK.cop1+0.3,MK.up2+0.4,2],[MK.up2+0.9,MK.in2-0.8,2.5],[MK.out14+0.3,MK.trn1-0.3,4],[MK.trn1+1.6,MK.set1-2.4,2.5],
     [MK.u1a+5.0,MK.u1b-0.6,12],[MK.u1b+1.4,MK.e1s+1.5,3],[MK.e1s+1.5,MK.trn2-0.3,14],[MK.trn2+1.6,MK.set2-2.4,3.5],
     [MK.u2a+2.6,MK.u2b-0.6,12],[MK.u2b+1.4,MK.back2+1.6,3],[MK.back2+5.0,MK.eo2+1.6,7]];
@@ -316,7 +316,7 @@ function mkCaps(){
   const MK=F.MK, cap=(T0,T1,no,a,b)=>({t0:tfOf(T0),t1:tfOf(T1),no,a,b}), P0=PICK[0];
   CAPS=[cap(0.6,4.3,'T','СКЛАД №4 · БЛОК 4-1 · YUZHE PARK, ХОРГОС','Перегрузка Китай → Казахстан: от въезда машины до выезда автопоезда'),
     cap(4.8,12.0,'1','Заезд к воротам Л2','LPR фиксирует номер и время · фото пломбы · сверка документов'),
-    cap(12.4,P0.grab-0.3,'2','Выгрузка лентой · 4 типа коробов','A — малый · B — стандарт · C — длинный · D — крупный'),
+    cap(12.2,P0.grab-0.3,'2','Конвейер выдвигается в кузов · выгрузка лентой','телескопическая лента: база 4,6 м + 4,6 м хода · A — малый · B — стандарт · C — длинный · D — крупный'),
     cap(P0.grab+0.1,P0.rel+2.2,'3','Образец каждого типа — на DWS','вес, габарит и штрихкод за 2 секунды · образец возвращается в стойку'),
     cap(P0.rel+2.6,MK.lab0+2.6,'4','Сборка в стоечный поддон','тяжёлое вниз, лёгкое наверх · стойки несут верхний ярус — плёнка не нужна'),
     cap(MK.lab0+3.0,MK.out6+0.1,'5','Размещение по FIFO · второй ярус','ячейка A6 — тот же день приёмки (ЧТ) · опоры садятся в чаши нижней стойки'),
@@ -352,6 +352,10 @@ function find(){
     const d=Math.hypot(p.x-x,p.z-z); if(d<bd){bd=d;best=H;} }); return bd<0.8?best:null; };
   F.PW=near(3.8,8.2); F.WP=near(12.2,9.2); F.SUP=near(9.2,12.4);
 }
+/* геометрия ленты по текущему выдвижению: нос и хвост в координатах стрелы (меняются, когда конвейер выдвигается) */
+function teleGeom(){ const c=F.tlCargo&&F.tlCargo[0]; if(!c) return; const tipIsX1=c.x1>c.x0;
+  F.bTip=tipIsX1?c.x1:c.x0; F.bBase=tipIsX1?c.x0:c.x1; F.yTip=tipIsX1?c.y1:c.y0; F.yBase=tipIsX1?c.y0:c.y1; }
+function teleSet(e){ const t=F.tl2&&F.tl2.userData.tele; if(!t||Math.abs(t.ext-e)<1e-5) return; t.setExt(e); teleGeom(); }
 function wheelsOf(root){ const w=[]; root.traverse(o=>{ if(o.userData&&o.userData.isWheel) w.push(o); }); return w; }
 function screenMat(L){
   const c=cnv(512,300),g=c.getContext('2d'); g.fillStyle='#0c1a2e'; g.fillRect(0,0,512,300);
@@ -377,11 +381,10 @@ function build(){ seeded(()=>{
   /* лента телескопического конвейера */
   /* телескопический конвейер и DWS — свои экземпляры фильма в штатном положении: правка и удаление таких объектов в редакторе фильм не ломают */
   const mine=(kind,o,p,r,id)=>{ const g=libSpawn(kind,o,p,r,id); edMap.delete(id); const k=pickables.indexOf(g); if(k>=0) pickables.splice(k,1); return own(g); };
-  F.tl2=mine('tele',{lift:0.0,tilt:3,ext:0.48,dir:-1},[0.02,0,10.9],Math.PI,'film-tl');   // лента с подъёмом к машине: голова в кузове выше основания
+  F.tl2=mine('tele',{lift:0.0,tilt:3,ext:TELE_EXT,dir:-1},[0.35,0,10.9],Math.PI,'film-tl');   // лента с подъёмом к машине: голова в кузове выше основания; база отодвинута от ворот, чтобы сложенный конвейер не мешал закрыть створки
   F.dws=mine('dws',{h:2.0,w:1.6,load:1},[9.0,0,10.4],0,'film-dws');
   const cg=beltCargo.filter(c=>c.eid==='film-tl'); F.tlCargo=cg; F.tlRuns=beltRuns.filter(b=>b.eid==='film-tl');
-  if(cg.length){ const c=cg[0]; F.boom=c.o.parent; const tipIsX1=c.x1>c.x0;
-    F.bTip=tipIsX1?c.x1:c.x0; F.bBase=tipIsX1?c.x0:c.x1; F.yTip=tipIsX1?c.y1:c.y0; F.yBase=tipIsX1?c.y0:c.y1; }
+  if(cg.length){ F.boom=cg[0].o.parent; teleGeom(); }
   /* параметры оседания короба: высота отпускания, наклон, ось, небольшой разброс укладки */
   const rs=ti=>{ const ax=Math.random()<0.5, T=CTYPE[ti]; return {jx:(Math.random()-.5)*0.008,jz:(Math.random()-.5)*0.008,jy:(Math.random()-.5)*0.02,
     h:0.035+Math.random()*0.035,th:(Math.random()<.5?-1:1)*(0.03+Math.random()*0.035),ax,half:(ax?T.w:T.l)/2}; };
@@ -569,7 +572,8 @@ function apply(t){
       const e=E0+OFF[hk], u=(T-(e-0.32))/0.32; if(u<=0) return;                 // короб с рук — на ленту, короткой дугой
       _p0.copy(b.position); _q0.copy(b.quaternion); beltPos(b,hk,e);
       b.position.lerpVectors(_p0,b.position,ez(u)); b.position.y+=0.10*Math.sin(Math.PI*c01(u)); b.quaternion.copy(_q0.slerp(b.quaternion,ez(u))); }); }
-  /* лента */
+  /* лента: конвейер выдвигается в кузов после остановки машины, потом лента идёт */
+  teleSet(kv(T,[[TELE_T0,0],[TELE_T1,TELE_EXT]]));
   if(F.boom){ F.boom.updateMatrixWorld(true); F.tlRuns.forEach(b=>{ b.tex.offset.x=(((-Math.sign(b.sp||1)*0.55*Math.max(0,T-E0))%1)+1)%1; }); }
   /* упаковщик, контролёр */
   if(F.PW) drive(F.PW,F.trPK.at(T),T); drive(F.CT,F.trCT.at(T),T);

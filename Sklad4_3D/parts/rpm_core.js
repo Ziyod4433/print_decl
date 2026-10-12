@@ -84,6 +84,32 @@
     sc.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; o.frustumCulled=false; } });
     RP.src=gl;
   }
+  /* ткань: мелкое плетение и складки — рельеф для куртки и брюк (без него одежда при приближении была как пластик) */
+  function fabricTex(){ if(RP.fabric) return RP.fabric; const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
+    g.fillStyle='#808080'; g.fillRect(0,0,256,256); let q=11; const r=()=>{ q=(q*1664525+1013904223)>>>0; return q/4294967296; };
+    for(let y=0;y<256;y+=2){ g.fillStyle=`rgba(0,0,0,${.05+r()*.05})`; g.fillRect(0,y,256,1); }
+    for(let x=0;x<256;x+=2){ g.fillStyle=`rgba(255,255,255,${.04+r()*.05})`; g.fillRect(x,0,1,256); }
+    for(let i=0;i<9;i++){ const x=r()*256, w=12+r()*30, gr=g.createLinearGradient(x-w,0,x+w,0); gr.addColorStop(0,'rgba(0,0,0,0)'); gr.addColorStop(.5,`rgba(0,0,0,${.12+r()*.1})`); gr.addColorStop(1,'rgba(255,255,255,.05)'); g.fillStyle=gr; g.fillRect(x-w,0,2*w,256); }
+    const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(7,7); RP.fabric=t; return t; }
+  /* бейдж на шнурке, рация у старших, световозвращающие ленты на голенях, защитные очки у части людей */
+  function badgeMat(){ if(RP.mat.badge) return RP.mat.badge; const c=document.createElement('canvas'); c.width=96; c.height=128; const g=c.getContext('2d');
+    g.fillStyle='#f6f6f2'; g.fillRect(0,0,96,128); g.fillStyle='#1b3f8f'; g.fillRect(0,0,96,22); g.fillStyle='#fff'; g.font='700 13px sans-serif'; g.fillText('BURAQ',8,16);
+    g.fillStyle='#c9b8a4'; g.fillRect(10,30,34,42); g.fillStyle='#2b2b2b'; for(let i=0;i<4;i++) g.fillRect(52,34+i*10,36,4); g.fillRect(10,82,76,4); g.fillRect(10,92,50,4);
+    g.fillStyle='#111'; for(let x=10;x<86;x+=3) g.fillRect(x,104,1+(x*7%3),16);
+    const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; const m=new THREE.MeshStandardMaterial({map:t,roughness:.5,metalness:0}); RP.mat.badge=m; return m; }
+  function gear(H,prof,v){ const rb=H.rb, lead=/СТАРШ|БРИГАД|КЛАДОВ|КОНТРОЛ/.test(H.role||'');
+    const add=(bone,m,x,y,z)=>{ m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true; bone.add(m); return m; };
+    if(rb.Spine2&&prof.vest){
+      add(rb.Spine2,new THREE.Mesh(new THREE.PlaneGeometry(0.07,0.094),badgeMat()),0.085,0.085,0.168);                       // бейдж на левой стороне груди
+      const ln=add(rb.Spine2,new THREE.Mesh(new THREE.BoxGeometry(0.014,0.12,0.003),MT.strap),0.06,0.19,0.158); ln.rotation.z=0.3;   // шнурок
+      if(lead){ add(rb.Spine2,new THREE.Mesh(new THREE.BoxGeometry(0.032,0.095,0.024),MT.scanner),-0.095,0.155,0.128);           // рация на правой лямке
+        add(rb.Spine2,new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.004,0.1,6),MT.strap),-0.105,0.25,0.128).castShadow=false; } }
+    if(!prof.guard) for(const L of ['Left','Right']){ const b=rb[L+'Leg']; if(!b) continue;                                     // ленты на голенях
+      for(const yy of [0.27,0.33]) add(b,new THREE.Mesh(new THREE.CylinderGeometry(0.097,0.094,0.028,18,1,true),MT.refl),0,yy,0).castShadow=false; }
+    if(rb.Head&&v.h>0.72&&!prof.guard){ const gl=new THREE.Group(); const lens=std(0x9fb8c8,.1,0,{transparent:true,opacity:.5,envMapIntensity:1.4});   // защитные очки
+      for(const s of [-1,1]){ const l=new THREE.Mesh(new THREE.BoxGeometry(0.046,0.026,0.004),lens); l.position.set(s*0.031,0.044,0.097); l.rotation.y=s*0.25; gl.add(l);
+        const tm=new THREE.Mesh(new THREE.BoxGeometry(0.004,0.006,0.11),MT.strap); tm.position.set(s*0.066,0.046,0.045); gl.add(tm); }
+      const br=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.005,0.004),MT.strap); br.position.set(0,0.046,0.1); gl.add(br); gl.traverse(o=>{ if(o.isMesh) o.castShadow=false; }); rb.Head.add(gl); } }
   const JACKET=['#35476a','#4a515b','#435447','#56504a','#2f4568'], PANTS=['#3a414c','#464c55','#353940','#4b4741'];
   const SKIN=[[1,1,1],[0.93,0.85,0.79],[0.8,0.68,0.58],[0.97,0.9,0.84],[0.72,0.58,0.48]];
   const VEST={vestO:'#ff6a13',vestY:'#cfe81c',vestB:'#1f48a8'}, GLOVE=['#c9a23a','#8a8f96','#b9b3a6','#3f4349'];
@@ -115,8 +141,8 @@
     const J=guard?'#2a2e35':JACKET[(v.jacket*JACKET.length)|0], Pn=guard?'#2a2d33':PANTS[(v.pants*PANTS.length)|0];
     const sk=SKIN[(v.skin*SKIN.length)|0];
     c.traverse(o=>{ if(!o.isMesh) return; const n=o.name, m=o.material;
-      if(n==='Wolf3D_Outfit_Top'||n==='Wolf3D_TopTorso') o.material=rpmMat(m,J,x=>{ x.map=recolor(m.map,J,0.85,o.geometry); x.metalness=0; x.roughness=1; x.name='HUM_jacket'; });
-      else if(n==='Wolf3D_Outfit_Bottom') o.material=rpmMat(m,Pn,x=>{ x.map=recolor(m.map,Pn,0.85,o.geometry); x.metalness=0; x.roughness=1; x.name='HUM_pants'; });
+      if(n==='Wolf3D_Outfit_Top'||n==='Wolf3D_TopTorso') o.material=rpmMat(m,J,x=>{ x.map=recolor(m.map,J,0.85,o.geometry); x.metalness=0; x.roughness=1; x.bumpMap=fabricTex(); x.bumpScale=0.0022; x.name='HUM_jacket'; });
+      else if(n==='Wolf3D_Outfit_Bottom') o.material=rpmMat(m,Pn,x=>{ x.map=recolor(m.map,Pn,0.85,o.geometry); x.metalness=0; x.roughness=1; x.bumpMap=fabricTex(); x.bumpScale=0.0018; x.name='HUM_pants'; });
       else if(n==='Wolf3D_Outfit_Footwear') o.material=rpmMat(m,'boot',x=>{ x.map=recolor(m.map,'#3a3029',0.9,o.geometry); x.metalness=0; x.roughness=0.8; x.name='HUM_boot'; });
       else if(n==='Wolf3D_Gloves'&&!guard){ const gc=GLOVE[(v.vest*GLOVE.length)|0]; o.material=rpmMat(m,'glove'+gc,x=>{ x.map=null; x.color.set(gc); x.roughness=.9; x.metalness=0; x.normalMap=null; x.name='HUM_glove'; }); }
       else if(n==='Wolf3D_Body'||n==='Wolf3D_Head'||n==='Wolf3D_Gloves') o.material=rpmMat(m,sk.join(),x=>{ x.color.setRGB(sk[0],sk[1],sk[2]); x.name='HUM_skin'; });
@@ -129,6 +155,7 @@
     else if(guard){ const h=guardCap(); h.position.set(0,0.165,0.01); hd.add(h); H.hat=h; }
     H.fing=[]; for(const k in H.rb){ const mm=/^(Left|Right)Hand(Thumb|Index|Middle|Ring|Pinky)([123])$/.exec(k); if(mm) H.fing.push({b:H.rb[k],q0:H.rb[k].quaternion.clone(),L:mm[1]==='Left',th:mm[2]==='Thumb',j:+mm[3]}); }
     const rh=H.rb.RightHand; if(rh){ H.scanner.position.set(0,0.09,0.035); H.scanner.rotation.set(0,Math.PI,0); rh.add(H.scanner); }
+    gear(H,prof,v);
     rpmSync(H);
   }
   function rpmSync(H){ const rb=H.rb;

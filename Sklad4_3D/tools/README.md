@@ -17,6 +17,7 @@
 | `bash tools/run_coll.sh` | столкновения в фильме: погрузчик, вилы, стойка, люди | пустой список |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/walk_knock.js` | обход: наезд погрузчика — падение и подъём | `hits` 1, камера опускается до ~0,23 м и через ~3,5 с встаёт |
 | `node tools/simrun.js Sklad4_realistic_film.html 30000 3` | живой процесс: два полных цикла (третий аргумент — на каком цикле остановиться, по умолчанию 2) со столкновениями погрузчика и людей; ~12 мин счёта | доходит до `=== НОВЫЙ ЦИКЛ 3`, `HITS` пусто, `HUM {}` |
+| `SIMV=2 node tools/simrun.js Sklad4_realistic_film.html 30000 3` | то же для второго варианта приёмки (машина через П1 на полосе Л1–П1) | `HITS` пусто, `HUM {}` |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/sim_timeline.js` | хронология цикла (машины, задачи погрузчика, журнал) | — |
 | `node tools/test_save.js` | автосохранение правки в сам файл и открытие копии | шаг 2 видит правку |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/walk_phys.js` | физика обхода: колонна, решётка, спрыгнуть с платформы Л2, подняться по лестнице, прыжок | нормы — в шапке файла |
@@ -25,4 +26,6 @@
 | `node tools/still.js <html> out/st 1600 900 shots.json` | стоп-кадры с постобработкой; в кадре можно задать `js` (до камеры) и `jsAfter` (после — например, `POST.P.exposure=EXPO.at(camera,false)`) | — |
 | `node tools/close.js <html> out/cl 1280 720 shots.json` | крупные планы фильма у объектов | — |
 | `node tools/simshot.js <html> out/sim 1280 720 tools/checks/sim_shots_example.json` | кадры живого процесса (по времени T или по условию `until`), с постобработкой и экспозицией как у пользователя | смотреть глазами |
+| `node tools/imgrun.js <html> <скрипт.js> out/dir` | выполнить в странице скрипт, вернувший `{info,imgs:[dataURL]}`, сохранить кадры `f00.jpg…` (обход: третье лицо, удар) | смотреть глазами |
+| `SIMV=2 node tools/simshot.js …` | кадры живого процесса во втором варианте приёмки | — |
 | `node tools/exportgl.js`, `node tools/overlay.js` | экспорт фильма для Blender | см. `blender/README.md` |

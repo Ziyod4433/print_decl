@@ -410,6 +410,9 @@ rep("bumpMap:T(corrCanvas,len/0.32,1,false), bumpScale:0.05, roughness:0.55, met
     "bumpMap:T(corrCanvas,len/0.32,1,false), bumpScale:0.05, roughness:0.6, metalness:0.12, envMapIntensity:1.0}),{dirtY:2.2,dirtK:.32});")   # профлист стен — окрашенный, светлый (как на фото), а не голый металл
 rep("POST.P.time=now/1000; POST.P.exposure=G.roof.visible?(walk?1.1:1.0):0.62;","POST.P.time=now/1000; WIND.value=POST.P.time; iblUpdate(); POST.P.exposure=EXPO.at(camera,walk);")
 
+# ---------- 21b. телескопический конвейер с подвижными секциями (выдвигается на ходу: userData.tele.setExt) ----------
+cut("function telescopicConveyor(x,z,rotY,lift,tilt,ext,dir){","/* штатный конвейер у Л2 ставится через каталог",part('tele.js')+"\n")
+
 # ---------- 22. детализация моделей: рохли и электротележки, вентиляторы ----------
 cut("function palletJack(x,z,rot,electric){","function trolleyCart(x,z,rot){",part('models.js')+"\n")
 
@@ -425,11 +428,14 @@ rep("    if(walkLbl){ G.labels.visible=walkLbl[0]; G.addr.visible=walkLbl[1]; wa
     "    WALKP.exit();")
 rep("let walk=false, wYaw=0, wPitch=0, saved_pr=0, walkLbl=null;","let walk=false, wYaw=0, wPitch=0, saved_pr=0, walkLbl=null, walkRoof=null;")
 rep("tipEl.innerHTML='<b>W A S D</b> идти · <b>мышь</b> смотреть<br><b>Shift</b> бегом · <b>Esc</b> выход<br>склад работает: живой процесс идёт';",
-    "tipEl.innerHTML='<b>W A S D</b> идти · <b>мышь</b> смотреть<br><b>Shift</b> бегом · <b>Пробел</b> прыжок · <b>C</b> присесть · <b>Esc</b> выход<br>склад работает: живой процесс идёт · сквозь стойки и технику не пройти';")
+    "tipEl.innerHTML='<b>W A S D</b> идти · <b>мышь</b> смотреть<br><b>Shift</b> бегом · <b>Пробел</b> прыжок · <b>C</b> присесть · <b>V</b> вид от 3-го лица · <b>F</b>/ЛКМ удар · <b>Esc</b> выход<br>склад работает: живой процесс идёт · сквозь стойки и технику не пройти';")
 rep('<button data-k="ShiftLeft" class="run">БЕГ</button>','<button data-k="ShiftLeft" class="run">БЕГ</button><button data-k="Space" class="jump">ПРЫЖОК</button><button data-k="KeyC" class="crouch">ПРИСЕСТЬ</button>')
+rep('<button data-k="KeyC" class="crouch">ПРИСЕСТЬ</button>','<button data-k="KeyC" class="crouch">ПРИСЕСТЬ</button><button data-k="KeyF" class="hit">УДАР</button><button data-k="KeyV" class="view">ВИД</button>')
 rep("  #pad button.exit{grid-column:1;grid-row:1;font-size:16px}",
     "  #pad button.exit{grid-column:1;grid-row:1;font-size:16px}\n"
-    "  #pad{grid-template-rows:repeat(3,52px)}\n"
+    "  #pad{grid-template-rows:repeat(4,52px)}\n"
+    "  #pad button.hit{grid-column:1/span 2;grid-row:4;font-size:12px;letter-spacing:.1em}\n"
+    "  #pad button.view{grid-column:3;grid-row:4;font-size:11px;letter-spacing:.06em}\n"
     "  #pad button.jump{grid-column:1/span 2;grid-row:3;font-size:12px;letter-spacing:.1em}\n"
     "  #pad button.crouch{grid-column:3;grid-row:3;font-size:11px;letter-spacing:.06em}")
 

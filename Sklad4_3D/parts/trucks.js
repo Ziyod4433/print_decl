@@ -19,16 +19,21 @@ function cabin(g,cx,dir,o){
   o=o||{}; const c=grp(cx,0,0,g); if(dir>0) c.rotation.y=Math.PI;
   const P=o.paint||TRK.paints.white, eu=o.style==='eu', hi=!!o.high;
   const W2=1.245, y0=1.02, top=hi?3.78:3.12;
-  /* корпус: боковой профиль, выдавленный по ширине со скруглением */
-  const sh=new THREE.Shape(), bv=0.10;                        // контур с учётом фаски: фаска добавит 7 см наружу
-  sh.moveTo(-1.14+bv,y0+bv); sh.lineTo(-1.17+bv,1.96); sh.lineTo(-1.13+bv,2.03); sh.lineTo(-0.97+bv,2.96-bv*0.5);
-  if(hi){ sh.quadraticCurveTo(-0.9+bv,3.1,-0.72+bv,3.22-bv*0.3); sh.quadraticCurveTo(-0.5,top-0.05-bv,-0.2,top-bv); } else sh.quadraticCurveTo(-0.92+bv,top-bv,-0.78+bv,top-bv);
-  sh.lineTo(1.12-bv,top-bv); sh.lineTo(1.14-bv,y0+bv); sh.lineTo(-1.14+bv,y0+bv);
-  const bev=bv, geo=new THREE.ExtrudeGeometry(sh,{depth:W2*2-2*bev,bevelEnabled:true,bevelThickness:bev,bevelSize:bev,bevelSegments:5,curveSegments:10});
-  geo.translate(0,0,-(W2*2-2*bev)/2); mesh(geo,P,0,0,0,c);
+  /* корпус: боковой профиль, выдавленный по ширине со скруглением. Корпус разрезан на нижнюю часть (до подоконника 2,03)
+     и крышу (от 2,91): между ними — остекление, стойки и панели дверей, поэтому салон и водитель видны сквозь стёкла */
+  const bv=0.10, bev=bv, DEP=W2*2-2*bev;                     // контур с учётом фаски: фаска добавит 7 см наружу
+  const ext2=sh=>{ const g2=new THREE.ExtrudeGeometry(sh,{depth:DEP,bevelEnabled:true,bevelThickness:bev,bevelSize:bev,bevelSegments:5,curveSegments:10}); g2.translate(0,0,-DEP/2); return mesh(g2,P,0,0,0,c); };
+  const lo=new THREE.Shape(); lo.moveTo(-1.14+bv,y0+bv); lo.lineTo(-1.17+bv,1.96); lo.lineTo(-1.13+bv,2.03); lo.lineTo(1.12-bv,2.03); lo.lineTo(1.14-bv,y0+bv); lo.lineTo(-1.14+bv,y0+bv); ext2(lo);
+  const up=new THREE.Shape(); up.moveTo(-0.97+bv,2.96-bv*0.5);
+  if(hi){ up.quadraticCurveTo(-0.9+bv,3.1,-0.72+bv,3.22-bv*0.3); up.quadraticCurveTo(-0.5,top-0.05-bv,-0.2,top-bv); } else up.quadraticCurveTo(-0.92+bv,top-bv,-0.78+bv,top-bv);
+  up.lineTo(1.12-bv,top-bv); up.lineTo(1.12-bv,2.96-bv*0.5); up.lineTo(-0.97+bv,2.96-bv*0.5); ext2(up);
+  /* стойки и панели между подоконником и крышей: передние А-стойки (наклонные), стойки у шва двери, задняя часть кабины, задняя стенка */
+  for(const s of [-1,1]){ const A=box(0.13,0.94,0.13,P,-0.95,2.47,s*(W2-0.065),c); A.rotation.z=-0.18;
+    box(0.10,0.9,0.07,P,0.32,2.47,s*(W2-0.035),c); box(0.78,0.9,0.09,P,0.73,2.47,s*(W2-0.045),c); box(0.34,0.9,0.09,P,0.13,2.47,s*(W2-0.045),c); }
+  box(0.07,0.92,W2*2-0.02,P,1.0,2.47,0,c);
   /* лобовое стекло с рамкой, дворники, козырёк */
   const ws=box(0.03,0.93,2.16,M.cabGlass,-1.085,2.49,0,c); ws.rotation.z=-0.17; ws.castShadow=false;
-  const wf=box(0.02,1.02,2.3,M.blackPl,-1.07,2.49,0,c); wf.rotation.z=-0.17; wf.castShadow=false;
+  for(const [wy,wh,wz,ww] of [[2.95,0.04,0,2.3],[2.03,0.04,0,2.3],[2.49,1.02,-1.12,0.07],[2.49,1.02,1.12,0.07]]){ const f=box(0.02,wh,ww,M.blackPl,-1.07-(wy-2.49)*0.17,wy,wz,c); f.rotation.z=-0.17; f.castShadow=false; }
   for(const s of [-0.5,0.45]){ const wp=box(0.02,0.03,0.85,M.blackPl,-1.13,2.13,s,c); wp.rotation.x=0.18; wp.castShadow=false; }
   const vis=box(0.34,0.05,2.36,eu?P:M.blackPl,-1.02,hi?3.26:3.05,0,c); vis.rotation.z=0.22;
   /* решётка радиатора, фары, бампер — по образцу седельных тягачей: решётка-трапеция с ламелями, фары-блоки в углах бампера
@@ -98,6 +103,25 @@ function cabin(g,cx,dir,o){
   if(!eu){ cyl(0.16,1.7,P,1.3,2.45,-0.92,c,18); cyl(0.19,0.18,M.blackPl,1.3,3.38,-0.92,c,18);
     const snk=cyl(0.12,0.4,P,1.25,1.72,-0.92,c,14); snk.rotation.z=0.5; }
   else { cyl(0.065,2.1,M.chrome,1.25,2.1,1.0,c,12); }
+  /* салон: пол, панель приборов, руль на колонке, два сиденья, козырьки, задняя стенка; водитель за рулём (левый руль) */
+  { const dk=M.greyPl, seat=std(0x2a2c30,.85,0), trim=std(0x3b3f45,.7,0);
+    box(2.1,0.03,2.36,trim,0.1,1.12,0,c).castShadow=false;
+    rbox(0.46,0.34,2.2,0.04,dk,-0.84,2.0,0,c);
+    box(0.01,0.11,0.28,std(0x9fd2ff,.3,0,{emissive:0x3d7fc0,emissiveIntensity:1.0}),-0.605,2.09,0.62,c).castShadow=false;   // щиток
+    const col=cyl(0.03,0.36,M.blackPl,-0.63,2.02,0.62,c,10); col.rotation.z=1.05;
+    const sw=grp(-0.47,2.10,0.62,c); sw.rotation.z=-0.5; const wr=new THREE.Mesh(new THREE.TorusGeometry(0.2,0.022,10,28),M.blackPl); wr.rotation.y=Math.PI/2; wr.castShadow=true; sw.add(wr);
+    for(const a of [0,2.1,4.2]){ const sp=box(0.02,0.03,0.19,M.blackPl,0,0,0,sw); sp.rotation.x=a; sp.position.set(0,Math.sin(a)*0.1,Math.cos(a)*0.1); sp.castShadow=false; }
+    for(const sd of [-1,1]){ rbox(0.52,0.12,0.5,0.03,seat,0.05,1.46,sd*0.62,c); const bk=rbox(0.14,0.64,0.5,0.03,seat,0.33,1.86,sd*0.62,c); bk.rotation.z=0.16;
+      rbox(0.12,0.16,0.26,0.03,seat,0.44,2.3,sd*0.62,c); const vs=box(0.3,0.015,0.5,dk,-0.95,2.93,sd*0.62,c); vs.rotation.z=0.3; vs.castShadow=false; }
+    box(0.05,1.75,2.3,trim,hi?1.25:1.08,2.0,0,c).castShadow=false;
+    if(typeof HUM!=='undefined'&&!o.noDriver){ let q=4097+TRK.n*131; const rnd=()=>{ q=(q*1664525+1013904223)>>>0; return q/4294967296; };   // свой генератор: общий LOOK.R не трогаем
+      const H=HUM.build({role:'ВОДИТЕЛЬ',rnd}); H.root.position.set(0.12,1.50,0.62); H.root.rotation.y=-Math.PI/2; c.add(H.root);
+      H.base={sit:1,drive:1}; HUM.pose(H,{t:0,sit:1,drive:1}); if(H.root.userData.ao) H.root.userData.ao.visible=false; c.userData.driver=H; }
+    /* надпись перевозчика на дверях */
+    const dm=eu?decalMat([{t:'BURAQ LOGISTICS',x:256,y:44,align:'center',font:'800 54px "Barlow Condensed",sans-serif'},{t:'ХОРГОС · KHORGOS · 霍尔果斯',x:256,y:98,align:'center',font:'600 28px "Barlow Condensed","Noto Sans SC",sans-serif'}],null,'#1b3f8f')
+                  :decalMat([{t:'新疆国际物流',x:256,y:46,align:'center',font:'700 56px "Noto Sans SC","Microsoft YaHei",sans-serif'},{t:'XINJIANG INTL LOGISTICS · 0999-838 8888',x:256,y:100,align:'center',font:'600 26px "Barlow Condensed",sans-serif'}],null,'#b3261e');
+    for(const s of [-1,1]) trkDecal(c,dm,0.84,0.21,-0.2,1.56,s*(W2+0.012),s>0?0:Math.PI);
+  }
   /* кабина на подвеске: всё, что построено выше (кроме грязевиков), — на шарнире у переднего нижнего края;
      в фильме при торможении кабина клюёт вперёд относительно рамы и раскачивается после остановки */
   { const P=new THREE.Group(); P.position.set(-1.0,1.0,0); P.name='cabPivot';
@@ -144,8 +168,12 @@ function flatTruck(x,z,len,dir,heavy,rotY,load){
   box(0.08,SH+0.4,HW*2,BP,dir*(len/2-0.04),FY+SH/2+0.2,0,g);
   for(let i=0;i<6;i++) box(0.05,0.03,0.4,M.galv,dir*(len/2+0.03),FY+0.2+i*0.28,0.6,g);
   const rx=-dir*(len/2+0.02);
-  for(const s of [-1,1]){ box(0.05,SH,HW-0.04,BP,rx,FY+SH/2,s*HW/2,g); box(0.05,0.05,HW-0.1,M.galv,rx-dir*0.03,FY+SH*0.55,s*HW/2,g); }
-  for(let i=0;i<8;i++) box(0.01,0.05,0.22,i%2?M.reflWhite:M.reflRed,rx-dir*0.05,FY+0.1,-HW+0.15+i*0.3,g).castShadow=false;
+  /* задние решётчатые двери — две створки на петлях у углов кузова: rdoorSet(g,u) распахивает их назад к бортам (выгрузка с торца) */
+  g.userData.rdoors=[];
+  for(const s of [-1,1]){ const D=grp(rx,0,s*HW,g); g.userData.rdoors.push(D); D.userData.side=s; D.userData.dir=dir;
+    box(0.05,SH,HW-0.04,BP,0,FY+SH/2,-s*HW/2,D); box(0.05,0.05,HW-0.1,M.galv,-dir*0.03,FY+SH*0.55,-s*HW/2,D);
+    for(let i=0;i<4;i++) box(0.01,0.05,0.22,i%2?M.reflWhite:M.reflRed,-dir*0.05,FY+0.1,-s*(0.15+i*0.3),D).castShadow=false;
+    for(const yy of [0.12,SH-0.12]) box(0.04,0.08,0.05,M.steelDark,-dir*0.04,FY+yy,-s*0.03,D).castShadow=false; }   // петли
   /* груз */
   if(heavy){
     const cr=grp(0,0,0,g);
@@ -188,6 +216,7 @@ function flatTruck(x,z,len,dir,heavy,rotY,load){
   return g;
 }
 
+function rdoorSet(g,u){ (g.userData.rdoors||[]).forEach(D=>{ D.rotation.y=-D.userData.side*D.userData.dir*u*2.85; }); }   // u 0…1: закрыто … распахнуто к бортам
 /* ---------- казахстанский автопоезд «тандем»: грузовик + прицеп, шторные кузова ----------
    Кузов: рама с поперечинами, дощатый пол, алюминиевая обвязка с такелажными проушинами, передний борт с рёбрами,
    задний портал с распашными дверями и штангами запоров, дуги крыши, тент. Штора ближнего борта — из полотнищ:
@@ -232,6 +261,7 @@ function curtainBody(g,off,len,o){
   }
   /* дальняя штора — закрыта: полотно, ремни, пряжки */
   { const L=len-0.18; box(L,IH-0.2,0.035,M.tarp,-0.02,FY+IH/2,-(HW+0.02),b);
+    trkDecal(b,TRK.tarpLogo||(TRK.tarpLogo=decalMat([{t:'BURAQ LOGISTICS',y:70,x:512,align:'center',font:'800 120px "Barlow Condensed",sans-serif'},{t:'KHORGOS · ALMATY · ASTANA',y:176,x:512,align:'center',font:'600 52px "Barlow Condensed",sans-serif'}],null,'#1b3f8f',1024,256)),4.2,1.05,-0.02,FY+IH/2+0.25,-(HW+0.045),Math.PI);
     for(let i=0;i<Math.floor(L/0.55);i++){ box(0.045,IH-0.3,0.012,M.blackPl,-len/2+0.36+i*0.55,FY+IH/2,-(HW+0.045),b).castShadow=false;
       box(0.06,0.09,0.02,M.chrome,-len/2+0.36+i*0.55,FY+0.24,-(HW+0.05),b).castShadow=false; }
     box(L,0.3,0.004,M.tarpBlue,-0.02,RY-0.35,-(HW+0.04),b).castShadow=false;
@@ -352,6 +382,7 @@ function frameBody(g,off,len,o){
   for(const e of [-1,1]) box(0.012,0.5,0.045,M.reflYellow,e*OW,FY+0.5,zl+0.031,b).castShadow=false;   // метки на стойках проёма
   /* левая штора закрыта: полотно, ремни, пряжки */
   { const L=len-0.18; box(L,IH-0.2,0.035,M.tarp,-0.02,FY+IH/2,-(HW+0.02),b);
+    trkDecal(b,TRK.tarpLogo||(TRK.tarpLogo=decalMat([{t:'BURAQ LOGISTICS',y:70,x:512,align:'center',font:'800 120px "Barlow Condensed",sans-serif'},{t:'KHORGOS · ALMATY · ASTANA',y:176,x:512,align:'center',font:'600 52px "Barlow Condensed",sans-serif'}],null,'#1b3f8f',1024,256)),4.2,1.05,-0.02,FY+IH/2+0.25,-(HW+0.045),Math.PI);
     for(let i=0;i<Math.floor(L/0.55);i++){ box(0.045,IH-0.3,0.012,M.blackPl,-len/2+0.36+i*0.55,FY+IH/2,-(HW+0.045),b).castShadow=false;
       box(0.06,0.09,0.02,M.chrome,-len/2+0.36+i*0.55,FY+0.24,-(HW+0.05),b).castShadow=false; }
     box(L,0.3,0.004,M.tarpBlue,-0.02,RY-0.35,-(HW+0.04),b).castShadow=false; }

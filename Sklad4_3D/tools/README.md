@@ -23,6 +23,7 @@
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/walk_phys.js` | физика обхода: колонна, решётка, спрыгнуть с платформы Л2, подняться по лестнице, прыжок | нормы — в шапке файла |
 | `node tools/walktest.js` | режим обхода включает живой процесс, ходьба | `walk:true, simOn:true`, камера сдвинулась; кадр в `out/walk.jpg` |
 | `node tools/filmtest.js <html> out/ft 960 540 6,14,22,…` | контрольные кадры фильма в моменты t (с) | смотреть глазами |
+| `node tools/filmclean.js <html> out/fc 1920 1080 1.5,6,10,…` | те же кадры без надписей (стартовые кадры для Higgsfield image-to-video) | смотреть глазами |
 | `node tools/still.js <html> out/st 1600 900 shots.json` | стоп-кадры с постобработкой; в кадре можно задать `js` (до камеры) и `jsAfter` (после — например, `POST.P.exposure=EXPO.at(camera,false)`) | — |
 | `node tools/close.js <html> out/cl 1280 720 shots.json` | крупные планы фильма у объектов | — |
 | `node tools/simshot.js <html> out/sim 1280 720 tools/checks/sim_shots_example.json` | кадры живого процесса (по времени T или по условию `until`), с постобработкой и экспозицией как у пользователя | смотреть глазами |

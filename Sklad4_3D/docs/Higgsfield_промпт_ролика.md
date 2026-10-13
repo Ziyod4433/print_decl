@@ -72,10 +72,18 @@ Gates: sectional doors with glazing — L2 on the west side (loading dock 1 m ab
 
 ## 4. Сцены (порядок монтажа)
 
+Для каждой сцены теперь есть **пара кадров** (начальный и конечный из одного плана фильма) и короткий промпт — это основной режим после пробы 13.10;
+длинные промпты ниже остаются для text-to-video и для платных моделей. Запуск всех сцен одной командой: `bash tools/higgsfield/run_scenes.sh <модель> [id…]`
+(`DRY=1` — только оценка; таблица сцен — `tools/higgsfield/scenes.json`; результаты — `docs/higgsfield_кадры/клипы/`). По оценке CLI: 16 сцен × 6 с на MiniMax Hailuo = 96 кредитов.
+
 Для каждой сцены: опорный кадр, длительность, движение камеры, промпт, субтитр (подпись шага, как в фильме), звук.
 `t` — секунда нашего фильма, из которой взят кадр.
 
 ### 0. Титр · общий план (t 1.5) — `00_титр_общий_план.jpg`, 5 с
+Пара кадров для генерации «начало → конец» (один план камеры): `00_титр_общий_план.jpg` (t 1.5) → `00_титр_общий_план_конец.jpg` (t 4.4), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+Aerial drone shot slowly descending toward a modern logistics warehouse in Khorgos; a Chinese stake truck approaches the west loading dock; mountains on the horizon. Smooth forward drone move, realistic daylight.
+```
 Камера: медленный подлёт дрона сверху-сбоку к открытым воротам, лёгкий наклон вниз.
 ```
 Slow aerial drone approach over a modern logistics warehouse in Khorgos at golden morning light; the long white
@@ -86,6 +94,10 @@ slight downward tilt, crisp realistic detail, cinematic establishing shot.
 Субтитр: «СКЛАД №4 · БЛОК 4-1 · YUZHE PARK, ХОРГОС — перегрузка Китай → Казахстан». Звук: ветер, далёкие машины.
 
 ### 1. Заезд к воротам Л2 (t 6) — `01_заезд_Л2.jpg`, 6 с
+Пара кадров для генерации «начало → конец» (один план камеры): `01_заезд_Л2.jpg` (t 6) → `01_заезд_Л2_конец.jpg` (t 7.2), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+A Chinese stake truck with green lattice sides drives slowly along the yard toward the warehouse loading gate, dust behind the wheels, mountains in the background. Static camera with slight pan following the truck.
+```
 Камера: статичная с лёгким параллаксом, с уровня площадки, 45° к воротам.
 ```
 The Chinese stake truck reverses slowly toward loading gate L2, brake lights glowing, reversing beeper, tyres
@@ -96,7 +108,11 @@ on its suspension.
 ```
 Субтитр: «1 · Заезд к воротам Л2 — LPR фиксирует номер и время · фото пломбы · сверка документов». Звук: дизель, бипер заднего хода.
 
-### 2. Конвейер выдвигается в кузов (t 10) — `02_конвейер_выдвигается.jpg`, 6 с
+### 2. Конвейер выдвигается в кузов (t 12) — `02_конвейер_выдвигается.jpg`, 6 с
+Пара кадров для генерации «начало → конец» (один план камеры): `02_конвейер_выдвигается.jpg` (t 12) → `02_конвейер_выдвигается_конец.jpg` (t 18.7), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+Inside the truck bed: the orange telescopic conveyor extends from the left, its tip with the yellow operator platform sliding smoothly into the bed next to the stacked cartons while the worker watches. Camera static, only the conveyor moves.
+```
 Камера: низкая, от пола зала вдоль конвейера к воротам; медленный долли вперёд.
 ```
 Inside the hall the sectional door L2 rolls up, daylight floods in. The folded orange telescopic belt conveyor
@@ -107,6 +123,10 @@ it reaches full extension. Low camera on the floor dollying slowly toward the ga
 Субтитр: «2 · Конвейер выдвигается в кузов — телескопическая лента: база 4,6 м + 4,6 м хода». Звук: ворота, гидравлика.
 
 ### 3. Выгрузка лентой (t 20) — `03_выгрузка_лентой.jpg`, 8 с
+Пара кадров для генерации «начало → конец» (один план камеры): `03_выгрузка_лентой.jpg` (t 20) → `03_выгрузка_лентой_конец.jpg` (t 24.4), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+Workers in orange vests place brown cartons onto the moving black conveyor belt; the cartons ride along the orange conveyor toward the camera. Belt motion steady, camera static.
+```
 Камера: плечевая, полуобщий план от конца ленты в сторону кузова, лёгкое покачивание.
 ```
 A worker standing in the truck bed lifts brown cartons one by one from the stacks and places them onto the moving
@@ -117,6 +137,10 @@ belt motion, boxes slightly slipping as they accelerate, hands and gloves detail
 Субтитр: «A — малый · B — стандарт · C — длинный · D — крупный». Звук: лента, картон, голоса.
 
 ### 4. Образец каждого типа — на DWS (t 32) — `04_образец_на_DWS.jpg`, 6 с
+Пара кадров для генерации «начало → конец» (один план камеры): `04_образец_на_DWS.jpg` (t 32) → `04_образец_на_DWS_конец.jpg` (t 33.5), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+A worker sets a carton on the dimension-weight-scan station; red scanner laser lines sweep over the box; the monitor updates. Slow push-in.
+```
 Камера: средний план, медленный наезд на экран станции.
 ```
 The shift lead in an orange vest carries a sample carton to the stainless DWS station and sets it on the scale
@@ -126,6 +150,10 @@ about two seconds; he picks the box up again and carries it back toward the post
 Субтитр: «3 · Образец каждого типа — на DWS: вес, габарит и штрихкод за 2 секунды». Звук: пищание сканера.
 
 ### 5. Сборка в стоечный поддон (t 43) — `05_сборка_стойки.jpg`, 6 с
+Пара кадров для генерации «начало → конец» (один план камеры): `05_сборка_стойки.jpg` (t 43) → `05_сборка_стойки_конец.jpg` (t 45), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+Two workers stack brown cartons into a steel post pallet next to the conveyor end, heavy boxes below, light boxes on top. Natural hand movement, camera static.
+```
 Камера: статичная, 3/4 ракурс на стойку у конца ленты.
 ```
 Two workers stack cartons into a steel post pallet beside the end of the conveyor: the heavy large cartons go on
@@ -136,6 +164,10 @@ cardboard texture, no stretch film anywhere.
 Субтитр: «4 · Сборка в стоечный поддон — тяжёлое вниз, лёгкое наверх · плёнка не нужна». Звук: картон, шаги.
 
 ### 6. Размещение по FIFO · второй ярус (t 60) — `06_FIFO_второй_ярус_A6.jpg`, 8 с
+Пара кадров для генерации «начало → конец» (один план камеры): `06_FIFO_второй_ярус_A6.jpg` (t 60) → `06_FIFO_второй_ярус_A6_конец.jpg` (t 62.5), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+A dark-grey electric forklift carries a loaded steel post pallet along the warehouse aisle toward the camera, amber beacon turning. Camera tracks slowly alongside.
+```
 Камера: следящая сбоку за погрузчиком, затем остановка и наклон вверх на посадку стойки.
 ```
 The dark-grey electric forklift lifts the loaded post pallet, mast tilting back slightly, and drives along the
@@ -147,6 +179,10 @@ alongside, then stops and tilts up for the placement.
 Субтитр: «5 · Размещение по FIFO — ячейка A6, тот же день приёмки (ЧТ) · опоры садятся в чаши нижней стойки». Звук: электромотор, гидравлика, клик.
 
 ### 7. Автопоезд заезжает через П2 (t 80) — `07_автопоезд_через_П2.jpg`, 8 с
+Пара кадров для генерации «начало → конец» (один план камеры): `07_автопоезд_через_П2.jpg` (t 80) → `07_автопоезд_через_П2_конец.jpg` (t 85), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+A white road train with grey curtain sides drives slowly into the warehouse hall through the tall gate and stops; workers walk toward it. Camera static, truck moves.
+```
 Камера: широкий план изнутри зала на восточные ворота, медленный отъезд назад.
 ```
 The white Kazakh tandem road train — tractor, rigid body and full trailer with light-grey curtain sides and
@@ -158,6 +194,10 @@ Camera slowly pulls back, keeping the whole combination in frame; realistic arti
 Субтитр: «6 · Автопоезд заезжает через П2 — тандем 145 м³ встаёт внутри, правым бортом к ячейкам · упоры · шторы открыты». Звук: дизель, пневматика, шторы.
 
 ### 8. Отбор по FIFO (t 97) — `08_отбор_A14.jpg`, 6 с
+Пара кадров для генерации «начало → конец» (один план камеры): `08_отбор_A14.jpg` (t 97) → `08_отбор_A14_конец.jpg` (t 99.2), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+The forklift lifts the upper steel post pallet with cartons out of the floor cell and backs away with it. Camera static, slow motion of the mast.
+```
 Камера: средний план от прохода, лёгкое панорамирование за вилами.
 ```
 The forklift approaches floor cell A14, where two post pallets stand stacked; the day tag on the upper one reads
@@ -166,7 +206,11 @@ the forklift reverses out onto the aisle with the load. Camera pans gently follo
 ```
 Субтитр: «7 · Отбор по FIFO — первой уходит самая старая дата: ПН, ячейка A14, сначала верхняя стойка». Звук: электромотор.
 
-### 9. Стойка — в проём кузова (t 116) — `09_стойка_в_проём.jpg`, 8 с
+### 9. Стойка — в проём кузова (t 114.5) — `09_стойка_в_проём.jpg`, 8 с
+Пара кадров для генерации «начало → конец» (один план камеры): `09_стойка_в_проём.jpg` (t 114.5) → `09_стойка_в_проём_конец.jpg` (t 116.5), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+The forklift holds a loaded post pallet at the side opening of the truck body; two loaders inside take cartons one by one and set them on the truck floor. Camera static.
+```
 Камера: от кузова через проём на стойку и погрузчик, затем на руки грузчиков.
 ```
 The forklift holds the loaded post pallet raised level with the truck floor, right at the side opening of the
@@ -178,6 +222,10 @@ looking out through the opening, then a slow pan down to the loaders' hands.
 Субтитр: «8 · Стойка — в проём кузова, на поднятых вилах · грузчики кладут по одному коробу в свою дорожку». Звук: картон, шаги по полу кузова.
 
 ### 10. Пустая стойка — к приёмке (t 127) — `10_пустая_стойка_к_приёмке.jpg`, 5 с
+Пара кадров для генерации «начало → конец» (один план камеры): `10_пустая_стойка_к_приёмке.jpg` (t 127) → `10_пустая_стойка_к_приёмке_конец.jpg` (t 128.3), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+The forklift drives away along the aisle carrying an empty steel post pallet; workers continue loading in the background. Camera static.
+```
 Камера: широкий план вдоль южной магистрали.
 ```
 The forklift drives away from the road train along the main aisle carrying the now-empty post pallet toward the
@@ -187,6 +235,10 @@ in the open body. Smooth tracking shot, realistic acceleration and braking nod o
 Субтитр: «9 · Пустая стойка — к приёмке · следующая из той же ячейки — A14 освобождается целиком». Звук: зал, электромотор.
 
 ### 11. Прицеп · погрузка через проём (t 139) — `11_прицеп_через_проём.jpg`, 6 с
+Пара кадров для генерации «начало → конец» (один план камеры): `11_прицеп_через_проём.jpg` (t 139) → `11_прицеп_через_проём_конец.jpg` (t 140.3), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+The forklift driver holds the post pallet level with the trailer floor while loaders inside the trailer take cartons. Camera static, subtle motion.
+```
 Камера: 3/4 на прицеп, статичная.
 ```
 The forklift brings the second post pallet from cell A14 to the trailer, whose side opening faces the aisle; it
@@ -196,6 +248,10 @@ trailer unload cartons into their lanes. Columns and green fencing in the backgr
 Субтитр: «10 · Прицеп — погрузка через проём · вторая стойка · своя пара грузчиков». Звук: как в 9.
 
 ### 12. Пустые стойки — в два яруса у Л2 (t 156) — `12_пустые_стойки_у_Л2.jpg`, 5 с
+Пара кадров для генерации «начало → конец» (один план камеры): `12_пустые_стойки_у_Л2.jpg` (t 156) → `12_пустые_стойки_у_Л2_конец.jpg` (t 160.2), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+The forklift lowers an empty steel post pallet onto another empty one, the posts seating into the cups, then backs away. Camera static.
+```
 Камера: статичная, средний план на приёмку.
 ```
 At the reception area by gate L2 the forklift lowers an empty post pallet onto another empty one, the posts
@@ -205,6 +261,10 @@ orange conveyor stands folded beside them. Calm, tidy composition.
 Субтитр: «11 · Пустые стойки — в два яруса у ворот Л2 · готовы к следующей машине из Китая». Звук: клик металла.
 
 ### 13. Фото кузова · шторы · пломба (t 169) — `13_фото_шторы_пломба.jpg`, 8 с
+Пара кадров для генерации «начало → конец» (один план камеры): `13_фото_шторы_пломба.jpg` (t 169) → `13_фото_шторы_пломба_конец.jpg` (t 173.7), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+Two workers slide the grey curtain of the truck body closed along its rail; a storekeeper photographs the body with a phone. Camera static.
+```
 Камера: от средней к крупной — руки с телефоном, затем штора закрывается в кадр.
 ```
 The loaders jump down from the body to the concrete floor and land with a slight crouch; the storekeeper raises a
@@ -215,6 +275,10 @@ onto the curtain lock. Camera moves from a medium shot to a close-up on the hand
 Субтитр: «12 · Фото кузова · шторы · пломба — 100 % скан против плана · фото уходит клиенту». Звук: затвор, шторы, щелчок пломбы.
 
 ### 14. Выезд через П2 (t 177) — `14_выезд_через_П2.jpg`, 6 с
+Пара кадров для генерации «начало → конец» (один план камеры): `14_выезд_через_П2.jpg` (t 177) → `14_выезд_через_П2_конец.jpg` (t 178.8), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+The white road train reverses slowly in a straight line out of the warehouse through the gate into daylight. Camera static inside the hall.
+```
 Камера: статичная изнутри зала на ворота, автопоезд уходит из кадра.
 ```
 Wheel chocks are pulled away; the white tandem road train reverses slowly in a straight line out through gate P2
@@ -224,6 +288,10 @@ trailer plate passes. The hall is left quiet and tidy, light shafts from the sky
 Субтитр: «13 · Выезд через П2 — задним ходом по прямой · LPR на выезде». Звук: бипер, дизель, тишина зала.
 
 ### 15. Финал (t 184) — `15_финал.jpg`, 5 с
+Пара кадров для генерации «начало → конец» (один план камеры): `15_финал.jpg` (t 184) → `15_финал_конец.jpg` (t 185.2), 6 с. Короткий промпт для пары (рекомендуется, см. §10):
+```
+Aerial drone shot rising and pulling back from the warehouse roof with skylights, logistics park and mountains in late afternoon light.
+```
 Камера: отлёт дрона снаружи вверх и назад.
 ```
 Aerial drone shot rising and pulling back from the east gate as the road train leaves the yard onto the road toward

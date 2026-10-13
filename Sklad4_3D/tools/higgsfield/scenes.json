@@ -1,0 +1,194 @@
+[
+ {
+  "id": "00",
+  "name": "00_титр_общий_план",
+  "start": "00_титр_общий_план.jpg",
+  "end": "00_титр_общий_план_конец.jpg",
+  "t": [
+   1.5,
+   4.4
+  ],
+  "dur": 6,
+  "prompt": "Aerial drone shot slowly descending toward a modern logistics warehouse in Khorgos; a Chinese stake truck approaches the west loading dock; mountains on the horizon. Smooth forward drone move, realistic daylight."
+ },
+ {
+  "id": "01",
+  "name": "01_заезд_Л2",
+  "start": "01_заезд_Л2.jpg",
+  "end": "01_заезд_Л2_конец.jpg",
+  "t": [
+   6,
+   7.2
+  ],
+  "dur": 6,
+  "prompt": "A Chinese stake truck with green lattice sides drives slowly along the yard toward the warehouse loading gate, dust behind the wheels, mountains in the background. Static camera with slight pan following the truck."
+ },
+ {
+  "id": "02",
+  "name": "02_конвейер_выдвигается",
+  "start": "02_конвейер_выдвигается.jpg",
+  "end": "02_конвейер_выдвигается_конец.jpg",
+  "t": [
+   12,
+   18.7
+  ],
+  "dur": 6,
+  "prompt": "Inside the truck bed: the orange telescopic conveyor extends from the left, its tip with the yellow operator platform sliding smoothly into the bed next to the stacked cartons while the worker watches. Camera static, only the conveyor moves."
+ },
+ {
+  "id": "03",
+  "name": "03_выгрузка_лентой",
+  "start": "03_выгрузка_лентой.jpg",
+  "end": "03_выгрузка_лентой_конец.jpg",
+  "t": [
+   20,
+   24.4
+  ],
+  "dur": 6,
+  "prompt": "Workers in orange vests place brown cartons onto the moving black conveyor belt; the cartons ride along the orange conveyor toward the camera. Belt motion steady, camera static."
+ },
+ {
+  "id": "04",
+  "name": "04_образец_на_DWS",
+  "start": "04_образец_на_DWS.jpg",
+  "end": "04_образец_на_DWS_конец.jpg",
+  "t": [
+   32,
+   33.5
+  ],
+  "dur": 6,
+  "prompt": "A worker sets a carton on the dimension-weight-scan station; red scanner laser lines sweep over the box; the monitor updates. Slow push-in."
+ },
+ {
+  "id": "05",
+  "name": "05_сборка_стойки",
+  "start": "05_сборка_стойки.jpg",
+  "end": "05_сборка_стойки_конец.jpg",
+  "t": [
+   43,
+   45
+  ],
+  "dur": 6,
+  "prompt": "Two workers stack brown cartons into a steel post pallet next to the conveyor end, heavy boxes below, light boxes on top. Natural hand movement, camera static."
+ },
+ {
+  "id": "06",
+  "name": "06_FIFO_второй_ярус_A6",
+  "start": "06_FIFO_второй_ярус_A6.jpg",
+  "end": "06_FIFO_второй_ярус_A6_конец.jpg",
+  "t": [
+   60,
+   62.5
+  ],
+  "dur": 6,
+  "prompt": "A dark-grey electric forklift carries a loaded steel post pallet along the warehouse aisle toward the camera, amber beacon turning. Camera tracks slowly alongside."
+ },
+ {
+  "id": "07",
+  "name": "07_автопоезд_через_П2",
+  "start": "07_автопоезд_через_П2.jpg",
+  "end": "07_автопоезд_через_П2_конец.jpg",
+  "t": [
+   80,
+   85
+  ],
+  "dur": 6,
+  "prompt": "A white road train with grey curtain sides drives slowly into the warehouse hall through the tall gate and stops; workers walk toward it. Camera static, truck moves."
+ },
+ {
+  "id": "08",
+  "name": "08_отбор_A14",
+  "start": "08_отбор_A14.jpg",
+  "end": "08_отбор_A14_конец.jpg",
+  "t": [
+   97,
+   99.2
+  ],
+  "dur": 6,
+  "prompt": "The forklift lifts the upper steel post pallet with cartons out of the floor cell and backs away with it. Camera static, slow motion of the mast."
+ },
+ {
+  "id": "09",
+  "name": "09_стойка_в_проём",
+  "start": "09_стойка_в_проём.jpg",
+  "end": "09_стойка_в_проём_конец.jpg",
+  "t": [
+   114.5,
+   116.5
+  ],
+  "dur": 6,
+  "prompt": "The forklift holds a loaded post pallet at the side opening of the truck body; two loaders inside take cartons one by one and set them on the truck floor. Camera static."
+ },
+ {
+  "id": "10",
+  "name": "10_пустая_стойка_к_приёмке",
+  "start": "10_пустая_стойка_к_приёмке.jpg",
+  "end": "10_пустая_стойка_к_приёмке_конец.jpg",
+  "t": [
+   127,
+   128.3
+  ],
+  "dur": 6,
+  "prompt": "The forklift drives away along the aisle carrying an empty steel post pallet; workers continue loading in the background. Camera static."
+ },
+ {
+  "id": "11",
+  "name": "11_прицеп_через_проём",
+  "start": "11_прицеп_через_проём.jpg",
+  "end": "11_прицеп_через_проём_конец.jpg",
+  "t": [
+   139,
+   140.3
+  ],
+  "dur": 6,
+  "prompt": "The forklift driver holds the post pallet level with the trailer floor while loaders inside the trailer take cartons. Camera static, subtle motion."
+ },
+ {
+  "id": "12",
+  "name": "12_пустые_стойки_у_Л2",
+  "start": "12_пустые_стойки_у_Л2.jpg",
+  "end": "12_пустые_стойки_у_Л2_конец.jpg",
+  "t": [
+   156,
+   160.2
+  ],
+  "dur": 6,
+  "prompt": "The forklift lowers an empty steel post pallet onto another empty one, the posts seating into the cups, then backs away. Camera static."
+ },
+ {
+  "id": "13",
+  "name": "13_фото_шторы_пломба",
+  "start": "13_фото_шторы_пломба.jpg",
+  "end": "13_фото_шторы_пломба_конец.jpg",
+  "t": [
+   169,
+   173.7
+  ],
+  "dur": 6,
+  "prompt": "Two workers slide the grey curtain of the truck body closed along its rail; a storekeeper photographs the body with a phone. Camera static."
+ },
+ {
+  "id": "14",
+  "name": "14_выезд_через_П2",
+  "start": "14_выезд_через_П2.jpg",
+  "end": "14_выезд_через_П2_конец.jpg",
+  "t": [
+   177,
+   178.8
+  ],
+  "dur": 6,
+  "prompt": "The white road train reverses slowly in a straight line out of the warehouse through the gate into daylight. Camera static inside the hall."
+ },
+ {
+  "id": "15",
+  "name": "15_финал",
+  "start": "15_финал.jpg",
+  "end": "15_финал_конец.jpg",
+  "t": [
+   184,
+   185.2
+  ],
+  "dur": 6,
+  "prompt": "Aerial drone shot rising and pulling back from the warehouse roof with skylights, logistics park and mountains in late afternoon light."
+ }
+]

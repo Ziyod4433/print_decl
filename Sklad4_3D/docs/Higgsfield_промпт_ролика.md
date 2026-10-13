@@ -283,9 +283,13 @@ text gibberish on signs, watermark, lens flare overload, slow motion, time-lapse
   отключить → подключить заново, войдя нужным профилем → начать новую сессию (коннекторы читаются при старте сессии).
   После этого: `media_upload` 16 кадров → `generate_video` (seedance_2_0_mini, 5 кредитов/клип — на 10 кредитов два пробных клипа;
   полный ролик — см. §7).
-- **CLI** `@higgsfield/cli` 1.1.26 установлен глобально (`higgsfield`). Вход `higgsfield auth login` — OAuth через браузер с
-  возвратом на `http://localhost:8765/callback`: из облачной сессии завершить нельзя (браузер пользователя не достаёт до
-  контейнера). Работает на своём компьютере: `npm i -g @higgsfield/cli && higgsfield auth login`, затем скиллы ниже.
+- **CLI** `@higgsfield/cli` 1.1.26 установлен глобально (`higgsfield`). Вход `higgsfield auth login` — OAuth через браузер с возвратом
+  на `http://localhost:8765/callback`; из облачной сессии его можно довести до «Device authorized», передав адрес возврата процессу
+  вручную (`curl "http://localhost:8765/callback?code=…&state=…"`), но дальше CLI падает с «Cannot reach token endpoint»:
+  **сетевая политика облачного окружения запрещает хосты Higgsfield** (`clerk.higgsfield.ai`, `api.higgsfield.ai`, `higgsfield.ai` —
+  прокси отвечает 403 на CONNECT). Пока эти хосты не разрешены в настройках сети окружения, CLI и скиллы в облаке работать не будут;
+  коннектор Higgsfield в claude.ai (MCP) работает — он идёт не через сеть контейнера. На своём компьютере CLI работает сразу:
+  `npm i -g @higgsfield/cli && higgsfield auth login`.
 - **Скиллы** `higgsfield-ai/skills` установлены в проект: `.agents/skills/higgsfield-*` (+ ссылки `.claude/skills/`, `skills-lock.json`):
   `higgsfield-generate` (генерация через CLI), `-video-explainer`, `-product-photoshoot`, `-brandkit`, `-soul-id`,
   `-marketplace-cards`, `-websites`, `-youtube-thumbnail`. Они вызывают CLI, поэтому требуют выполненного `auth login`.

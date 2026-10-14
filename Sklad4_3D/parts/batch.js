@@ -31,9 +31,9 @@ function batchStatic(){
     return true; };
   scene.updateMatrixWorld(true);
   let before=0; scene.traverse(o=>{ if(o.isMesh) before++; });
-  const containers=[]; const isBoundary=o=>KEEP.has(o)||PICK.has(o)||SKIP.has(o)||!o.visible;
+  const containers=[]; const isBoundary=o=>KEEP.has(o)||PICK.has(o)||SKIP.has(o)||!o.visible||!!o.userData.isHuman;   // человек — граница: его реквизит (планшет, телефон) и снаряжение двигаются с позой (14.10: планшет «приваривался» в позе при загрузке)
   Object.values(G).forEach(g=>{ if(g&&g.isObject3D&&!SKIP.has(g)) containers.push(g); });
-  PICK.forEach(o=>{ if(!SKIP.has(o)&&!o.isMesh) containers.push(o); }); KEEP.forEach(o=>{ if(!SKIP.has(o)&&!o.isMesh) containers.push(o); });
+  PICK.forEach(o=>{ if(!SKIP.has(o)&&!o.isMesh&&!o.userData.isHuman) containers.push(o); }); KEEP.forEach(o=>{ if(!SKIP.has(o)&&!o.isMesh) containers.push(o); });
   const done=new Set(), _m=new THREE.Matrix4(), _inv=new THREE.Matrix4(), _n=new THREE.Matrix3(), _v=new THREE.Vector3();
   let made=0;
   for(const C of containers){

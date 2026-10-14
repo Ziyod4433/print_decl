@@ -31,9 +31,10 @@ const TRUCK_CL=[[0,1,2],[3,4,5]];                            // клиенты �
    fk0 — старт погрузчика, SUP — где стоит старший смены, hideP — штатный человек, который мешал бы на этом варианте,
    nav — дорожки людей у приёмки и путь в зону DWS [x0,z0,x1,z1,цена] (сторона, откуда заезжает погрузчик, дороже),
    wt — грузчик в кузове (место и куда смотрит нос ленты, локально в кузове), hideX — штатный груз кузова западнее этой x
-   скрывается, blocks — площадки, на которых лежит груз нашей машины (локально в кузове). */
+   скрывается, blocks — площадки, на которых лежит груз нашей машины (локально в кузове); nogo — где у хвоста конвейера не встать,
+   faces — с каких граней стойки клиента кладут упаковщик и контролёр (упаковщик ждёт севернее конца ленты, контролёр — южнее). */
 const RCPV={
-  1:{name:'машина у Л2 (площадка)',RKS:[[5.75,11.95],[8.25,11.95]],SPP:[10.75,11.95],rkYaw:0,PK:[4.66,11.42],CT:[4.55,10.3],
+  1:{name:'машина у Л2 (площадка)',RKS:[[5.75,11.95],[8.25,11.95]],SPP:[10.75,11.95],rkYaw:0,PK:PK_PICK,CT:CT_WAIT,nogo:NOGO_L2,faces:{PW:['W','N','E'],CT:['S','E','W']},
      tl:[0.35,0,10.9,PI],eos:[[13.2,11.0],[18.7,11.0],[20.5,11.0]],fk0:[10.0,ZL,PI/2,'ZL'],SUP:[2.4,13.4,2.5],
      nav:NAV_L2,
      door:'L2',wt:{x:-0.32,z:0.62,hx:0,hz:1},hideX:2.35,
@@ -41,7 +42,7 @@ const RCPV={
   2:{name:'машина через П1 (полоса Л1–П1)',RKS:[[25.3,30.6],[27.8,30.6]],SPP:[22.8,30.6],rkYaw:PI,PK:[27.5,32.28],CT:[26.6,33.4],
      tl:[32.48,0,32.8,0],eos:[[10.8,30.6],[12.8,30.6]],fk0:[10.0,ZN,PI/2,'ZN'],SUP:[20.4,32.5,1.6],hideP:[21.5,30.2],
      nav:[[21.68,31.72,28.92,31.72,1],[21.68,29.48,28.92,29.48,3],[21.68,29.48,21.68,31.72,1],[24.05,29.48,24.05,31.72,1],[26.55,29.48,26.55,31.72,1],[28.92,29.48,28.92,31.72,1],
-          [28.92,31.72,33.6,31.85,1],[33.6,31.85,33.6,6.9,1]],
+          [28.92,31.72,30.9,31.72,1],[30.9,31.72,31.2,31.15,1],[31.2,31.15,33.6,31.15,1],[33.6,31.15,33.6,6.9,1]],   // южнее носа сложенного конвейера (площадка оператора x 31,42…32,31, z 31,45…32,31), 14.10
      door:'P1',home:{x:38.52,y:0,z:32.8,r:PI},wt:{x:0.1,z:0.0,hx:1,hz:0},hideX:9,
      blocks:[{x0:-3.6,x1:-0.95,z0:-1.2,z1:1.18}]}
 };
@@ -200,7 +201,7 @@ function setup(){
   mkH('W3',F.W3,46.5,7.5,0); mkH('W5',F.W5,47.0,13.0,-2.2); S.hum.W5.H.root.visible=true;
   F.W4.root.visible=false; F.W4box.visible=false;
   S.bw=F.bod.map(b=>{ b.updateMatrixWorld(true); const p=b.localToWorld(V(RB.x,0,RB.z)); return [p.x,p.z]; });
-  S.kPos={K1:[1.9,-0.4],K2:[-1.9,-0.3],K3:[1.9,-0.4],K4:[-1.9,-0.3]}; S.kIdle={K1:-PI/2,K2:PI/2,K3:-PI/2,K4:PI/2};
+  S.kPos={K1:[0.45,-0.8],K2:[-0.45,-0.8],K3:[0.45,-0.8],K4:[-0.45,-0.8]}; S.kIdle={K1:-0.3,K2:0.3,K3:-0.3,K4:0.3};   // ждут у дальнего борта за стойкой: на x ±1,9 стояли внутри будущих стопок (14.10)
   CREW.forEach((cw,r)=>{ const bx=S.bw[r][0]; const spot={[cw[0]]:[bx+1.5,13.2],[cw[1]]:[bx+4.75,13.2]};
     cw.forEach(w=>{ const rp=REC_SPOT[w], [ip,iy]=IDLE_AT.rec[w]; mkH(w,F.KH[w],rp[0],rp[1],iy); const h=S.hum[w]; h.tr=new Track().key(0,rp[0],rp[1],iy,ip).fin(); h.idle=ip;
       h.spot=spot[w]; h.rec=rp; h.body=r; h.state='wait'; }); });
@@ -242,8 +243,16 @@ function laneFree(body,ti){ const L=KZLANE[ti], lanes=S.kz.lanes[body], cap=Math
 function laneSlot2(body,side,ti,h){ const L=KZLANE[ti], lanes=S.kz.lanes[body];
   const cap=Math.floor(3.6/L.d)*L.n; if(lanes[side][ti]>=cap) side=side==='S'?'N':'S'; if(lanes[side][ti]>=cap) return null;
   const n=lanes[side][ti]++, st=Math.floor(n/L.n), lv=n%L.n, X0=side==='S'?-4.85:4.85, sg=side==='S'?1:-1, hy=lanes.hy[side][ti], y=lv?(hy[st]||0):0; hy[st]=y+h+0.004;
-  const xc=X0+sg*L.d*(st+0.5), xf=X0+sg*L.d*(st+1);
-  return {lp:V(xc,BEDY+y,L.z),stand:[xf+sg*0.42,L.z],yaw:side==='S'?-PI/2:PI/2,y}; }
+  const xc=X0+sg*L.d*(st+0.5), xf=X0+sg*L.d*(st+1), sx=L.z>-0.61?(side==='S'?Math.min(xf+0.42,-KSTRIP):Math.max(xf-0.42,KSTRIP)):xf+sg*0.42;   // напротив стойки в проёме — не ближе полосы x ±1,03
+  return {lp:V(xc,BEDY+y,L.z),stand:[sx,L.z],yaw:side==='S'?-PI/2:PI/2,y}; }
+/* по кузову — в обход стойки в проёме (x ±0,81, z −0,31…1,31): ждут у дальнего борта, работают в полосе x ±1,03 между стойкой
+   и стопками (полоса 0,44 м); переход между ними — через точку у угла стойки, а не сквозь неё */
+const KSTRIP=1.03;
+function bodyGo(trk,t,from,to,yaw,pose,v){ const low=p=>Math.abs(p[0])<KSTRIP-0.02&&p[1]<-0.35, W=[], sf=Math.sign(from[0])||1, st=Math.sign(to[0])||1;
+  if(!low(from)&&!low(to)&&sf!==st&&Math.abs(from[0])>0.6&&Math.abs(to[0])>0.6) W.push([sf*KSTRIP,-0.62],[st*KSTRIP,-0.62]);   // ряд на другой стороне (свой заполнен) — за стойкой
+  else if(low(from)!==low(to)) W.push([(Math.sign((low(from)?to:from)[0])||1)*KSTRIP,-0.62]);
+  for(const w of W){ t+=Math.max(0.3,hyp2(from,w)/v); trk.key(t,w[0],w[1],Math.atan2(w[0]-from[0],w[1]-from[1]),pose); from=w; }
+  t+=Math.max(0.4,hyp2(from,to)/v); trk.key(t,to[0],to[1],yaw,pose); return t; }
 /* задание «из рук — в место»: до grab — src, потом в руках, в rel — дуга в dst, затем оседание */
 function job(b,who,grab,rel,src,dst,fin){ const j={b,who,grab,rel,src,dst,fin,done:false}; b.mode='job'; b.job=j; S.jobs.push(j); return j; }
 function boxFrame(b,T){
@@ -463,15 +472,14 @@ function startUnload(){ const h=S.hold, r=h.rack, body=h.body, t0=S.T+0.6, wn=CR
     if(!w) break;
     o.done=true; left--;
     const b=o.b, cw=b.w, hv=b.hv, side=sideOf[w], H=S.hum[w], trk=H.tr;
-    const ps=[RB.x+(side==='S'?-1:1)*(0.75+0.38),Math.max(-0.05,Math.min(0.95,RB.z+o.z))], pyaw=side==='S'?PI/2:-PI/2;
-    let t=free[w]+Math.max(0.4,hyp2(cur[w],ps)/1.35); trk.key(t,ps[0],ps[1],pyaw,{});
+    const ps=[RB.x+(side==='S'?-1:1)*KSTRIP,Math.max(-0.05,Math.min(0.95,RB.z+o.z))], pyaw=side==='S'?PI/2:-PI/2;
+    let t=bodyGo(trk,free[w],cur[w],ps,pyaw,{},1.35);
     let tw=t; o.deps.forEach(d=>{ tw=Math.max(tw,g.get(d)+0.7); }); if(tw>t+0.05){ trk.key(tw,ps[0],ps[1],pyaw,{}); t=tw; }
     trk.key(t+0.42,ps[0],ps[1],pyaw,o.y<0.6?{reach:1,bend:0.5,squat:0.3}:o.y<1.0?{reach:1,bend:0.28}:{reach:1,bend:0.08});
     const grab=t+0.48; g.set(o,grab);
     trk.key(t+0.86,ps[0],ps[1],pyaw,{carry:1,cw,heavy:hv});
     const L=laneSlot2(body,side,b.ti,b.h); if(!L){ cur[w]=ps; free[w]=t+0.9; continue; }       // места нет — короб остаётся в стойке (bodyFits этого не допускает)
-    const t1=t+0.86+Math.max(0.6,hyp2(ps,L.stand)/(1.2-0.25*hv));
-    trk.key(t1,L.stand[0],L.stand[1],L.yaw,{carry:1,cw,heavy:hv});
+    const t1=bodyGo(trk,t+0.86,ps,L.stand,L.yaw,{carry:1,cw,heavy:hv},1.2-0.25*hv);
     trk.key(t1+0.42,L.stand[0],L.stand[1],L.yaw,Object.assign({cw,heavy:hv*0.5},placePose(L.y)));
     const rel=t1+0.5; trk.key(t1+0.9,L.stand[0],L.stand[1],L.yaw,{bend:0.05});
     const bd=F.bod[body], src=r.free?(()=>{ const it=o.it; return ()=>putFree(b,r,it,9); })():(()=>{ const s=o.s, y=r.ys[s]; return ()=>{ const q=RSLOT[s]; putSlot(b.o,r.o,q.x+b.pl.jx,y,q.z+b.pl.jz,b.pl.jy,9,b.pl); }; })();
@@ -480,7 +488,7 @@ function startUnload(){ const h=S.hold, r=h.rack, body=h.body, t0=S.T+0.6, wn=CR
     S.ev.push({T:rel,f:()=>loadAdd(body,b.kg,L.lp.x)});
     free[w]=t1+0.92; cur[w]=L.stand; tEnd=Math.max(tEnd,rel+0.5);
   }
-  for(const w of CREW[body]){ const p=S.kPos[w], t=free[w]+Math.max(0.4,hyp2(cur[w],p)/1.35); S.hum[w].tr.key(t,p[0],p[1],S.kIdle[w],{}); S.hum[w].tr.fin(); S.hum[w].free=t; S.hum[w].x=p[0]; S.hum[w].z=p[1]; }
+  for(const w of CREW[body]){ const p=S.kPos[w], t=bodyGo(S.hum[w].tr,free[w],cur[w],p,S.kIdle[w],{},1.35); S.hum[w].tr.fin(); S.hum[w].free=t; S.hum[w].x=p[0]; S.hum[w].z=p[1]; }
   S.unload={tEnd:tEnd+0.6,done:false};
 }
 
@@ -553,7 +561,7 @@ function beltPick(h,b,pl){ b.taken=true; S.ev.push({T:pl.grab-0.05,f:()=>{ const
 /* короб клиента: с ленты — в слот его стойки */
 function planToRack(h,b,p){ const r=p.r, s=freeSlot(r,b.ti); if(s===null) return false;
   const q=RSLOT[s], y=slotY(r,s), home=homeOf(h);
-  for(const st of faceCands(p.x,p.z,S.rc.rkYaw,q.x,q.z)){ const tr=new Track().key(S.T,h.x,h.z,h.yaw,{});
+  for(const st of faceCands(p.x,p.z,S.rc.rkYaw,q.x,q.z,S.rc.faces&&S.rc.faces[h===S.hum.PW?'PW':'CT'],S.rc.nogo)){ const tr=new Track().key(S.T,h.x,h.z,h.yaw,{});
     const c=carrySeg(tr,S.T+0.05,b,{pick:[h.x,h.z,home[2]],pickPose:{reach:1,bend:0.3},toPlace:hRoute(h,[h.x,h.z],[st.x,st.z]),place:[st.x,st.z,st.yaw],placeY:y});
     const tE=walkSeg(tr,c.t,hRoute(h,[st.x,st.z],home),home[2]); tr.fin();
     if(!planOK(h,tr,tE)) continue;
@@ -564,7 +572,7 @@ function planToRack(h,b,p){ const r=p.r, s=freeSlot(r,b.ti); if(s===null) return
 /* образец: с ленты — в поддон образцов, «как ляжет» (Pack) */
 function planToSP(h,b){ const sp=S.spp.r; if(!sp||!sp.free) return false; const cand=packFind(sp.pack,b); if(!cand) return false;
   const pos=packPos(sp.pack,cand), home=homeOf(h);
-  for(const st of faceCands(S.spp.x,S.spp.z,S.rc.rkYaw,pos.x,pos.z)){ const tr=new Track().key(S.T,h.x,h.z,h.yaw,{});
+  for(const st of faceCands(S.spp.x,S.spp.z,S.rc.rkYaw,pos.x,pos.z,null,S.rc.nogo)){ const tr=new Track().key(S.T,h.x,h.z,h.yaw,{});
     const c=carrySeg(tr,S.T+0.05,b,{pick:[h.x,h.z,home[2]],pickPose:{reach:1,bend:0.3},toPlace:hRoute(h,[h.x,h.z],[st.x,st.z]),place:[st.x,st.z,st.yaw],placeY:pos.y,relAt:packUnderRel(sp.pack,cand)});
     const tE=walkSeg(tr,c.t,hRoute(h,[st.x,st.z],home),home[2]); tr.fin();
     if(!planOK(h,tr,tE)) continue;

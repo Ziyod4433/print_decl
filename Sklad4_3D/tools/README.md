@@ -20,6 +20,10 @@
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/walk_knock.js` | обход: наезд погрузчика — падение и подъём | `hits` 1, камера опускается до ~0,23 м и через ~3,5 с встаёт |
 | `node tools/simrun.js Sklad4_realistic_film.html 30000 3` | живой процесс: два полных цикла (третий аргумент — на каком цикле остановиться, по умолчанию 2): погрузчик, вилы и стойка на вилах против препятствий (`HITS`), люди рядом с погрузчиком (`HUM`), люди против неподвижных препятствий, аппаратов DWS и стоек (`HP`, с 14.10); ~40 мин счёта | доходит до `=== НОВЫЙ ЦИКЛ 3`, `HITS` пусто, `HUM {}`, `HP []` |
 | `SIMV=2 node tools/simrun.js Sklad4_realistic_film.html 30000 3` | то же для второго варианта приёмки (машина через П1 на полосе Л1–П1) | `HITS` пусто, `HUM {}`, `HP []` |
+| `node tools/ev.js Sklad4_realistic_film.html tools/checks/people_body.js` | тело людей: ботинки над полом и не перевёрнуты во всех позах, шаге и беге; кисти и предплечья не в куртке и жилете | нормы — в шапке файла |
+| `NOBATCH=1 node tools/ev.js Sklad4_realistic_film.html tools/checks/people_space.js` | люди обычного вида: тело (цилиндр r 0,2) не в оборудовании, стойках, стенах и не друг в друге | `bad []`, `pairs []` |
+| `NOBATCH=1 node tools/ev.js Sklad4_realistic_film.html tools/checks/people_space_film.js` | то же в фильме, кадры каждые 0,25 с | `bad []` |
+| `NOBATCH=1 node tools/ev.js Sklad4_realistic_film.html tools/checks/people_space_sim.js` | то же в живом процессе до `window.__PSS_T` с (по умолчанию 1500; два цикла — 3200), вариант П1 — `window.__SIMV=2` (строкой перед скриптом); ~10 мин | `bad []` или краткие касания коробов у ряда (≤0,12 м) |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/sim_timeline.js` | хронология цикла (машины, задачи погрузчика, журнал) | — |
 | `node tools/test_save.js` | автосохранение правки в сам файл и открытие копии | шаг 2 видит правку |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/walk_phys.js` | физика обхода: колонна, решётка, спрыгнуть с платформы Л2, подняться по лестнице, прыжок, не пройти сквозь Goodscan и портальный DWS | нормы — в шапке файла |

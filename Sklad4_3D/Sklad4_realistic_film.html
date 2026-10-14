@@ -7021,7 +7021,7 @@ const HUM=(()=>{
      Мокап-скелет (выше) остаётся «драйвером»: его локальные повороты копируются на кости модели.
      Одежда: пиджак → рабочая куртка (обрезаны фалды, перекраска), брюки → рабочие, туфли → ботинки,
      сигнальный жилет со световозвращающими полосами — отдельная оболочка поверх торса, каска на кости головы. */
-  const ALL=[], RP={ready:false,cb:[],src:null,tex:{},mat:{}};
+  const ALL=[], RP={ready:false,cb:[],src:null,tex:{},mat:{},xq:{}}, LEGX=['LeftUpLeg','LeftLeg','LeftFoot','RightUpLeg','RightLeg','RightFoot'];
   const QC=new THREE.Quaternion(-0.70710678,0,0,0.70710678);
   let KH=0.96, HY=1.02, SP2=1.35;
   const hexRGB=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
@@ -7100,6 +7100,32 @@ const HUM=(()=>{
       for(let v=0;v<P2.count;v++) P2.setXYZ(v,hp.getX(v)+hn.getX(v)*0.0045,hp.getY(v)+hn.getY(v)*0.0045,hp.getZ(v)+hn.getZ(v)*0.0045);
       g2.setIndex(ki); g2.computeVertexNormals();
       const hm=new THREE.SkinnedMesh(g2,hairMat('#1a1512')); hm.name='Wolf3D_HairCut'; head.parent.add(hm); hm.bind(head.skeleton,head.bindMatrix); }
+    /* ноги: у драйвера бедро и голень повёрнуты на 180° вокруг своей оси относительно привязки модели, и прямое копирование поворотов
+       выворачивало ботинки (подошва вверх и назад, пятка на 12 см над полом, из штанины видна кожа). Поправка xq возвращает кость ноги
+       в позу привязки (относительно таза), когда драйвер в покое; в rpmSync локальный поворот = xq(родителя)⁻¹ · драйвер · xq */
+    { const sk=sc.getObjectByName('Wolf3D_Body').skeleton, m=new THREE.Matrix4(), p=new THREE.Vector3(), s=new THREE.Vector3(), BQ={}, Q0={};
+      sk.bones.forEach((b,i)=>{ const q=new THREE.Quaternion(); m.copy(sk.boneInverses[i]).invert().decompose(p,q,s); BQ[b.name]=q; });
+      MOCAP.B.forEach(([n,par,pos,q])=>{ Q0[n]={par,q:new THREE.Quaternion().fromArray(q)}; });
+      const hb=BQ.Hips.clone().invert();
+      for(const n of LEGX){ if(!Q0[n]||!BQ[n]) continue; const ch=new THREE.Quaternion(); for(let k=n;k&&k!=='Hips';k=Q0[k].par) ch.premultiply(Q0[k].q);
+        const q=ch.invert().multiply(hb).multiply(BQ[n]), pa=RP.xq[Q0[n].par]; RP.xq[n]={q,pi:pa?pa.q.clone().invert():null}; } }
+    /* световозвращающие ленты на голенях — по сечению штанины на своей высоте (+4 мм): цилиндр r 9,7 см висел в 2–3 см от брюк */
+    RP.band={}; for(const L of ['Left','Right']){ const bot=sc.getObjectByName('Wolf3D_Outfit_Bottom'), sk=bot.skeleton, li=sk.bones.findIndex(b=>b.name===L+'Leg'), bp=bot.geometry.attributes.position, ix=bot.geometry.index.array;
+      const M=new THREE.Matrix4().multiplyMatrices(sk.boneInverses[li],bot.bindMatrix), N=24, vs=[], sx=L==='Left'?1:-1;
+      for(let v=0;v<bp.count;v++) vs.push(bp.getX(v)*sx>0?new THREE.Vector3().fromBufferAttribute(bp,v).applyMatrix4(M):null);   // своя штанина в осях голени
+      for(const yy of [0.27,0.33]){ const r=new Array(N).fill(0), bin=a=>((Math.floor((a+Math.PI)/(2*Math.PI)*N)%N)+N)%N;
+        for(let t=0;t<ix.length;t+=3) for(let e=0;e<3;e++){ const a=vs[ix[t+e]], b=vs[ix[t+(e+1)%3]]; if(!a||!b||a.y===b.y||(a.y-yy)*(b.y-yy)>0) continue;
+          const k=(yy-a.y)/(b.y-a.y), x=a.x+(b.x-a.x)*k, z=a.z+(b.z-a.z)*k, i=bin(Math.atan2(x,z)); r[i]=Math.max(r[i],Math.hypot(x,z)); }
+        const mx=Math.max(...r); for(let i=0;i<N;i++) if(!r[i]){ let j=1; while(j<N&&!r[(i+j)%N]&&!r[(i-j+N)%N]) j++; r[i]=Math.max(r[(i+j)%N],r[(i-j+N)%N])||mx; }
+        const g=new THREE.CylinderGeometry(1,1,0.028,N*2,1,true), gp=g.attributes.position;
+        for(let v=0;v<gp.count;v++){ const x=gp.getX(v), z=gp.getZ(v), a=Math.atan2(x,z), f=(a+Math.PI)/(2*Math.PI)*N-0.5, i0=Math.floor(f), w=f-i0;
+          const rr=r[((i0%N)+N)%N]*(1-w)+r[((i0+1)%N+N)%N]*w+0.004; gp.setXYZ(v,Math.sin(a)*rr,gp.getY(v),Math.cos(a)*rr); }
+        g.computeVertexNormals(); RP.band[L+yy]=g; } }
+    /* носок ботинка (нижняя кромка спереди) в осях кости пальцев: по нему в rpmSync сгибается носок, чтобы не уходил в пол */
+    RP.tip={}; { const fw=sc.getObjectByName('Wolf3D_Outfit_Footwear'), sk=fw.skeleton, fp=fw.geometry.attributes.position;
+      for(const L of ['Left','Right']){ const ti=sk.bones.findIndex(b=>b.name===L+'ToeBase'), sx=L==='Left'?1:-1; let best=null;
+        for(let v=0;v<fp.count;v++){ if(fp.getX(v)*sx<=0||fp.getY(v)>0.025) continue; if(!best||fp.getZ(v)>fp.getZ(best)) best=v; }
+        if(ti>=0&&best!==null) RP.tip[L]=new THREE.Vector3().fromBufferAttribute(fp,best).applyMatrix4(fw.bindMatrix).applyMatrix4(sk.boneInverses[ti]); } }
     sc.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; o.frustumCulled=false; } });
     RP.src=gl;
   }
@@ -7124,7 +7150,7 @@ const HUM=(()=>{
       if(lead){ add(rb.Spine2,new THREE.Mesh(new THREE.BoxGeometry(0.032,0.095,0.024),MT.scanner),-0.095,0.155,0.128);           // рация на правой лямке
         add(rb.Spine2,new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.004,0.1,6),MT.strap),-0.105,0.25,0.128).castShadow=false; } }
     if(!prof.guard) for(const L of ['Left','Right']){ const b=rb[L+'Leg']; if(!b) continue;                                     // ленты на голенях
-      for(const yy of [0.27,0.33]) add(b,new THREE.Mesh(new THREE.CylinderGeometry(0.097,0.094,0.028,18,1,true),MT.refl),0,yy,0).castShadow=false; }
+      for(const yy of [0.27,0.33]) add(b,new THREE.Mesh(RP.band[L+yy],MT.refl),0,yy,0).castShadow=false; }
     if(rb.Head&&v.h>0.72&&!prof.guard){ const gl=new THREE.Group(); const lens=std(0x9fb8c8,.1,0,{transparent:true,opacity:.5,envMapIntensity:1.4});   // защитные очки
       for(const s of [-1,1]){ const l=new THREE.Mesh(new THREE.BoxGeometry(0.046,0.026,0.004),lens); l.position.set(s*0.031,0.044,0.097); l.rotation.y=s*0.25; gl.add(l);
         const tm=new THREE.Mesh(new THREE.BoxGeometry(0.004,0.006,0.11),MT.strap); tm.position.set(s*0.066,0.046,0.045); gl.add(tm); }
@@ -7172,6 +7198,7 @@ const HUM=(()=>{
     const hd=H.rb.Head;
     if(prof.hat){ const h=hardHat(MT[prof.hat]); h.position.set(0,0.104,0.012); h.rotation.x=-0.06; hd.add(h); H.hat=h; }
     else if(guard){ const h=guardCap(); h.position.set(0,0.165,0.01); hd.add(h); H.hat=h; }
+    H.toe0={}; for(const L of ['Left','Right']) if(H.rb[L+'ToeBase']) H.toe0[L]=H.rb[L+'ToeBase'].quaternion.clone();
     H.fing=[]; for(const k in H.rb){ const mm=/^(Left|Right)Hand(Thumb|Index|Middle|Ring|Pinky)([123])$/.exec(k); if(mm) H.fing.push({b:H.rb[k],q0:H.rb[k].quaternion.clone(),L:mm[1]==='Left',th:mm[2]==='Thumb',j:+mm[3]}); }
     const rh=H.rb.RightHand; if(rh){ H.scanner.position.set(0,0.09,0.035); H.scanner.rotation.set(0,Math.PI,0); rh.add(H.scanner); }
     gear(H,prof,v);
@@ -7180,13 +7207,25 @@ const HUM=(()=>{
   function rpmSync(H){ const rb=H.rb;
     for(const n of BN){ const b=H.B[n], r=rb[n]; if(!r) continue;
       if(n==='Hips'){ r.quaternion.copy(QC).multiply(b.quaternion); const p=b.position; r.position.set(p.x*0.01*KH,p.z*0.01*KH,-p.y*0.01*KH); }
+      else if(RP.xq[n]){ const x=RP.xq[n]; r.quaternion.copy(b.quaternion).multiply(x.q); if(x.pi) r.quaternion.premultiply(x.pi); }
       else r.quaternion.copy(b.quaternion); }
+    /* носок: у драйвера нет кости пальцев, и при отрыве стопы жёсткий ботинок входил носком в пол на 5 см — сгиб по линии пальцев
+       поднимает кромку носка на 4 мм над полом (пол — плоскость y=0 человека; у сбитого с ног не считается) */
+    if(H.toe0&&!H.knock) for(const L of ['Left','Right']){ const tb=rb[L+'ToeBase'], tp=RP.tip[L]; if(!tb||!tp) continue;
+      tb.quaternion.copy(H.toe0[L]); rb[L+'Foot'].updateWorldMatrix(true,false); tb.updateWorldMatrix(false,false);
+      _tw.setFromMatrixPosition(tb.matrixWorld); _tq.copy(tp).applyMatrix4(tb.matrixWorld); H.root.worldToLocal(_tl.copy(_tw)); H.root.worldToLocal(_tr.copy(_tq));
+      const dy=_tr.y-_tl.y, d=_tr.distanceTo(_tl); if(_tr.y>=0.004||d<1e-4) continue;
+      const th=Math.min(0.9,Math.asin(Math.max(-1,Math.min(1,(0.004-_tl.y)/d)))-Math.asin(Math.max(-1,Math.min(1,dy/d)))); if(!(th>0)) continue;
+      H.root.getWorldQuaternion(_tqq); _tax.subVectors(_tq,_tw).cross(_tup.set(0,1,0).applyQuaternion(_tqq)).normalize();
+      tb.parent.getWorldQuaternion(_tpq); tb.getWorldQuaternion(_twq); _twq.premultiply(_trq.setFromAxisAngle(_tax,th)); tb.quaternion.copy(_tpq.invert().multiply(_twq)); }
     /* пальцы: хват зависит от позы (несёт, держит ручку или руль, сканер в правой) */
     if(H.fing){ const p=H.st||{}, g=Math.max(p.carry||0,p.push||0,p.drive||0,(p.reach||0)*0.35);
       for(const f of H.fing){ let c=0.22+0.75*g; if(!f.L&&p.scan) c=Math.max(c,0.95);
         const a=f.th?c*0.35:c*(f.j===1?0.75:1.05);
         f.b.quaternion.copy(f.q0).multiply(_fq.setFromAxisAngle(_fx,a)); } } }
   const _fq=new THREE.Quaternion(), _fx=new THREE.Vector3(1,0,0), _fz=new THREE.Vector3(0,0,1);
+  const _tw=new THREE.Vector3(), _tq=new THREE.Vector3(), _tl=new THREE.Vector3(), _tr=new THREE.Vector3(), _tax=new THREE.Vector3(), _tup=new THREE.Vector3(),
+        _tqq=new THREE.Quaternion(), _tpq=new THREE.Quaternion(), _twq=new THREE.Quaternion(), _trq=new THREE.Quaternion();
   /* загрузка модели (встроена в файл) */
   (function(){ try{
     const s=atob(RPM_GLB), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i);
@@ -7238,6 +7277,7 @@ const HUM=(()=>{
   function pose(H,p){
     if(H.knock) p=knockPose(H,p);                             // сбит с ног (удар в обходе): поза падения поверх сценария
     const t=p.t||0, walk=p.walk||0, run=p.run||0;
+    H.rig.rotation.y=Math.PI+(p.turn||0);                     // turn — поворот на месте (покой, см. idle): место и курс человека в расстановке не меняются
     let hz=neutral(H,t);
     if(walk>0){ const hw=sampleInto(H,'Walk',p.phase!==undefined?warpPhase(CYC.walk,p.phase)*clips.Walk.d:t,walk); hz=hz+(hw-hz)*walk; }
     if(run>0){ const hr=sampleInto(H,'Run',p.phase!==undefined?warpPhase(CYC.run,p.phase)*clips.Run.d:t,run); hz=hz+(hr-hz)*run; }
@@ -7278,6 +7318,7 @@ const HUM=(()=>{
     if(H.post) H.post(H,p);                                   // донастройка позы (ИК: руки на руле, ноги на педалях)
     if(H.knock) knockRoot(H);
     if(H.rb) rpmSync(H);
+    if(H.props) propsPlace(H);
   }
   /* ---- удар или толчок (режим обхода): человек отшатывается, падает на спину, лежит и поднимается; на это время сценарий
      его не ведёт (стоит там, где упал), потом за полсекунды возвращается на свой маршрут. Время — реальное, не процесса. ---- */
@@ -7306,15 +7347,25 @@ const HUM=(()=>{
     r.position.x+=(x-r.position.x)*(1-bl); r.position.z+=(z-r.position.z)*(1-bl); r.rotation.y+=wrapK(K.p[2]-r.rotation.y)*(1-bl);
     r.rotation.x=-1.42*e; r.position.y=K.y0+0.10*e; }
   /* ---- жесты и занятия в покое (ИК рук по точкам относительно тела): руки на поясе, скрещены, за спиной, разговор с жестами,
-     планшет в руках, телефон у уха; голова поворачивается к цели (едущий погрузчик рядом). Вес 0…1 — плавный переход. ---- */
+     планшет в руках, телефон у уха; голова поворачивается к цели (едущий погрузчик рядом). Вес 0…1 — плавный переход.
+     Точки подобраны по сечениям куртки и жилета (tools/checks/people_body.js): кисти и предплечья не входят в туловище глубже 1 см. ---- */
   const _g={o:new THREE.Vector3(),f:new THREE.Vector3(),l:new THREE.Vector3(),u:new THREE.Vector3(0,1,0),hp:new THREE.Vector3(),sp:new THREE.Vector3(),
-    hd:new THREE.Vector3(),cur:new THREE.Vector3(),T:new THREE.Vector3(),P:new THREE.Vector3(),q:new THREE.Quaternion(),tmp:new THREE.Vector3()};
+    hd:new THREE.Vector3(),cur:new THREE.Vector3(),T:new THREE.Vector3(),P:new THREE.Vector3(),q:new THREE.Quaternion(),qt:new THREE.Quaternion(),tmp:new THREE.Vector3()};
   const API={attn:null,lookSign:1,now:()=>performance.now()/1000};   // HUM ещё не определён, пока строится модуль: свои ссылки; now — часы для ударов (в проверках подменяются)
   const PROP={tab:std(0x1b1e22,.4,.3), scr:std(0x9fd2ff,.2,0,{emissive:0x3d7fc0,emissiveIntensity:1.2}), ph:std(0x16181b,.3,.4)};
   function propOf(H,k){ H.props=H.props||{}; if(H.props[k]) return H.props[k]; const g=new THREE.Group();
     if(k==='tab'){ g.add(new THREE.Mesh(new THREE.BoxGeometry(0.26,0.012,0.18),PROP.tab)); const sc=new THREE.Mesh(new THREE.BoxGeometry(0.235,0.002,0.155),PROP.scr); sc.position.y=0.007; g.add(sc); }
     else { const m=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.15,0.012),PROP.ph); g.add(m); }
     g.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; } }); H.root.add(g); H.props[k]=g; return g; }
+  /* реквизит ставится после переноса позы на модель: кисти модели и драйвера расходятся на 5–6 см (плечо модели длиннее,
+     скелет модели впереди), и по кисти драйвера телефон оказывался за затылком */
+  const _pq=new THREE.Quaternion(), _py=new THREE.Vector3();
+  function propsPlace(H){ const P=H.props; if(!P) return; const hb=n=>{ const b=(H.rb&&H.rb[n])||H.B[n]; b.updateWorldMatrix(true,false); return b; };
+    if(P.tab&&P.tab.visible){ hb('LeftHand').getWorldPosition(_g.T); hb('RightHand').getWorldPosition(_g.cur); _g.T.add(_g.cur).multiplyScalar(0.5).addScaledVector(_g.f,0.06).addScaledVector(_g.u,0.02);
+      P.tab.position.copy(H.root.worldToLocal(_g.T)); P.tab.rotation.set(0.75,0,0); }
+    if(P.ph&&P.ph.visible){ const h=hb('RightHand'); h.getWorldPosition(_g.T); _py.setFromMatrixColumn(h.matrixWorld,1).normalize(); _g.T.addScaledVector(_py,0.075);   // в ладони, у пальцев
+      const hd=hb('Head'); hd.getWorldPosition(_g.cur); _g.cur.addScaledVector(_g.l,-0.08).addScaledVector(_g.u,0.06); _g.T.lerp(_g.cur,0.45);                    // прижат к правому уху
+      P.ph.position.copy(H.root.worldToLocal(_g.T)); h.getWorldQuaternion(_pq); H.root.getWorldQuaternion(_g.q); P.ph.quaternion.copy(_g.q.invert().multiply(_pq)); } }
   function armTo(H,L,k,tx,pole){ if(k<=0.001) return; const hand=H.B[L+'Hand']; hand.getWorldPosition(_g.cur);
     _g.T.copy(_g.cur).lerp(tx,Math.min(1,k)); ik2(H,L+'Arm',L+'ForeArm',L+'Hand',_g.T,pole); }
   function gestures(H,p,t){
@@ -7323,27 +7374,26 @@ const HUM=(()=>{
     let lookW=null;
     if(!anyArm&&!p.lookAt&&!API.attn){ if(H.props) for(const k in H.props) H.props[k].visible=false; return; }
     H.root.updateMatrixWorld(true); H.B.Hips.updateWorldMatrix(true,true);
-    H.root.getWorldQuaternion(_g.q); _g.f.set(0,0,1).applyQuaternion(_g.q); _g.l.set(1,0,0).applyQuaternion(_g.q);   // вперёд и влево (человек смотрит в +Z)
+    H.root.getWorldQuaternion(_g.q); if(p.turn) _g.q.multiply(_g.qt.setFromAxisAngle(Y,p.turn));
+    _g.f.set(0,0,1).applyQuaternion(_g.q); _g.l.set(1,0,0).applyQuaternion(_g.q);   // вперёд и влево (человек смотрит в +Z; с поворотом на месте)
     H.B.Hips.getWorldPosition(_g.hp); H.B.Spine2.getWorldPosition(_g.sp); H.B.Head.getWorldPosition(_g.hd);
     const at=(base,dl,du,df,out)=>(out||_g.P).copy(base).addScaledVector(_g.l,dl).addScaledVector(_g.u,du).addScaledVector(_g.f,df);
     const sd={Left:1,Right:-1};
-    if(ak>0) for(const L of ['Left','Right']){ const s=sd[L]; armTo(H,L,ak,at(_g.hp,0.19*s,0.07,0.01,_g.tmp).clone(),at(_g.hp,0.6*s,0.3,-0.3)); }
-    if(bh>0) for(const L of ['Left','Right']){ const s=sd[L]; armTo(H,L,bh,at(_g.hp,0.07*s,0.03,-0.2,_g.tmp).clone(),at(_g.hp,0.45*s,0.15,-0.45)); }
+    if(ak>0) for(const L of ['Left','Right']){ const s=sd[L]; armTo(H,L,ak,at(_g.hp,0.28*s,0.1,-0.02,_g.tmp).clone(),at(_g.hp,0.6*s,0.3,-0.3)); }
+    if(bh>0) for(const L of ['Left','Right']){ const s=sd[L]; armTo(H,L,bh,at(_g.hp,0.07*s,0.03,-0.26,_g.tmp).clone(),at(_g.hp,0.45*s,0.15,-0.45)); }
     if(cr>0) for(const L of ['Left','Right']){ const s=sd[L];                   // руки сцеплены спереди (ждёт)
-      armTo(H,L,cr,at(_g.hp,0.035*s,0.1,0.17,_g.tmp).clone(),at(_g.hp,0.5*s,0.35,-0.15)); }
+      armTo(H,L,cr,at(_g.hp,0.03*s,0.14,0.27,_g.tmp).clone(),at(_g.hp,0.55*s,0.25,0.0)); }
     if(tk>0){ const a=Math.sin(t*1.9+H.seed), b=Math.sin(t*2.7+H.seed*2), c=Math.sin(t*1.3+H.seed*3);
       armTo(H,'Right',tk,at(_g.sp,-0.16+0.07*a,-0.2+0.07*b,0.33+0.05*c,_g.tmp).clone(),at(_g.sp,-0.6,-0.45,0.0));
       armTo(H,'Left',tk*0.55,at(_g.sp,0.17,-0.3+0.04*c,0.27,_g.tmp).clone(),at(_g.sp,0.6,-0.45,0.0));
       rot(H,'Neck',X,0.05*Math.sin(t*2.2+H.seed)*tk); rot(H,'Head',Y,0.12*Math.sin(t*0.7+H.seed)*tk); }
     if(tb>0){ for(const L of ['Left','Right']){ const s=sd[L]; armTo(H,L,tb,at(_g.sp,0.12*s,-0.12,0.29,_g.tmp).clone(),at(_g.sp,0.55*s,-0.5,0.0)); }
       rot(H,'Neck',X,-0.3*tb); rot(H,'Head',X,-0.16*tb); }                     // смотрит в планшет
-    if(ph>0){ armTo(H,'Right',ph,at(_g.hd,-0.085,0.07,0.03,_g.tmp).clone(),at(_g.sp,-0.5,-0.4,-0.1)); rot(H,'Head',Zv,0.12*ph); }
+    if(ph>0){ armTo(H,'Right',ph,at(_g.hd,-0.139,-0.021,0.085,_g.tmp).clone(),at(_g.sp,-0.3,-0.5,0.4)); rot(H,'Head',Zv,0.12*ph); }
     if(pn>0){ armTo(H,'Right',pn,at(_g.sp,-0.12,0.06,0.66,_g.tmp).clone(),at(_g.sp,-0.55,-0.1,0.2)); rot(H,'Spine2',Y,-0.35*pn); rot(H,'Spine1',Y,-0.15*pn); }   // удар правой (обход от третьего лица)
-    /* реквизит: планшет между ладонями, телефон в правой руке */
+    /* реквизит: планшет между ладонями, телефон в правой руке (место — в propsPlace, по кистям модели) */
     const tab=tb>0.5?propOf(H,'tab'):(H.props&&H.props.tab), phn=ph>0.5?propOf(H,'ph'):(H.props&&H.props.ph);
-    if(tab){ tab.visible=tb>0.5; if(tab.visible){ H.B.LeftHand.getWorldPosition(_g.T); H.B.RightHand.getWorldPosition(_g.cur); _g.T.add(_g.cur).multiplyScalar(0.5).addScaledVector(_g.f,0.04).addScaledVector(_g.u,0.03);
-      tab.position.copy(H.root.worldToLocal(_g.T)); tab.rotation.set(0.75,0,0); } }
-    if(phn){ phn.visible=ph>0.5; if(phn.visible){ H.B.RightHand.getWorldPosition(_g.T); _g.T.addScaledVector(_g.u,0.06).addScaledVector(_g.l,0.02); phn.position.copy(H.root.worldToLocal(_g.T)); phn.rotation.set(0,0.3,0.2); } }
+    if(tab) tab.visible=tb>0.5; if(phn) phn.visible=ph>0.5;
     /* взгляд: явная цель или «внимание» (едущий погрузчик рядом) — голова и шея поворачиваются, не больше ±70° */
     const L=p.lookAt||(API.attn&&!(p.walk>0.3)&&!p.carry&&!p.sit&&!p.drive?API.attn(H):null);
     if(L){ _g.tmp.copy(L).sub(_g.hd); const lx=_g.tmp.dot(_g.l), lz=_g.tmp.dot(_g.f), ly=_g.tmp.y, hz=Math.hypot(lx,lz);
@@ -7437,7 +7487,32 @@ const HUM=(()=>{
   let GAIT=null; try{ GAIT=fixGait('Walk',0.55); }catch(e){ GAIT={err:e.message}; }
   const CYC={walk:{speed:1.35,len:1.4},run:{speed:3.2,len:2.2},gait:GAIT};
   try{ CYC.walk=cycleLen('Walk'); CYC.run=cycleLen('Run'); CYC.gait=GAIT; }catch(e){}
-  return Object.assign(API,{build,pose,rot,ik2,rotW,knock,sync:H=>{ if(H.rb) rpmSync(H); },MT,CYC,ROLE,ALL,RP,onReady:f=>{ if(RP.ready) f(); else RP.cb.push(f); }});
+  /* ---- «жизнь» в покое (обычный вид и обход): человек на своём месте не стоит истуканом. По расписанию от seed он меняет занятие
+     (своё основное из расстановки — чаще всего; ещё руки на поясе, скрещены, за спиной, телефон, планшет у старших, смотрит по
+     сторонам), переминается и поворачивается на месте (до ±0,55 рад, с шагом), оглядывается. Точка стояния (root) и курс в
+     расстановке не меняются: правка пользователя не сбивается, тело не заходит в соседнее оборудование. Сидящие — без изменений. ---- */
+  const IDLE={def:['look','cross','akimbo','look','behind','phone'],lead:['look','tablet','akimbo','look','phone','cross'],guard:['behind','look','cross','behind','look']};
+  const GEST=['talk','tablet','phone','cross','akimbo','behind'], _il=new THREE.Vector3();
+  function idlePlan(H){ let q=(H.seed*1e5|0)>>>0||7; const r=()=>{ q=(q*1664525+1013904223)>>>0; return q/4294967296; };
+    const b=H.base||{}, main=GEST.find(k=>b[k]), lead=/СТАРШ|БРИГАД|КЛАДОВ|КОНТРОЛ/.test(H.role||''), alt=H.prof&&H.prof.guard?IDLE.guard:lead?IDLE.lead:IDLE.def;
+    const seg=[]; let t=0, turn=0;
+    for(let i=0;i<36;i++){ const isMain=main&&(main==='talk'?r()<0.8:r()<0.55), act=isMain?main:alt[(r()*alt.length)|0];
+      const dur=(act==='look'?5:8)+r()*7; if(act==='look'||(!isMain&&r()<0.35)) turn=main==='talk'?(r()-0.5)*0.3:(r()-0.5)*1.1; else if(isMain) turn=0;
+      seg.push({t0:t,dur,act,turn,la:(r()-0.5)*2.2,lb:r()*6.28}); t+=dur; }
+    return {seg,T:t}; }
+  const sm=u=>{ u=Math.max(0,Math.min(1,u)); return u*u*(3-2*u); };
+  function idle(H,t){ const b=H.base||{}; if(b.sit||b.drive||H.knock) return Object.assign({t},b);
+    const P=H.idle||(H.idle=idlePlan(H)), u=((t+H.seed*37)%P.T+P.T)%P.T; let i=0; while(i<P.seg.length-1&&P.seg[i+1].t0<=u) i++;
+    const S=P.seg[i], pv=P.seg[(i+P.seg.length-1)%P.seg.length], tl=u-S.t0, w=sm(tl/0.9)*sm((S.dur-tl)/0.9);
+    const o=Object.assign({t},b); for(const k of GEST) delete o[k];
+    if(S.act!=='look') o[S.act]=w;
+    const k=sm(tl/1.3); o.turn=pv.turn+(S.turn-pv.turn)*k;                                   // поворот на месте — в начале занятия, шагом
+    if(Math.abs(S.turn-pv.turn)>0.12&&tl<1.3){ o.walk=0.32*Math.sin(Math.PI*tl/1.3); o.phase=tl/1.3*0.5; }
+    if(S.act==='look'||S.act==='akimbo'||S.act==='behind'||S.act==='cross'){                 // смотрит по сторонам: голова плавно от точки к точке
+      H.root.getWorldDirection(_il); const a=S.la*Math.sin(tl*0.45+S.lb), yaw=Math.atan2(_il.x,_il.z)+o.turn+a; H.root.getWorldPosition(_il);
+      o.lookAt=(H._la||(H._la=new THREE.Vector3())).set(_il.x+Math.sin(yaw)*4,_il.y+1.55+0.3*Math.sin(tl*0.3+S.lb),_il.z+Math.cos(yaw)*4); o.lookW=(S.act==='look'?1:0.6)*w; }
+    return o; }
+  return Object.assign(API,{build,pose,rot,ik2,rotW,knock,idle,sync:H=>{ if(H.rb) rpmSync(H); },MT,CYC,ROLE,ALL,RP,onReady:f=>{ if(RP.ready) f(); else RP.cb.push(f); }});
 })();
 var HUM_MT;
 
@@ -7612,8 +7687,9 @@ function telescopicConveyor(x,z,rotY,lift,tilt,ext,dir){
     m.position.copy(a).addScaledVector(d,0.5);
     m.quaternion.setFromUnitVectors(V3(1,0,0),d.clone().normalize()); return m; };
   const BW=0.80;
-  /* три вложенные секции: длина постоянна, выдвигается передний край; носовая — до 9 м за базу */
-  const SECD=[[4.60,1.18,0.34,1.10+lift],[4.90,1.02,0.29,1.055+lift],[4.70,0.88,0.24,1.015+lift]];   // длина, ширина рамы, глубина, верх ленты
+  /* три вложенные секции: длина постоянна, выдвигается передний край; носовая — до 9 м за базу. Средняя — не длиннее базы:
+     при 4,9 м в сложенном конвейере она торчала из хвоста на 0,3 м — в стойку клиента и в место упаковщика (14.10) */
+  const SECD=[[4.60,1.18,0.34,1.10+lift],[4.60,1.02,0.29,1.055+lift],[4.70,0.88,0.24,1.015+lift]];   // длина, ширина рамы, глубина, верх ленты
   const secG=[];
   SECD.forEach((s,i)=>{
     const [L,fw,dep,top]=s, bw=BW-i*0.07, sg=grp(0,0,0,boom); secG.push(sg);   // sg.position.x — передний край секции (в координатах стрелы)
@@ -8467,7 +8543,7 @@ mkBtn('Тени',false,b=>{
   renderer.shadowMap.needsUpdate=true;
 },renderer.shadowMap.enabled);
 /* ---------- режим обхода: как в симуляторе ---------- */
-let walk=false, wYaw=0, wPitch=0, saved_pr=0, walkLbl=null, walkRoof=null;
+let walk=false, wYaw=0, wPitch=0, saved_pr=0, walkLbl=null, walkRoof=null, walkPanel=false;
 const wPos=new THREE.Vector3(), wDir=new THREE.Vector3(), keys={};
 const padEl=document.getElementById('pad'), tipEl=document.getElementById('tip');
 const tipOrbit=tipEl.innerHTML;
@@ -8488,11 +8564,13 @@ function toggleWalk(){
     saved_pr=renderer.getPixelRatio(); renderer.setPixelRatio(Math.min(saved_pr,1)); resize();   // в обходе — без удвоенного разрешения: плавнее на слабых ПК
     if(typeof SIM!=='undefined'&&!SIM.on&&!FILM.on) SIM.enter();   // обход — по работающему складу: живой процесс включается сам
     walkLbl=[G.labels.visible,G.addr.visible]; G.labels.visible=false; G.addr.visible=false;   // глазами человека: без висящих в воздухе подписей
+    walkPanel=!document.getElementById('app').classList.contains('max'); if(walkPanel) tglSet(true,true);   // мышь захвачена — панель прячется сама
     walkRoof=[G.roof.visible,interior.intensity]; G.roof.visible=true; interior.intensity=LIGHT.inRoof; renderer.shadowMap.needsUpdate=true;   // внутри зала — под кровлей
     WALKP.enter();
   } else {
     if(saved_pr){ renderer.setPixelRatio(saved_pr); saved_pr=0; resize(); }
     if(walkLbl){ G.labels.visible=walkLbl[0]; G.addr.visible=walkLbl[1]; walkLbl=null; }
+    if(walkPanel){ walkPanel=false; tglSet(false,true); }   // выход из обхода (Esc) — панель как была
     if(walkRoof){ G.roof.visible=walkRoof[0]; interior.intensity=walkRoof[1]; walkRoof=null; renderer.shadowMap.needsUpdate=true; }
     WALKP.exit();
     if(document.pointerLockElement===canvas && document.exitPointerLock) document.exitPointerLock();
@@ -9034,9 +9112,9 @@ function resize(){ if(typeof FILM!=='undefined'&&FILM.on) return; const w=view.c
   renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 addEventListener('resize',resize);
 const tgl=document.getElementById('toggle');
-const tglSet=closed=>{ const app=document.getElementById('app'); app.classList.toggle('max',closed);
+const tglSet=(closed,tmp)=>{ const app=document.getElementById('app'); app.classList.toggle('max',closed);
   tgl.innerHTML=closed?'<span class="ic">☰</span>Меню':'<span class="ic">✕</span>Скрыть меню'; tgl.title=closed?'Открыть панель настроек':'Свернуть панель настроек';
-  try{ localStorage.setItem('sklad4.panel',closed?'0':'1'); }catch(err){}
+  if(!tmp) try{ localStorage.setItem('sklad4.panel',closed?'0':'1'); }catch(err){}   // tmp — свёрнута на время обхода: выбор пользователя не трогаем
   requestAnimationFrame(resize); };
 if(window.ResizeObserver) new ResizeObserver(()=>resize()).observe(view); else document.getElementById('panel').addEventListener('transitionend',resize);   // кадр — по размеру сцены, пока панель выезжает и уезжает
 if(!matchMedia('(any-pointer:fine)').matches&&(navigator.maxTouchPoints>0||'ontouchstart' in window)) document.getElementById('app').classList.add('touch');   // телефон, планшет: кнопки обхода нужны
@@ -9049,7 +9127,7 @@ function loop(now){
   const dtRaw=Math.max((now-prev)/1000,0), dt=Math.min(dtRaw,0.05); prev=now;
   if(FILM.on){ FILM.tick(dt); requestAnimationFrame(loop); return; }
   if(typeof SIM!=='undefined'&&SIM.on){ SIM.tick(Math.min(dtRaw,0.25)); if((frame&7)===0&&SIM.ui) SIM.ui(); }
-  if(!reduceMotion&&G.people.visible){ const tt=now/1000; for(const H of PEOPLE){ if(H.root.parent&&H.root.visible&&!(typeof SIM!=='undefined'&&SIM.owns&&SIM.owns(H))) HUM.pose(H,Object.assign({t:tt},H.base)); } }
+  if(!reduceMotion&&G.people.visible){ const tt=now/1000; for(const H of PEOPLE){ if(H.root.parent&&H.root.visible&&!(typeof SIM!=='undefined'&&SIM.owns&&SIM.owns(H))) HUM.pose(H,HUM.idle(H,tt)); } }
   if(walk){ walkStep(Math.min(dtRaw,0.25)); }
   else {
     tickFly(now);
@@ -9956,9 +10034,9 @@ function batchStatic(){
     return true; };
   scene.updateMatrixWorld(true);
   let before=0; scene.traverse(o=>{ if(o.isMesh) before++; });
-  const containers=[]; const isBoundary=o=>KEEP.has(o)||PICK.has(o)||SKIP.has(o)||!o.visible;
+  const containers=[]; const isBoundary=o=>KEEP.has(o)||PICK.has(o)||SKIP.has(o)||!o.visible||!!o.userData.isHuman;   // человек — граница: его реквизит (планшет, телефон) и снаряжение двигаются с позой (14.10: планшет «приваривался» в позе при загрузке)
   Object.values(G).forEach(g=>{ if(g&&g.isObject3D&&!SKIP.has(g)) containers.push(g); });
-  PICK.forEach(o=>{ if(!SKIP.has(o)&&!o.isMesh) containers.push(o); }); KEEP.forEach(o=>{ if(!SKIP.has(o)&&!o.isMesh) containers.push(o); });
+  PICK.forEach(o=>{ if(!SKIP.has(o)&&!o.isMesh&&!o.userData.isHuman) containers.push(o); }); KEEP.forEach(o=>{ if(!SKIP.has(o)&&!o.isMesh) containers.push(o); });
   const done=new Set(), _m=new THREE.Matrix4(), _inv=new THREE.Matrix4(), _n=new THREE.Matrix3(), _v=new THREE.Vector3();
   let made=0;
   for(const C of containers){
@@ -10116,7 +10194,7 @@ function mkTime(WARPS,TE){ T_END=TE; KN=[[0,0]]; let tf=0,T=0; const push=(T2,k)
 /* ===================== опорные точки расстановки ===================== */
 const RK_AT=[5.75,11.95];                        // стоечный поддон собирается у конца ленты (карман Л2)
 const cellC=i=>{ const c=CELLS[i]; return [(c.x0+c.x1)/2,(c.z0+c.z1)/2]; };
-const PK_PICK=[4.66,11.42], CT_WAIT=[4.55,10.3], DWS_PLACE=[7.98,10.42], DWS_VIEW=[7.72,10.5];
+const PK_PICK=[4.3,11.78], CT_WAIT=[4.15,10.0], DWS_PLACE=[7.98,10.42], DWS_VIEW=[7.72,10.5];   // упаковщик — севернее конца ленты, контролёр — южнее (не в раме и не у мотора хвоста; до 14.10 стояли внутри конвейера)
 const ZL=15.6;                                   // линия движения погрузчика по южной магистрали
 const ZN=26.7;                                   // северная магистраль: линия движения погрузчика вдоль крытого поста
 const P2X=34.4, X2=35.2, P1X=19.0;               // проезды между секциями: линия к проёму грузовика, линия для поворота к прицепу, линия второго проезда
@@ -10142,13 +10220,8 @@ const hvK=k=>heavyKg(SKUS[FSKU[k]].kg);
 const heavy=ti=>c01((CTYPE[ti].kg-6)/17.5);
 function standFor(s,who){                         // где встать, чтобы положить короб в слот s: ближайшая доступная грань стойки
   const q=RSLOT[s], cx=RK_AT[0], cz=RK_AT[1], d=0.37, cl=v=>Math.max(-0.55,Math.min(0.55,v));
-  let f;
-  if(who==='CT') f='E';
-  else f=(0.75+q.x<=0.56)?'W':(0.75+q.z<=0.7)?'S':'N';
-  if(f==='W') return {f,x:cx-0.75-d,z:cz+cl(q.z),yaw:Math.PI/2};
-  if(f==='E') return {f,x:cx+0.75+d,z:cz+cl(q.z),yaw:-Math.PI/2};
-  if(f==='S') return {f,x:cx+cl(q.x),z:cz-0.75-d,yaw:0};
-  return {f,x:cx+cl(q.x),z:cz+0.75+d,yaw:Math.PI}; }
+  if(who==='CT') return {f:'E',x:cx+0.75+d,z:cz+cl(q.z),yaw:-Math.PI/2};
+  return faceCands(cx,cz,0,q.x,q.z,['W','N','E'],NOGO_L2)[0]; }   // упаковщик — с северной стороны ленты: западная грань (у хвоста конвейера — севернее рамы), северная, восточная
 
 let A0, LB, PICK, CTS, KB;                               // расписания коробов
 let CN, FK, FKL, FKT, KZ, W3P, W4P, W5P;
@@ -10334,21 +10407,27 @@ function plan(){
   /* --- упаковщик (с ленты — в стойку клиента) и контролёр (образец каждого SKU — в поддон образцов рядом) --- */
   const PK=new Track(), CT=new Track(), pk0=F.pw0, ct0=F.ct0;
   const pyP=faceTo(PK_PICK[0],PK_PICK[1],beltEnd.x,beltEnd.z), pyC=faceTo(CT_WAIT[0],CT_WAIT[1],beltEnd.x,beltEnd.z);
-  PK.key(0,pk0.x,pk0.z,F.pwYaw,{}); PK.key(E0-2.6,pk0.x,pk0.z,F.pwYaw,{}); PK.key(E0-0.2,PK_PICK[0],PK_PICK[1],pyP,{});
-  CT.key(0,ct0.x,ct0.z,F.ctYaw,{}); CT.key(E0-2.2,ct0.x,ct0.z,F.ctYaw,{}); CT.key(E0+1.6,CT_WAIT[0],CT_WAIT[1],pyC,{});
   F.nav=new Nav(NAV_L2.concat(DWSZ.nav)); const SPK=new Pack(); F.spIt={};
-  PICK=[]; CTS=[]; let pkFree=E0-0.2, ctFree=E0+1.6;
+  /* к своим местам — по дорожкам (хвост конвейера и стойка у него — в обход), выходят так, чтобы прийти к тем же моментам */
+  const rtT=(pts,v)=>pts.reduce((a,q,i)=>i?a+Math.max(0.3,hyp(pts[i-1],q)/v):a,0);
+  const pkIn=F.nav.route([pk0.x,pk0.z],PK_PICK); pkIn[pkIn.length-1]=[PK_PICK[0],PK_PICK[1],pyP];
+  const ctIn=F.nav.route([ct0.x,ct0.z],CT_WAIT); ctIn[ctIn.length-1]=[CT_WAIT[0],CT_WAIT[1],pyC];
+  const tPk=Math.max(0.5,Math.min(E0-2.6,E0-0.2-rtT(pkIn,1.35))), tCt=Math.max(0.5,Math.min(E0-2.2,E0+1.6-rtT(ctIn,1.35)));
+  PK.key(0,pk0.x,pk0.z,F.pwYaw,{}); PK.key(tPk,pk0.x,pk0.z,F.pwYaw,{});
+  CT.key(0,ct0.x,ct0.z,F.ctYaw,{}); CT.key(tCt,ct0.x,ct0.z,F.ctYaw,{});
+  PICK=[]; CTS=[]; let pkFree=route(PK,tPk,pkIn,1.35,{}), ctFree=route(CT,tCt,ctIn,1.35,{});
   SEQ.forEach((ti,k)=>{ const ak=simBelt(k,k>0?PICK[k-1].grab+0.1:-1), K=SKUS[FSKU[k]], cw=K.w, hv=hvK(k), carry={carry:1,cw,heavy:hv};
     if(!SAMPLE[k]){                                      // упаковщик: с ленты — в стойку
       const s=SLOT_OF[k], st=standFor(s,'PK'), p=Math.max(ak+0.15,pkFree+0.55);
       PK.key(Math.max(p-0.5,pkFree+0.05),PK_PICK[0],PK_PICK[1],pyP,{});
       PK.key(p-0.06,PK_PICK[0],PK_PICK[1]+0.03,pyP,{reach:1,bend:0.3});
       PK.key(p+0.32,PK_PICK[0],PK_PICK[1],pyP-0.3,Object.assign({bend:0.08},carry));
-      const via=st.f==='S'?[[4.8,10.86]]:st.f==='N'?[[4.6,13.07]]:[];
-      let t=route(PK,p+0.32,[PK_PICK,...via,[st.x,st.z,st.yaw]],1.3-0.3*hv,carry);
+      const go=F.nav.route(PK_PICK,[st.x,st.z]); go[go.length-1]=[st.x,st.z,st.yaw];        // по дорожкам: хвост конвейера — в обход
+      let t=route(PK,p+0.32,go,1.3-0.3*hv,carry);
       PK.key(t+0.42,st.x,st.z,st.yaw,Object.assign({cw,heavy:hv*0.5},placePose(FYS[s])));
       const rel=t+0.5; PK.key(t+0.9,st.x,st.z,st.yaw,{bend:0.05});
-      t=route(PK,t+0.9,[[st.x,st.z],...via.slice().reverse(),[PK_PICK[0],PK_PICK[1],pyP]],1.45,{});
+      const bk=F.nav.route([st.x,st.z],PK_PICK); bk[bk.length-1]=[PK_PICK[0],PK_PICK[1],pyP];
+      t=route(PK,t+0.9,bk,1.45,{});
       PICK[k]={by:'PK',grab:p,rel,slot:s,ti}; pkFree=t;
     } else {                                              // контролёр: образец — в поддон образцов («как ляжет», Pack)
       const it=SPK.put(packFind(SPK,K)); it.k=k; F.spIt[k]=it;
@@ -10365,7 +10444,7 @@ function plan(){
   const lastRel=Math.max(...PICK.map(p=>p.rel));
   let tL=Math.max(ctFree,lastRel+0.4)+0.3; CT.key(tL,CT_WAIT[0],CT_WAIT[1],pyC,{});
   MK.lab0=tL;
-  tL=route(CT,tL,[CT_WAIT,[6.8,10.75],[6.95,13.0],[5.25,13.07,PI]],1.4,{});
+  { const lb=F.nav.route(CT_WAIT,[5.25,13.07]); lb[lb.length-1]=[5.25,13.07,PI]; tL=route(CT,tL,lb,1.4,{}); }   // к северной грани стойки — по дорожкам, мимо мотора хвоста
   CT.key(tL+0.7,5.25,13.07,PI,{reach:0.85,bend:0.1}); F.tLabel=tL+0.7;
   CT.key(tL+1.2,5.25,13.07,PI,{scan:1,scanner:true}); CT.key(tL+1.7,5.25,13.07,PI,{scan:1,scanner:true});
   /* выгрузка закончена: упаковщик и контролёр идут в зону DWS (по линии z 9,25 перед комнатой смены; автопоезда на посту ещё нет) */
@@ -11011,9 +11090,16 @@ function walkSeg(tr,t,pts,yaw,v){ if(pts.length>1) t=route(tr,t,pts,v||1.4,{}); 
 
 /* где встать, чтобы положить/взять короб в точке (lx, lz) стойки: ближайшая грань из разрешённых (по умолчанию — не со стороны петель,
    откуда заезжает погрузчик); стойка может стоять развёрнутой на 180° */
-function faceCands(cx,cz,ryaw,lx,lz,faces){ const m=Math.abs(ryaw)>1?-1:1, d=0.37, cl=v=>Math.max(-0.55,Math.min(0.55,v)), out=[];
-  for(const f of faces||['W','E','S']){ const reach=f==='W'?lx+0.75:f==='E'?0.75-lx:f==='S'?lz+0.75:0.75-lz;
+/* nogo — где человеку не встать (рама и мотор хвоста конвейера с запасом на тело, [x0,z0,x1,z1]): место у грани сдвигается вдоль
+   неё (в пределах грани) за край зоны, дотянуться при этом дальше; не вышло — грань не годится */
+const inNogo=(nogo,x,z)=>!!nogo&&nogo.some(r=>x>r[0]&&x<r[2]&&z>r[1]&&z<r[3]);
+function faceCands(cx,cz,ryaw,lx,lz,faces,nogo){ const m=Math.abs(ryaw)>1?-1:1, d=0.37, cl=v=>Math.max(-0.55,Math.min(0.55,v)), out=[];
+  for(const f of faces||['W','E','S']){ let reach=f==='W'?lx+0.75:f==='E'?0.75-lx:f==='S'?lz+0.75:0.75-lz;
     let ox,oz,yaw; if(f==='W'){ ox=-0.75-d; oz=cl(lz); yaw=PI/2; } else if(f==='E'){ ox=0.75+d; oz=cl(lz); yaw=-PI/2; } else if(f==='S'){ ox=cl(lx); oz=-0.75-d; yaw=0; } else { ox=cl(lx); oz=0.75+d; yaw=PI; }
+    if(inNogo(nogo,cx+m*ox,cz+m*oz)){ const along=f==='W'||f==='E'; let best=null;
+      for(let k=1;k<=22&&best===null;k++) for(const sg of [1,-1]){ const v=(along?oz:ox)+sg*k*0.05; if(Math.abs(v)>0.55) continue;
+        const ax=along?ox:v, az=along?v:oz; if(!inNogo(nogo,cx+m*ax,cz+m*az)){ best=[ax,az,k*0.05]; break; } }
+      if(!best) continue; ox=best[0]; oz=best[1]; reach+=best[2]*0.5; }
     out.push({f,reach,x:cx+m*ox,z:cz+m*oz,yaw:wrapA(yaw+(m<0?PI:0))}); }
   out.sort((a,b)=>a.reach-b.reach); return out.filter((o,i)=>i===0||o.reach<=0.88); }        // дальше 0,88 м с грани не дотянуться
 
@@ -11023,7 +11109,11 @@ function packFind(P,b){ return P.find(b.l,b.w,b.h,1.18)||P.find(b.l,b.w,b.h,1.32
 
 /* дорожки людей у приёмки Л2 [x0,z0,x1,z1,цена]: южнее стоек — основная, севернее (откуда заезжает погрузчик) — дороже;
    поперечные — у торцов и в проходах между стойками; путь в зону DWS — по линии z 9,25 перед комнатой смены */
-const NAV_L2=[[4.63,10.83,11.87,10.83,1],[4.63,13.07,11.87,13.07,3],[4.55,10.3,7.0,10.3,1],[4.63,10.83,4.63,13.07,1],[7.0,10.83,7.0,13.07,1],[9.5,10.83,9.5,13.07,1],[11.87,10.83,11.87,13.07,1],
+/* хвост конвейера у Л2 (x до 4,95, рама z 10,31…11,49, стойки опоры до 11,56, мотор привода x 4,44…4,74 z 10,04…10,28): до 14.10
+   дорожки z 10,83 и x 4,63 шли сквозь него — теперь южная начинается за хвостом (x 5,2), западная поперечная — севернее рамы (x 4,3),
+   линия контролёра — южнее мотора (z 9,8) */
+const NOGO_L2=[[0.2,10.02,5.17,11.76],[4.22,9.82,4.96,10.5]];
+const NAV_L2=[[5.2,10.83,11.87,10.83,1],[4.3,13.07,11.87,13.07,3],[4.15,9.8,7.0,9.8,1],[4.3,11.78,4.3,13.07,1],[7.0,10.83,7.0,13.07,1],[9.5,10.83,9.5,13.07,1],[11.87,10.83,11.87,13.07,1],
   [7.0,10.83,7.0,9.25,1],[7.0,9.25,21.9,9.25,1],[21.9,9.25,30.4,9.0,1],[30.4,9.0,33.6,9.0,1],[33.6,9.0,33.6,6.9,1]];          // у колонны x 32 — восточнее пожарного шкафа
 /* ===================== камера по планам (время процесса T) ===================== */
 const L3=(a,b,u)=>V(lerp(a[0],b[0],u),lerp(a[1],b[1],u),lerp(a[2],b[2],u));
@@ -11184,9 +11274,10 @@ const TRUCK_CL=[[0,1,2],[3,4,5]];                            // клиенты �
    fk0 — старт погрузчика, SUP — где стоит старший смены, hideP — штатный человек, который мешал бы на этом варианте,
    nav — дорожки людей у приёмки и путь в зону DWS [x0,z0,x1,z1,цена] (сторона, откуда заезжает погрузчик, дороже),
    wt — грузчик в кузове (место и куда смотрит нос ленты, локально в кузове), hideX — штатный груз кузова западнее этой x
-   скрывается, blocks — площадки, на которых лежит груз нашей машины (локально в кузове). */
+   скрывается, blocks — площадки, на которых лежит груз нашей машины (локально в кузове); nogo — где у хвоста конвейера не встать,
+   faces — с каких граней стойки клиента кладут упаковщик и контролёр (упаковщик ждёт севернее конца ленты, контролёр — южнее). */
 const RCPV={
-  1:{name:'машина у Л2 (площадка)',RKS:[[5.75,11.95],[8.25,11.95]],SPP:[10.75,11.95],rkYaw:0,PK:[4.66,11.42],CT:[4.55,10.3],
+  1:{name:'машина у Л2 (площадка)',RKS:[[5.75,11.95],[8.25,11.95]],SPP:[10.75,11.95],rkYaw:0,PK:PK_PICK,CT:CT_WAIT,nogo:NOGO_L2,faces:{PW:['W','N','E'],CT:['S','E','W']},
      tl:[0.35,0,10.9,PI],eos:[[13.2,11.0],[18.7,11.0],[20.5,11.0]],fk0:[10.0,ZL,PI/2,'ZL'],SUP:[2.4,13.4,2.5],
      nav:NAV_L2,
      door:'L2',wt:{x:-0.32,z:0.62,hx:0,hz:1},hideX:2.35,
@@ -11194,7 +11285,7 @@ const RCPV={
   2:{name:'машина через П1 (полоса Л1–П1)',RKS:[[25.3,30.6],[27.8,30.6]],SPP:[22.8,30.6],rkYaw:PI,PK:[27.5,32.28],CT:[26.6,33.4],
      tl:[32.48,0,32.8,0],eos:[[10.8,30.6],[12.8,30.6]],fk0:[10.0,ZN,PI/2,'ZN'],SUP:[20.4,32.5,1.6],hideP:[21.5,30.2],
      nav:[[21.68,31.72,28.92,31.72,1],[21.68,29.48,28.92,29.48,3],[21.68,29.48,21.68,31.72,1],[24.05,29.48,24.05,31.72,1],[26.55,29.48,26.55,31.72,1],[28.92,29.48,28.92,31.72,1],
-          [28.92,31.72,33.6,31.85,1],[33.6,31.85,33.6,6.9,1]],
+          [28.92,31.72,30.9,31.72,1],[30.9,31.72,31.2,31.15,1],[31.2,31.15,33.6,31.15,1],[33.6,31.15,33.6,6.9,1]],   // южнее носа сложенного конвейера (площадка оператора x 31,42…32,31, z 31,45…32,31), 14.10
      door:'P1',home:{x:38.52,y:0,z:32.8,r:PI},wt:{x:0.1,z:0.0,hx:1,hz:0},hideX:9,
      blocks:[{x0:-3.6,x1:-0.95,z0:-1.2,z1:1.18}]}
 };
@@ -11353,7 +11444,7 @@ function setup(){
   mkH('W3',F.W3,46.5,7.5,0); mkH('W5',F.W5,47.0,13.0,-2.2); S.hum.W5.H.root.visible=true;
   F.W4.root.visible=false; F.W4box.visible=false;
   S.bw=F.bod.map(b=>{ b.updateMatrixWorld(true); const p=b.localToWorld(V(RB.x,0,RB.z)); return [p.x,p.z]; });
-  S.kPos={K1:[1.9,-0.4],K2:[-1.9,-0.3],K3:[1.9,-0.4],K4:[-1.9,-0.3]}; S.kIdle={K1:-PI/2,K2:PI/2,K3:-PI/2,K4:PI/2};
+  S.kPos={K1:[0.45,-0.8],K2:[-0.45,-0.8],K3:[0.45,-0.8],K4:[-0.45,-0.8]}; S.kIdle={K1:-0.3,K2:0.3,K3:-0.3,K4:0.3};   // ждут у дальнего борта за стойкой: на x ±1,9 стояли внутри будущих стопок (14.10)
   CREW.forEach((cw,r)=>{ const bx=S.bw[r][0]; const spot={[cw[0]]:[bx+1.5,13.2],[cw[1]]:[bx+4.75,13.2]};
     cw.forEach(w=>{ const rp=REC_SPOT[w], [ip,iy]=IDLE_AT.rec[w]; mkH(w,F.KH[w],rp[0],rp[1],iy); const h=S.hum[w]; h.tr=new Track().key(0,rp[0],rp[1],iy,ip).fin(); h.idle=ip;
       h.spot=spot[w]; h.rec=rp; h.body=r; h.state='wait'; }); });
@@ -11395,8 +11486,16 @@ function laneFree(body,ti){ const L=KZLANE[ti], lanes=S.kz.lanes[body], cap=Math
 function laneSlot2(body,side,ti,h){ const L=KZLANE[ti], lanes=S.kz.lanes[body];
   const cap=Math.floor(3.6/L.d)*L.n; if(lanes[side][ti]>=cap) side=side==='S'?'N':'S'; if(lanes[side][ti]>=cap) return null;
   const n=lanes[side][ti]++, st=Math.floor(n/L.n), lv=n%L.n, X0=side==='S'?-4.85:4.85, sg=side==='S'?1:-1, hy=lanes.hy[side][ti], y=lv?(hy[st]||0):0; hy[st]=y+h+0.004;
-  const xc=X0+sg*L.d*(st+0.5), xf=X0+sg*L.d*(st+1);
-  return {lp:V(xc,BEDY+y,L.z),stand:[xf+sg*0.42,L.z],yaw:side==='S'?-PI/2:PI/2,y}; }
+  const xc=X0+sg*L.d*(st+0.5), xf=X0+sg*L.d*(st+1), sx=L.z>-0.61?(side==='S'?Math.min(xf+0.42,-KSTRIP):Math.max(xf-0.42,KSTRIP)):xf+sg*0.42;   // напротив стойки в проёме — не ближе полосы x ±1,03
+  return {lp:V(xc,BEDY+y,L.z),stand:[sx,L.z],yaw:side==='S'?-PI/2:PI/2,y}; }
+/* по кузову — в обход стойки в проёме (x ±0,81, z −0,31…1,31): ждут у дальнего борта, работают в полосе x ±1,03 между стойкой
+   и стопками (полоса 0,44 м); переход между ними — через точку у угла стойки, а не сквозь неё */
+const KSTRIP=1.03;
+function bodyGo(trk,t,from,to,yaw,pose,v){ const low=p=>Math.abs(p[0])<KSTRIP-0.02&&p[1]<-0.35, W=[], sf=Math.sign(from[0])||1, st=Math.sign(to[0])||1;
+  if(!low(from)&&!low(to)&&sf!==st&&Math.abs(from[0])>0.6&&Math.abs(to[0])>0.6) W.push([sf*KSTRIP,-0.62],[st*KSTRIP,-0.62]);   // ряд на другой стороне (свой заполнен) — за стойкой
+  else if(low(from)!==low(to)) W.push([(Math.sign((low(from)?to:from)[0])||1)*KSTRIP,-0.62]);
+  for(const w of W){ t+=Math.max(0.3,hyp2(from,w)/v); trk.key(t,w[0],w[1],Math.atan2(w[0]-from[0],w[1]-from[1]),pose); from=w; }
+  t+=Math.max(0.4,hyp2(from,to)/v); trk.key(t,to[0],to[1],yaw,pose); return t; }
 /* задание «из рук — в место»: до grab — src, потом в руках, в rel — дуга в dst, затем оседание */
 function job(b,who,grab,rel,src,dst,fin){ const j={b,who,grab,rel,src,dst,fin,done:false}; b.mode='job'; b.job=j; S.jobs.push(j); return j; }
 function boxFrame(b,T){
@@ -11616,15 +11715,14 @@ function startUnload(){ const h=S.hold, r=h.rack, body=h.body, t0=S.T+0.6, wn=CR
     if(!w) break;
     o.done=true; left--;
     const b=o.b, cw=b.w, hv=b.hv, side=sideOf[w], H=S.hum[w], trk=H.tr;
-    const ps=[RB.x+(side==='S'?-1:1)*(0.75+0.38),Math.max(-0.05,Math.min(0.95,RB.z+o.z))], pyaw=side==='S'?PI/2:-PI/2;
-    let t=free[w]+Math.max(0.4,hyp2(cur[w],ps)/1.35); trk.key(t,ps[0],ps[1],pyaw,{});
+    const ps=[RB.x+(side==='S'?-1:1)*KSTRIP,Math.max(-0.05,Math.min(0.95,RB.z+o.z))], pyaw=side==='S'?PI/2:-PI/2;
+    let t=bodyGo(trk,free[w],cur[w],ps,pyaw,{},1.35);
     let tw=t; o.deps.forEach(d=>{ tw=Math.max(tw,g.get(d)+0.7); }); if(tw>t+0.05){ trk.key(tw,ps[0],ps[1],pyaw,{}); t=tw; }
     trk.key(t+0.42,ps[0],ps[1],pyaw,o.y<0.6?{reach:1,bend:0.5,squat:0.3}:o.y<1.0?{reach:1,bend:0.28}:{reach:1,bend:0.08});
     const grab=t+0.48; g.set(o,grab);
     trk.key(t+0.86,ps[0],ps[1],pyaw,{carry:1,cw,heavy:hv});
     const L=laneSlot2(body,side,b.ti,b.h); if(!L){ cur[w]=ps; free[w]=t+0.9; continue; }       // места нет — короб остаётся в стойке (bodyFits этого не допускает)
-    const t1=t+0.86+Math.max(0.6,hyp2(ps,L.stand)/(1.2-0.25*hv));
-    trk.key(t1,L.stand[0],L.stand[1],L.yaw,{carry:1,cw,heavy:hv});
+    const t1=bodyGo(trk,t+0.86,ps,L.stand,L.yaw,{carry:1,cw,heavy:hv},1.2-0.25*hv);
     trk.key(t1+0.42,L.stand[0],L.stand[1],L.yaw,Object.assign({cw,heavy:hv*0.5},placePose(L.y)));
     const rel=t1+0.5; trk.key(t1+0.9,L.stand[0],L.stand[1],L.yaw,{bend:0.05});
     const bd=F.bod[body], src=r.free?(()=>{ const it=o.it; return ()=>putFree(b,r,it,9); })():(()=>{ const s=o.s, y=r.ys[s]; return ()=>{ const q=RSLOT[s]; putSlot(b.o,r.o,q.x+b.pl.jx,y,q.z+b.pl.jz,b.pl.jy,9,b.pl); }; })();
@@ -11633,7 +11731,7 @@ function startUnload(){ const h=S.hold, r=h.rack, body=h.body, t0=S.T+0.6, wn=CR
     S.ev.push({T:rel,f:()=>loadAdd(body,b.kg,L.lp.x)});
     free[w]=t1+0.92; cur[w]=L.stand; tEnd=Math.max(tEnd,rel+0.5);
   }
-  for(const w of CREW[body]){ const p=S.kPos[w], t=free[w]+Math.max(0.4,hyp2(cur[w],p)/1.35); S.hum[w].tr.key(t,p[0],p[1],S.kIdle[w],{}); S.hum[w].tr.fin(); S.hum[w].free=t; S.hum[w].x=p[0]; S.hum[w].z=p[1]; }
+  for(const w of CREW[body]){ const p=S.kPos[w], t=bodyGo(S.hum[w].tr,free[w],cur[w],p,S.kIdle[w],{},1.35); S.hum[w].tr.fin(); S.hum[w].free=t; S.hum[w].x=p[0]; S.hum[w].z=p[1]; }
   S.unload={tEnd:tEnd+0.6,done:false};
 }
 
@@ -11706,7 +11804,7 @@ function beltPick(h,b,pl){ b.taken=true; S.ev.push({T:pl.grab-0.05,f:()=>{ const
 /* короб клиента: с ленты — в слот его стойки */
 function planToRack(h,b,p){ const r=p.r, s=freeSlot(r,b.ti); if(s===null) return false;
   const q=RSLOT[s], y=slotY(r,s), home=homeOf(h);
-  for(const st of faceCands(p.x,p.z,S.rc.rkYaw,q.x,q.z)){ const tr=new Track().key(S.T,h.x,h.z,h.yaw,{});
+  for(const st of faceCands(p.x,p.z,S.rc.rkYaw,q.x,q.z,S.rc.faces&&S.rc.faces[h===S.hum.PW?'PW':'CT'],S.rc.nogo)){ const tr=new Track().key(S.T,h.x,h.z,h.yaw,{});
     const c=carrySeg(tr,S.T+0.05,b,{pick:[h.x,h.z,home[2]],pickPose:{reach:1,bend:0.3},toPlace:hRoute(h,[h.x,h.z],[st.x,st.z]),place:[st.x,st.z,st.yaw],placeY:y});
     const tE=walkSeg(tr,c.t,hRoute(h,[st.x,st.z],home),home[2]); tr.fin();
     if(!planOK(h,tr,tE)) continue;
@@ -11717,7 +11815,7 @@ function planToRack(h,b,p){ const r=p.r, s=freeSlot(r,b.ti); if(s===null) return
 /* образец: с ленты — в поддон образцов, «как ляжет» (Pack) */
 function planToSP(h,b){ const sp=S.spp.r; if(!sp||!sp.free) return false; const cand=packFind(sp.pack,b); if(!cand) return false;
   const pos=packPos(sp.pack,cand), home=homeOf(h);
-  for(const st of faceCands(S.spp.x,S.spp.z,S.rc.rkYaw,pos.x,pos.z)){ const tr=new Track().key(S.T,h.x,h.z,h.yaw,{});
+  for(const st of faceCands(S.spp.x,S.spp.z,S.rc.rkYaw,pos.x,pos.z,null,S.rc.nogo)){ const tr=new Track().key(S.T,h.x,h.z,h.yaw,{});
     const c=carrySeg(tr,S.T+0.05,b,{pick:[h.x,h.z,home[2]],pickPose:{reach:1,bend:0.3},toPlace:hRoute(h,[h.x,h.z],[st.x,st.z]),place:[st.x,st.z,st.yaw],placeY:pos.y,relAt:packUnderRel(sp.pack,cand)});
     const tE=walkSeg(tr,c.t,hRoute(h,[st.x,st.z],home),home[2]); tr.fin();
     if(!planOK(h,tr,tE)) continue;

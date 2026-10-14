@@ -37,7 +37,7 @@ function mkTime(WARPS,TE){ T_END=TE; KN=[[0,0]]; let tf=0,T=0; const push=(T2,k)
 /* ===================== опорные точки расстановки ===================== */
 const RK_AT=[5.75,11.95];                        // стоечный поддон собирается у конца ленты (карман Л2)
 const cellC=i=>{ const c=CELLS[i]; return [(c.x0+c.x1)/2,(c.z0+c.z1)/2]; };
-const PK_PICK=[4.66,11.42], CT_WAIT=[4.55,10.3], DWS_PLACE=[7.98,10.42], DWS_VIEW=[7.72,10.5];
+const PK_PICK=[4.3,11.78], CT_WAIT=[4.15,10.0], DWS_PLACE=[7.98,10.42], DWS_VIEW=[7.72,10.5];   // упаковщик — севернее конца ленты, контролёр — южнее (не в раме и не у мотора хвоста; до 14.10 стояли внутри конвейера)
 const ZL=15.6;                                   // линия движения погрузчика по южной магистрали
 const ZN=26.7;                                   // северная магистраль: линия движения погрузчика вдоль крытого поста
 const P2X=34.4, X2=35.2, P1X=19.0;               // проезды между секциями: линия к проёму грузовика, линия для поворота к прицепу, линия второго проезда
@@ -63,13 +63,8 @@ const hvK=k=>heavyKg(SKUS[FSKU[k]].kg);
 const heavy=ti=>c01((CTYPE[ti].kg-6)/17.5);
 function standFor(s,who){                         // где встать, чтобы положить короб в слот s: ближайшая доступная грань стойки
   const q=RSLOT[s], cx=RK_AT[0], cz=RK_AT[1], d=0.37, cl=v=>Math.max(-0.55,Math.min(0.55,v));
-  let f;
-  if(who==='CT') f='E';
-  else f=(0.75+q.x<=0.56)?'W':(0.75+q.z<=0.7)?'S':'N';
-  if(f==='W') return {f,x:cx-0.75-d,z:cz+cl(q.z),yaw:Math.PI/2};
-  if(f==='E') return {f,x:cx+0.75+d,z:cz+cl(q.z),yaw:-Math.PI/2};
-  if(f==='S') return {f,x:cx+cl(q.x),z:cz-0.75-d,yaw:0};
-  return {f,x:cx+cl(q.x),z:cz+0.75+d,yaw:Math.PI}; }
+  if(who==='CT') return {f:'E',x:cx+0.75+d,z:cz+cl(q.z),yaw:-Math.PI/2};
+  return faceCands(cx,cz,0,q.x,q.z,['W','N','E'],NOGO_L2)[0]; }   // упаковщик — с северной стороны ленты: западная грань (у хвоста конвейера — севернее рамы), северная, восточная
 
 let A0, LB, PICK, CTS, KB;                               // расписания коробов
 let CN, FK, FKL, FKT, KZ, W3P, W4P, W5P;

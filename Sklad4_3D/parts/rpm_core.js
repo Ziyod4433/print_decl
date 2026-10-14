@@ -2,7 +2,7 @@
      Мокап-скелет (выше) остаётся «драйвером»: его локальные повороты копируются на кости модели.
      Одежда: пиджак → рабочая куртка (обрезаны фалды, перекраска), брюки → рабочие, туфли → ботинки,
      сигнальный жилет со световозвращающими полосами — отдельная оболочка поверх торса, каска на кости головы. */
-  const ALL=[], RP={ready:false,cb:[],src:null,tex:{},mat:{}};
+  const ALL=[], RP={ready:false,cb:[],src:null,tex:{},mat:{},xq:{}}, LEGX=['LeftUpLeg','LeftLeg','LeftFoot','RightUpLeg','RightLeg','RightFoot'];
   const QC=new THREE.Quaternion(-0.70710678,0,0,0.70710678);
   let KH=0.96, HY=1.02, SP2=1.35;
   const hexRGB=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
@@ -81,6 +81,32 @@
       for(let v=0;v<P2.count;v++) P2.setXYZ(v,hp.getX(v)+hn.getX(v)*0.0045,hp.getY(v)+hn.getY(v)*0.0045,hp.getZ(v)+hn.getZ(v)*0.0045);
       g2.setIndex(ki); g2.computeVertexNormals();
       const hm=new THREE.SkinnedMesh(g2,hairMat('#1a1512')); hm.name='Wolf3D_HairCut'; head.parent.add(hm); hm.bind(head.skeleton,head.bindMatrix); }
+    /* ноги: у драйвера бедро и голень повёрнуты на 180° вокруг своей оси относительно привязки модели, и прямое копирование поворотов
+       выворачивало ботинки (подошва вверх и назад, пятка на 12 см над полом, из штанины видна кожа). Поправка xq возвращает кость ноги
+       в позу привязки (относительно таза), когда драйвер в покое; в rpmSync локальный поворот = xq(родителя)⁻¹ · драйвер · xq */
+    { const sk=sc.getObjectByName('Wolf3D_Body').skeleton, m=new THREE.Matrix4(), p=new THREE.Vector3(), s=new THREE.Vector3(), BQ={}, Q0={};
+      sk.bones.forEach((b,i)=>{ const q=new THREE.Quaternion(); m.copy(sk.boneInverses[i]).invert().decompose(p,q,s); BQ[b.name]=q; });
+      MOCAP.B.forEach(([n,par,pos,q])=>{ Q0[n]={par,q:new THREE.Quaternion().fromArray(q)}; });
+      const hb=BQ.Hips.clone().invert();
+      for(const n of LEGX){ if(!Q0[n]||!BQ[n]) continue; const ch=new THREE.Quaternion(); for(let k=n;k&&k!=='Hips';k=Q0[k].par) ch.premultiply(Q0[k].q);
+        const q=ch.invert().multiply(hb).multiply(BQ[n]), pa=RP.xq[Q0[n].par]; RP.xq[n]={q,pi:pa?pa.q.clone().invert():null}; } }
+    /* световозвращающие ленты на голенях — по сечению штанины на своей высоте (+4 мм): цилиндр r 9,7 см висел в 2–3 см от брюк */
+    RP.band={}; for(const L of ['Left','Right']){ const bot=sc.getObjectByName('Wolf3D_Outfit_Bottom'), sk=bot.skeleton, li=sk.bones.findIndex(b=>b.name===L+'Leg'), bp=bot.geometry.attributes.position, ix=bot.geometry.index.array;
+      const M=new THREE.Matrix4().multiplyMatrices(sk.boneInverses[li],bot.bindMatrix), N=24, vs=[], sx=L==='Left'?1:-1;
+      for(let v=0;v<bp.count;v++) vs.push(bp.getX(v)*sx>0?new THREE.Vector3().fromBufferAttribute(bp,v).applyMatrix4(M):null);   // своя штанина в осях голени
+      for(const yy of [0.27,0.33]){ const r=new Array(N).fill(0), bin=a=>((Math.floor((a+Math.PI)/(2*Math.PI)*N)%N)+N)%N;
+        for(let t=0;t<ix.length;t+=3) for(let e=0;e<3;e++){ const a=vs[ix[t+e]], b=vs[ix[t+(e+1)%3]]; if(!a||!b||a.y===b.y||(a.y-yy)*(b.y-yy)>0) continue;
+          const k=(yy-a.y)/(b.y-a.y), x=a.x+(b.x-a.x)*k, z=a.z+(b.z-a.z)*k, i=bin(Math.atan2(x,z)); r[i]=Math.max(r[i],Math.hypot(x,z)); }
+        const mx=Math.max(...r); for(let i=0;i<N;i++) if(!r[i]){ let j=1; while(j<N&&!r[(i+j)%N]&&!r[(i-j+N)%N]) j++; r[i]=Math.max(r[(i+j)%N],r[(i-j+N)%N])||mx; }
+        const g=new THREE.CylinderGeometry(1,1,0.028,N*2,1,true), gp=g.attributes.position;
+        for(let v=0;v<gp.count;v++){ const x=gp.getX(v), z=gp.getZ(v), a=Math.atan2(x,z), f=(a+Math.PI)/(2*Math.PI)*N-0.5, i0=Math.floor(f), w=f-i0;
+          const rr=r[((i0%N)+N)%N]*(1-w)+r[((i0+1)%N+N)%N]*w+0.004; gp.setXYZ(v,Math.sin(a)*rr,gp.getY(v),Math.cos(a)*rr); }
+        g.computeVertexNormals(); RP.band[L+yy]=g; } }
+    /* носок ботинка (нижняя кромка спереди) в осях кости пальцев: по нему в rpmSync сгибается носок, чтобы не уходил в пол */
+    RP.tip={}; { const fw=sc.getObjectByName('Wolf3D_Outfit_Footwear'), sk=fw.skeleton, fp=fw.geometry.attributes.position;
+      for(const L of ['Left','Right']){ const ti=sk.bones.findIndex(b=>b.name===L+'ToeBase'), sx=L==='Left'?1:-1; let best=null;
+        for(let v=0;v<fp.count;v++){ if(fp.getX(v)*sx<=0||fp.getY(v)>0.025) continue; if(!best||fp.getZ(v)>fp.getZ(best)) best=v; }
+        if(ti>=0&&best!==null) RP.tip[L]=new THREE.Vector3().fromBufferAttribute(fp,best).applyMatrix4(fw.bindMatrix).applyMatrix4(sk.boneInverses[ti]); } }
     sc.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; o.frustumCulled=false; } });
     RP.src=gl;
   }
@@ -105,7 +131,7 @@
       if(lead){ add(rb.Spine2,new THREE.Mesh(new THREE.BoxGeometry(0.032,0.095,0.024),MT.scanner),-0.095,0.155,0.128);           // рация на правой лямке
         add(rb.Spine2,new THREE.Mesh(new THREE.CylinderGeometry(0.004,0.004,0.1,6),MT.strap),-0.105,0.25,0.128).castShadow=false; } }
     if(!prof.guard) for(const L of ['Left','Right']){ const b=rb[L+'Leg']; if(!b) continue;                                     // ленты на голенях
-      for(const yy of [0.27,0.33]) add(b,new THREE.Mesh(new THREE.CylinderGeometry(0.097,0.094,0.028,18,1,true),MT.refl),0,yy,0).castShadow=false; }
+      for(const yy of [0.27,0.33]) add(b,new THREE.Mesh(RP.band[L+yy],MT.refl),0,yy,0).castShadow=false; }
     if(rb.Head&&v.h>0.72&&!prof.guard){ const gl=new THREE.Group(); const lens=std(0x9fb8c8,.1,0,{transparent:true,opacity:.5,envMapIntensity:1.4});   // защитные очки
       for(const s of [-1,1]){ const l=new THREE.Mesh(new THREE.BoxGeometry(0.046,0.026,0.004),lens); l.position.set(s*0.031,0.044,0.097); l.rotation.y=s*0.25; gl.add(l);
         const tm=new THREE.Mesh(new THREE.BoxGeometry(0.004,0.006,0.11),MT.strap); tm.position.set(s*0.066,0.046,0.045); gl.add(tm); }
@@ -153,6 +179,7 @@
     const hd=H.rb.Head;
     if(prof.hat){ const h=hardHat(MT[prof.hat]); h.position.set(0,0.104,0.012); h.rotation.x=-0.06; hd.add(h); H.hat=h; }
     else if(guard){ const h=guardCap(); h.position.set(0,0.165,0.01); hd.add(h); H.hat=h; }
+    H.toe0={}; for(const L of ['Left','Right']) if(H.rb[L+'ToeBase']) H.toe0[L]=H.rb[L+'ToeBase'].quaternion.clone();
     H.fing=[]; for(const k in H.rb){ const mm=/^(Left|Right)Hand(Thumb|Index|Middle|Ring|Pinky)([123])$/.exec(k); if(mm) H.fing.push({b:H.rb[k],q0:H.rb[k].quaternion.clone(),L:mm[1]==='Left',th:mm[2]==='Thumb',j:+mm[3]}); }
     const rh=H.rb.RightHand; if(rh){ H.scanner.position.set(0,0.09,0.035); H.scanner.rotation.set(0,Math.PI,0); rh.add(H.scanner); }
     gear(H,prof,v);
@@ -161,13 +188,25 @@
   function rpmSync(H){ const rb=H.rb;
     for(const n of BN){ const b=H.B[n], r=rb[n]; if(!r) continue;
       if(n==='Hips'){ r.quaternion.copy(QC).multiply(b.quaternion); const p=b.position; r.position.set(p.x*0.01*KH,p.z*0.01*KH,-p.y*0.01*KH); }
+      else if(RP.xq[n]){ const x=RP.xq[n]; r.quaternion.copy(b.quaternion).multiply(x.q); if(x.pi) r.quaternion.premultiply(x.pi); }
       else r.quaternion.copy(b.quaternion); }
+    /* носок: у драйвера нет кости пальцев, и при отрыве стопы жёсткий ботинок входил носком в пол на 5 см — сгиб по линии пальцев
+       поднимает кромку носка на 4 мм над полом (пол — плоскость y=0 человека; у сбитого с ног не считается) */
+    if(H.toe0&&!H.knock) for(const L of ['Left','Right']){ const tb=rb[L+'ToeBase'], tp=RP.tip[L]; if(!tb||!tp) continue;
+      tb.quaternion.copy(H.toe0[L]); rb[L+'Foot'].updateWorldMatrix(true,false); tb.updateWorldMatrix(false,false);
+      _tw.setFromMatrixPosition(tb.matrixWorld); _tq.copy(tp).applyMatrix4(tb.matrixWorld); H.root.worldToLocal(_tl.copy(_tw)); H.root.worldToLocal(_tr.copy(_tq));
+      const dy=_tr.y-_tl.y, d=_tr.distanceTo(_tl); if(_tr.y>=0.004||d<1e-4) continue;
+      const th=Math.min(0.9,Math.asin(Math.max(-1,Math.min(1,(0.004-_tl.y)/d)))-Math.asin(Math.max(-1,Math.min(1,dy/d)))); if(!(th>0)) continue;
+      H.root.getWorldQuaternion(_tqq); _tax.subVectors(_tq,_tw).cross(_tup.set(0,1,0).applyQuaternion(_tqq)).normalize();
+      tb.parent.getWorldQuaternion(_tpq); tb.getWorldQuaternion(_twq); _twq.premultiply(_trq.setFromAxisAngle(_tax,th)); tb.quaternion.copy(_tpq.invert().multiply(_twq)); }
     /* пальцы: хват зависит от позы (несёт, держит ручку или руль, сканер в правой) */
     if(H.fing){ const p=H.st||{}, g=Math.max(p.carry||0,p.push||0,p.drive||0,(p.reach||0)*0.35);
       for(const f of H.fing){ let c=0.22+0.75*g; if(!f.L&&p.scan) c=Math.max(c,0.95);
         const a=f.th?c*0.35:c*(f.j===1?0.75:1.05);
         f.b.quaternion.copy(f.q0).multiply(_fq.setFromAxisAngle(_fx,a)); } } }
   const _fq=new THREE.Quaternion(), _fx=new THREE.Vector3(1,0,0), _fz=new THREE.Vector3(0,0,1);
+  const _tw=new THREE.Vector3(), _tq=new THREE.Vector3(), _tl=new THREE.Vector3(), _tr=new THREE.Vector3(), _tax=new THREE.Vector3(), _tup=new THREE.Vector3(),
+        _tqq=new THREE.Quaternion(), _tpq=new THREE.Quaternion(), _twq=new THREE.Quaternion(), _trq=new THREE.Quaternion();
   /* загрузка модели (встроена в файл) */
   (function(){ try{
     const s=atob(RPM_GLB), u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i);

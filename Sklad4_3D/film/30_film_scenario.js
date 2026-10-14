@@ -150,21 +150,27 @@ function plan(){
   /* --- упаковщик (с ленты — в стойку клиента) и контролёр (образец каждого SKU — в поддон образцов рядом) --- */
   const PK=new Track(), CT=new Track(), pk0=F.pw0, ct0=F.ct0;
   const pyP=faceTo(PK_PICK[0],PK_PICK[1],beltEnd.x,beltEnd.z), pyC=faceTo(CT_WAIT[0],CT_WAIT[1],beltEnd.x,beltEnd.z);
-  PK.key(0,pk0.x,pk0.z,F.pwYaw,{}); PK.key(E0-2.6,pk0.x,pk0.z,F.pwYaw,{}); PK.key(E0-0.2,PK_PICK[0],PK_PICK[1],pyP,{});
-  CT.key(0,ct0.x,ct0.z,F.ctYaw,{}); CT.key(E0-2.2,ct0.x,ct0.z,F.ctYaw,{}); CT.key(E0+1.6,CT_WAIT[0],CT_WAIT[1],pyC,{});
   F.nav=new Nav(NAV_L2.concat(DWSZ.nav)); const SPK=new Pack(); F.spIt={};
-  PICK=[]; CTS=[]; let pkFree=E0-0.2, ctFree=E0+1.6;
+  /* к своим местам — по дорожкам (хвост конвейера и стойка у него — в обход), выходят так, чтобы прийти к тем же моментам */
+  const rtT=(pts,v)=>pts.reduce((a,q,i)=>i?a+Math.max(0.3,hyp(pts[i-1],q)/v):a,0);
+  const pkIn=F.nav.route([pk0.x,pk0.z],PK_PICK); pkIn[pkIn.length-1]=[PK_PICK[0],PK_PICK[1],pyP];
+  const ctIn=F.nav.route([ct0.x,ct0.z],CT_WAIT); ctIn[ctIn.length-1]=[CT_WAIT[0],CT_WAIT[1],pyC];
+  const tPk=Math.max(0.5,Math.min(E0-2.6,E0-0.2-rtT(pkIn,1.35))), tCt=Math.max(0.5,Math.min(E0-2.2,E0+1.6-rtT(ctIn,1.35)));
+  PK.key(0,pk0.x,pk0.z,F.pwYaw,{}); PK.key(tPk,pk0.x,pk0.z,F.pwYaw,{});
+  CT.key(0,ct0.x,ct0.z,F.ctYaw,{}); CT.key(tCt,ct0.x,ct0.z,F.ctYaw,{});
+  PICK=[]; CTS=[]; let pkFree=route(PK,tPk,pkIn,1.35,{}), ctFree=route(CT,tCt,ctIn,1.35,{});
   SEQ.forEach((ti,k)=>{ const ak=simBelt(k,k>0?PICK[k-1].grab+0.1:-1), K=SKUS[FSKU[k]], cw=K.w, hv=hvK(k), carry={carry:1,cw,heavy:hv};
     if(!SAMPLE[k]){                                      // упаковщик: с ленты — в стойку
       const s=SLOT_OF[k], st=standFor(s,'PK'), p=Math.max(ak+0.15,pkFree+0.55);
       PK.key(Math.max(p-0.5,pkFree+0.05),PK_PICK[0],PK_PICK[1],pyP,{});
       PK.key(p-0.06,PK_PICK[0],PK_PICK[1]+0.03,pyP,{reach:1,bend:0.3});
       PK.key(p+0.32,PK_PICK[0],PK_PICK[1],pyP-0.3,Object.assign({bend:0.08},carry));
-      const via=st.f==='S'?[[4.8,10.86]]:st.f==='N'?[[4.6,13.07]]:[];
-      let t=route(PK,p+0.32,[PK_PICK,...via,[st.x,st.z,st.yaw]],1.3-0.3*hv,carry);
+      const go=F.nav.route(PK_PICK,[st.x,st.z]); go[go.length-1]=[st.x,st.z,st.yaw];        // по дорожкам: хвост конвейера — в обход
+      let t=route(PK,p+0.32,go,1.3-0.3*hv,carry);
       PK.key(t+0.42,st.x,st.z,st.yaw,Object.assign({cw,heavy:hv*0.5},placePose(FYS[s])));
       const rel=t+0.5; PK.key(t+0.9,st.x,st.z,st.yaw,{bend:0.05});
-      t=route(PK,t+0.9,[[st.x,st.z],...via.slice().reverse(),[PK_PICK[0],PK_PICK[1],pyP]],1.45,{});
+      const bk=F.nav.route([st.x,st.z],PK_PICK); bk[bk.length-1]=[PK_PICK[0],PK_PICK[1],pyP];
+      t=route(PK,t+0.9,bk,1.45,{});
       PICK[k]={by:'PK',grab:p,rel,slot:s,ti}; pkFree=t;
     } else {                                              // контролёр: образец — в поддон образцов («как ляжет», Pack)
       const it=SPK.put(packFind(SPK,K)); it.k=k; F.spIt[k]=it;
@@ -181,7 +187,7 @@ function plan(){
   const lastRel=Math.max(...PICK.map(p=>p.rel));
   let tL=Math.max(ctFree,lastRel+0.4)+0.3; CT.key(tL,CT_WAIT[0],CT_WAIT[1],pyC,{});
   MK.lab0=tL;
-  tL=route(CT,tL,[CT_WAIT,[6.8,10.75],[6.95,13.0],[5.25,13.07,PI]],1.4,{});
+  { const lb=F.nav.route(CT_WAIT,[5.25,13.07]); lb[lb.length-1]=[5.25,13.07,PI]; tL=route(CT,tL,lb,1.4,{}); }   // к северной грани стойки — по дорожкам, мимо мотора хвоста
   CT.key(tL+0.7,5.25,13.07,PI,{reach:0.85,bend:0.1}); F.tLabel=tL+0.7;
   CT.key(tL+1.2,5.25,13.07,PI,{scan:1,scanner:true}); CT.key(tL+1.7,5.25,13.07,PI,{scan:1,scanner:true});
   /* выгрузка закончена: упаковщик и контролёр идут в зону DWS (по линии z 9,25 перед комнатой смены; автопоезда на посту ещё нет) */

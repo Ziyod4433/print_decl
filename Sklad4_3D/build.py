@@ -526,9 +526,9 @@ rep("""tgl.onclick=()=>{ const app=document.getElementById('app');
   app.classList.toggle('max');
   tgl.textContent=app.classList.contains('max')?'Панель':'Развернуть';
   requestAnimationFrame(resize); };""",
-"""const tglSet=closed=>{ const app=document.getElementById('app'); app.classList.toggle('max',closed);
+"""const tglSet=(closed,tmp)=>{ const app=document.getElementById('app'); app.classList.toggle('max',closed);
   tgl.innerHTML=closed?'<span class="ic">☰</span>Меню':'<span class="ic">✕</span>Скрыть меню'; tgl.title=closed?'Открыть панель настроек':'Свернуть панель настроек';
-  try{ localStorage.setItem('sklad4.panel',closed?'0':'1'); }catch(err){}
+  if(!tmp) try{ localStorage.setItem('sklad4.panel',closed?'0':'1'); }catch(err){}   // tmp — свёрнута на время обхода: выбор пользователя не трогаем
   requestAnimationFrame(resize); };
 if(window.ResizeObserver) new ResizeObserver(()=>resize()).observe(view); else document.getElementById('panel').addEventListener('transitionend',resize);   // кадр — по размеру сцены, пока панель выезжает и уезжает
 if(!matchMedia('(any-pointer:fine)').matches&&(navigator.maxTouchPoints>0||'ontouchstart' in window)) document.getElementById('app').classList.add('touch');   // телефон, планшет: кнопки обхода нужны
@@ -537,6 +537,17 @@ tgl.onclick=()=>tglSet(!document.getElementById('app').classList.contains('max')
 rep("const walkBtn=mkBtn('Режим обхода · WASD',true,()=>toggleWalk());",
     "const walkBtn=mkBtn('Режим обхода · WASD',true,()=>toggleWalk());\n"
     "walkBtn.title='W A S D — идти · Shift — бегом · Пробел — прыжок · C — присесть · V — вид от 3-го лица · F или ЛКМ — удар · Esc — выход';   // подсказки на экране убраны — клавиши в подсказке кнопки")
+
+# обход: мышь захвачена (pointer lock), панель не убрать — она прячется сама при входе и возвращается при выходе (Esc), 14.10
+rep("let walk=false, wYaw=0, wPitch=0, saved_pr=0, walkLbl=null, walkRoof=null;","let walk=false, wYaw=0, wPitch=0, saved_pr=0, walkLbl=null, walkRoof=null, walkPanel=false;")
+rep("    walkLbl=[G.labels.visible,G.addr.visible]; G.labels.visible=false; G.addr.visible=false;   // глазами человека: без висящих в воздухе подписей\n",
+    "    walkLbl=[G.labels.visible,G.addr.visible]; G.labels.visible=false; G.addr.visible=false;   // глазами человека: без висящих в воздухе подписей\n"
+    "    walkPanel=!document.getElementById('app').classList.contains('max'); if(walkPanel) tglSet(true,true);   // мышь захвачена — панель прячется сама\n")
+rep("    if(walkLbl){ G.labels.visible=walkLbl[0]; G.addr.visible=walkLbl[1]; walkLbl=null; }",
+    "    if(walkLbl){ G.labels.visible=walkLbl[0]; G.addr.visible=walkLbl[1]; walkLbl=null; }\n    if(walkPanel){ walkPanel=false; tglSet(false,true); }   // выход из обхода (Esc) — панель как была")
+
+# люди на своих местах не стоят истуканом: занятие, поворот на месте и взгляд — по расписанию HUM.idle (14.10)
+rep("HUM.pose(H,Object.assign({t:tt},H.base)); } }","HUM.pose(H,HUM.idle(H,tt)); } }")
 
 # ---------- 20. блок правки в файле и исходный текст файла для кнопки «Скачать» ----------
 i=s.index("<script>/* модель человека: Ready Player Me")

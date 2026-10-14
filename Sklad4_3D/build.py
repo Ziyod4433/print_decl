@@ -510,6 +510,34 @@ rep("  #pad button.exit{grid-column:1;grid-row:1;font-size:16px}",
     "  #pad button.jump{grid-column:1/span 2;grid-row:3;font-size:12px;letter-spacing:.1em}\n"
     "  #pad button.crouch{grid-column:3;grid-row:3;font-size:11px;letter-spacing:.06em}")
 
+# ---------- 19c. правая панель сворачивается кнопкой; подсказки управления и экранные кнопки обхода убраны (14.10, по просьбе) ----------
+rep('<div id="app">',
+    '<style>\n'
+    '  /* кнопка «Меню» — внутри сцены (#view), в её правом верхнем углу: открытая панель сужает сцену, и кнопка встаёт у её левого края, а не под ней */\n'
+    '  #toggle{display:flex!important;align-items:center;gap:7px;position:absolute;right:12px;top:12px;z-index:12;padding:8px 12px;\n'
+    '    background:rgba(15,19,24,.86);backdrop-filter:blur(6px);border-color:#3b434e}\n'
+    '  #toggle:hover{border-color:var(--yellow);color:var(--yellow)}\n'
+    '  #toggle .ic{font-size:16px;line-height:1}\n'
+    '  @media (min-width:881px){ #panel{transition:margin-right .25s ease} #app.max #panel{margin-right:-341px} }   /* на узком экране — как было: высота 0 */\n'
+    '  #tip{display:none!important}\n'
+    '  #pad,#pad.on{display:none!important} #app.touch #pad.on{display:grid!important}   /* экранные кнопки обхода — только на сенсорных экранах без мыши (класс touch ставится ниже) */\n'
+    '</style>\n<div id="app">')
+rep("""tgl.onclick=()=>{ const app=document.getElementById('app');
+  app.classList.toggle('max');
+  tgl.textContent=app.classList.contains('max')?'Панель':'Развернуть';
+  requestAnimationFrame(resize); };""",
+"""const tglSet=closed=>{ const app=document.getElementById('app'); app.classList.toggle('max',closed);
+  tgl.innerHTML=closed?'<span class="ic">☰</span>Меню':'<span class="ic">✕</span>Скрыть меню'; tgl.title=closed?'Открыть панель настроек':'Свернуть панель настроек';
+  try{ localStorage.setItem('sklad4.panel',closed?'0':'1'); }catch(err){}
+  requestAnimationFrame(resize); };
+if(window.ResizeObserver) new ResizeObserver(()=>resize()).observe(view); else document.getElementById('panel').addEventListener('transitionend',resize);   // кадр — по размеру сцены, пока панель выезжает и уезжает
+if(!matchMedia('(any-pointer:fine)').matches&&(navigator.maxTouchPoints>0||'ontouchstart' in window)) document.getElementById('app').classList.add('touch');   // телефон, планшет: кнопки обхода нужны
+tgl.onclick=()=>tglSet(!document.getElementById('app').classList.contains('max'));
+{ let open=null; try{ open=localStorage.getItem('sklad4.panel'); }catch(err){} tglSet(open!=='1'); }   // по умолчанию панель свёрнута; дальше — как оставил пользователь""")
+rep("const walkBtn=mkBtn('Режим обхода · WASD',true,()=>toggleWalk());",
+    "const walkBtn=mkBtn('Режим обхода · WASD',true,()=>toggleWalk());\n"
+    "walkBtn.title='W A S D — идти · Shift — бегом · Пробел — прыжок · C — присесть · V — вид от 3-го лица · F или ЛКМ — удар · Esc — выход';   // подсказки на экране убраны — клавиши в подсказке кнопки")
+
 # ---------- 20. блок правки в файле и исходный текст файла для кнопки «Скачать» ----------
 i=s.index("<script>/* модель человека: Ready Player Me")
 s=s[:i]+'<script id="sklad4-saved" type="application/json">{}</script>\n'+s[i:]

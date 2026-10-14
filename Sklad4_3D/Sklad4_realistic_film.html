@@ -162,6 +162,16 @@
   @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 
+<style>
+  /* кнопка «Меню» — внутри сцены (#view), в её правом верхнем углу: открытая панель сужает сцену, и кнопка встаёт у её левого края, а не под ней */
+  #toggle{display:flex!important;align-items:center;gap:7px;position:absolute;right:12px;top:12px;z-index:12;padding:8px 12px;
+    background:rgba(15,19,24,.86);backdrop-filter:blur(6px);border-color:#3b434e}
+  #toggle:hover{border-color:var(--yellow);color:var(--yellow)}
+  #toggle .ic{font-size:16px;line-height:1}
+  @media (min-width:881px){ #panel{transition:margin-right .25s ease} #app.max #panel{margin-right:-341px} }   /* на узком экране — как было: высота 0 */
+  #tip{display:none!important}
+  #pad,#pad.on{display:none!important} #app.touch #pad.on{display:grid!important}   /* экранные кнопки обхода — только на сенсорных экранах без мыши (класс touch ставится ниже) */
+</style>
 <div id="app">
   <div id="view">
     <div id="load"><span>Сборка модели</span><i></i></div>
@@ -8463,6 +8473,7 @@ const padEl=document.getElementById('pad'), tipEl=document.getElementById('tip')
 const tipOrbit=tipEl.innerHTML;
 const SOLIDS=[{x0:1.2,x1:30.0,z0:0.8,z1:6.6}];                 // здание охраны — непроходимо
 const walkBtn=mkBtn('Режим обхода · WASD',true,()=>toggleWalk());
+walkBtn.title='W A S D — идти · Shift — бегом · Пробел — прыжок · C — присесть · V — вид от 3-го лица · F или ЛКМ — удар · Esc — выход';   // подсказки на экране убраны — клавиши в подсказке кнопки
 function toggleWalk(){
   walk=!walk; walkBtn.classList.toggle('on',walk); padEl.classList.toggle('on',walk);
   if(walk){
@@ -9023,10 +9034,14 @@ function resize(){ if(typeof FILM!=='undefined'&&FILM.on) return; const w=view.c
   renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 addEventListener('resize',resize);
 const tgl=document.getElementById('toggle');
-tgl.onclick=()=>{ const app=document.getElementById('app');
-  app.classList.toggle('max');
-  tgl.textContent=app.classList.contains('max')?'Панель':'Развернуть';
+const tglSet=closed=>{ const app=document.getElementById('app'); app.classList.toggle('max',closed);
+  tgl.innerHTML=closed?'<span class="ic">☰</span>Меню':'<span class="ic">✕</span>Скрыть меню'; tgl.title=closed?'Открыть панель настроек':'Свернуть панель настроек';
+  try{ localStorage.setItem('sklad4.panel',closed?'0':'1'); }catch(err){}
   requestAnimationFrame(resize); };
+if(window.ResizeObserver) new ResizeObserver(()=>resize()).observe(view); else document.getElementById('panel').addEventListener('transitionend',resize);   // кадр — по размеру сцены, пока панель выезжает и уезжает
+if(!matchMedia('(any-pointer:fine)').matches&&(navigator.maxTouchPoints>0||'ontouchstart' in window)) document.getElementById('app').classList.add('touch');   // телефон, планшет: кнопки обхода нужны
+tgl.onclick=()=>tglSet(!document.getElementById('app').classList.contains('max'));
+{ let open=null; try{ open=localStorage.getItem('sklad4.panel'); }catch(err){} tglSet(open!=='1'); }   // по умолчанию панель свёрнута; дальше — как оставил пользователь
 
 let prev=performance.now(),frame=0;
 const _lp=new THREE.Vector3();

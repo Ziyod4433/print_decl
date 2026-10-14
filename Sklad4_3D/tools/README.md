@@ -11,6 +11,7 @@
 | `node tools/ev.js <html> <snippet.js>` | выполнить JS в странице, вывести JSON | — |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/forklift_jumps.js` | рывки погрузчика в фильме (скачки позиции/курса) | `"jumps":[]` |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/film_shots.js` | планы камеры и подписи фильма: подряд, без разрывов и перекрытий | `"bad":[]`, `"capsBad":[]` |
+| `node tools/ev.js Sklad4_realistic_film.html tools/checks/variant_static.js` | кнопка варианта приёмки в обычной сцене: машина, конвейер, стойки и люди к П1 и обратно, фильм и живой процесс не сбивают, правка у П1 — отдельно | нормы — в шапке файла |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/film_restore.js` | вход/выход из фильма возвращает сцену как была | в `diff` только `n` (число узлов: объекты фильма строятся один раз) |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/user_edits_in_film.js` | правка пользователя видна в фильме, якоря на месте | `"diff":[]`, есть `warn` по стойке на маршруте |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/pick.js` | выбор объектов мышью (подпись `sig`) | сравнивать `sig` до/после |

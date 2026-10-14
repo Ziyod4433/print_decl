@@ -427,7 +427,8 @@ function find(){
   F.cnT=TRK_L2; F.kzT=TRK_IN; F.fork0=FORK0;
   F.a14=CELLSTACK[13]; F.a6=CELLSTACK[5];
   F.lpr=null; G.equip.children.forEach(o=>{ const b=o.userData.base; if(o.userData.info===EQ[14]&&Math.abs((b?b[0]:o.position.x)+6.2)<0.3) F.lpr=o; });
-  const near=(x,z)=>{ let best=null,bd=1e9; PEOPLE.forEach(H=>{ const p=H.root.position; if(!H.root.parent||H.root.parent!==G.people) return;
+  /* люди фильма — по исходному месту в расстановке (userData.base): переключение приёмки на П1 переставляет их и в обычном виде */
+  const near=(x,z)=>{ let best=null,bd=1e9; PEOPLE.forEach(H=>{ const b=H.root.userData.base, p=b?{x:b[0],z:b[2]}:H.root.position; if(!H.root.parent||H.root.parent!==G.people) return;
     const d=Math.hypot(p.x-x,p.z-z); if(d<bd){bd=d;best=H;} }); return bd<0.8?best:null; };
   F.PW=near(3.8,8.2); F.WP=near(12.2,9.2); F.SUP=near(9.2,12.4);
 }
@@ -549,6 +550,7 @@ function hideUI(){ return [G.flow,G.labels,G.roles,G.addr,G.dims,marker,edSelBox
    объекты видны и в фильме */
 function prepScene(live){
   find();
+  if(F.rcv) F.rcv.cargo(1); rdoorSet(F.cnT,0);                         // приёмка у П1 в обычном виде: груз и задние двери — как в штатной машине (вернёт unprepScene)
   const anch=[F.cnT,F.kzT,F.lpr,F.a6,F.a14].concat(live?Object.values(CELLSTACK):[]).filter((o,i,a)=>o&&a.indexOf(o)===i);
   saved.lay=anch.map(o=>[o,o.position.clone(),o.rotation.y,o.visible]);
   anch.forEach(o=>{ const b=o.userData.base; if(b){ o.position.set(b[0],b[1],b[2]); o.rotation.y=b[3]; } o.visible=true; });
@@ -580,6 +582,7 @@ function unprepScene(){
   F.cnT.rotation.set(0,F.cn0.r,0); F.kzT.rotation.set(0,F.kz0.r,0); if(F.cnCab) F.cnCab.rotation.z=0; if(F.kzCab) F.kzCab.rotation.z=0;
   saved.lay.forEach(([o,p,r,v])=>{ o.position.copy(p); o.rotation.y=r; o.visible=v; });   // правка пользователя — обратно
   F.WTr.visible=false; F.lasers.forEach(l=>l.visible=true); F.lm.opacity=0; if(F.scan) F.scan.visible=false;
+  if(F.rcv&&(F.rcv.v!==1||F.rcv.applied!==1)) F.rcv.apply(F.rcv.v);   // вариант приёмки в обычном виде: П1 — конвейер, машина, стойки и люди у П1 (при Л2 всё уже вернула правка выше)
   renderer.shadowMap.needsUpdate=true;
 }
 function enter(opts){

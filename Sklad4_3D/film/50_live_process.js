@@ -217,6 +217,8 @@ const isCarton=m=>LOOK.cartons.includes(m)||(Array.isArray(m)&&LOOK.ctypeM.inclu
 function dwsIdle(){ const G2=F.gs&&F.gs.userData.gs; if(G2){ G2.setBelt(0); G2.setRoll(0,0); G2.setCurtain(0); G2.setScan(0,'idle'); G2.setFlash(0); G2.screen({state:'idle'}); G2.weight(0); }
   F.lasers.forEach(l=>l.visible=false); F.lm.opacity=0; if(F.scan) F.scan.visible=false; if(F.dwsScr&&F.ptMat){ F.dwsScr.material=F.ptMat; F.ptDraw({state:'idle'}); } }
 function teardown(){
+  (S.boxes||[]).forEach(b=>{ if(b.o&&b.o.parent) b.o.parent.remove(b.o); });   // короба процесса — и те, что в кузовах машин, на DWS и в стойках (иначе остаются в обычном виде и копятся)
+  (S.racks||[]).forEach(r=>{ if(r.o&&r.o.parent) r.o.parent.remove(r.o); });
   if(S.grp) scene.remove(S.grp);
   (S.hidden||[]).forEach(([o,v])=>o.visible=v); S.hidden=[];
   F.cnT.position.set(F.cn0.x,F.cn0.y,F.cn0.z); F.cnT.rotation.set(0,F.cn0.r,0); F.cnT.visible=true; F.kzT.position.set(F.kz0.x,F.kz0.y,F.kz0.z); F.kzT.visible=true;
@@ -868,6 +870,55 @@ SIM.exit=function(){ if(!SIM.on) return; SIM.on=false; HUM.attn=null; teardown()
 SIM.state=()=>S; SIM.log=()=>S.log;
 SIM._dbg={Track,carrySeg,freeSlot,slotY,placeFor,putOnMP,takeFromSP,gsTry,ptTry,walkPlan,walkPair,trackSafe,apart,fkPoseAt,fkHit,fkEnd,pocketBusy,humIn,locSpot,locRP,locSPP,cellFor,zoneNext,humClear,planOK,homeOf,walkSeg,faceCands};   // для проверок
 SIM.owns=H=>SIM.on&&(H===F.PW||H===F.WP||H===F.SUP);
+/* ---------- вариант приёмки и в обычном виде (14.10) ----------
+   Кнопка варианта переставляет и обычную сцену (без живого процесса): машина из Китая, конвейер, запас пустых стоек и люди
+   приёмки переезжают к П1 (места — из RCPV[2]) или обратно к Л2. Правка пользователя у Л2 не трогается: если он двигает эти
+   объекты, пока выбран П1, правка пишется отдельно (edStore.v2 = {eid:{p,r,o}}). Выбранный вариант хранится в edStore.v. */
+const RCV={v:1,applied:1};                                           // v — выбранный вариант, applied — какой сейчас расставлен в обычной сцене
+function rcvDef(){ find(); const rc=RCPV[2], D={}, yawTo=(a,b)=>Math.atan2(b[0]-a[0],b[1]-a[1]);
+  const add=(o,p,r)=>{ if(o&&o.userData&&o.userData.eid) D[o.userData.eid]={o,p,r}; };
+  D['t-l2']={lib:true,p:[rc.tl[0],0,rc.tl[2]],r:rc.tl[3],o:{lift:0.0,tilt:3,ext:TELE_EXT,dir:-1}};     // как конвейер живого процесса у П1
+  add(F.cnT,[rc.home.x,rc.home.y,rc.home.z],rc.home.r);                                               // машина задним ходом на полосе Л1–П1
+  add(G.equip.children.find(o=>/Запас пустых/.test(o.userData.nm||'')),[15.0,0,30.65],PI/2);       // два штабеля у западного конца полосы (x 11,0 и 12,7)
+  add(F.PW&&F.PW.root,[rc.PK[0],0,rc.PK[1]],yawTo(rc.PK,[27.9,32.8]));                                 // упаковщик — у хвоста ленты
+  add(F.WP&&F.WP.root,[25.3,0,31.78],PI);                                                             // второй упаковщик — у места стойки клиента
+  add(F.SUP&&F.SUP.root,[rc.SUP[0],0,rc.SUP[1]],rc.SUP[2]);                                           // старший смены
+  return D; }
+/* конвейер — объект каталога: другая высота и уклон, поэтому пересобирается (запись правки у Л2 остаётся как была) */
+function rcvRespawn(id,opts,p,r){ const o=edMap.get(id); if(!o) return null; const kind=o.userData.libKind, vis=o.visible;
+  const rec=edStore.a.find(c=>c.i===id), keep=rec?JSON.parse(JSON.stringify(rec)):null;
+  libRemove(o); const g=libSpawn(kind,opts,p,r,id); if(keep&&!edStore.a.some(c=>c.i===id)) edStore.a.push(keep); if(g&&!vis) edHide(g); return g; }
+/* груз машины у П1: короба рабочей зоны (там, куда заходит конвейер и где стоит грузчик) убраны — машину уже начали разгружать */
+function rcvCargo(v){ const T=F.cnT; if(!T) return; if(!T.userData.rcvHid) T.userData.rcvHid=[];
+  if(v===2){ if(T.userData.rcvHid.length) return; T.traverse(o=>{ if(o.isMesh&&isCarton(o.material)&&!o.userData.batch&&o.position.x<RCPV[2].hideX&&o.visible){ o.visible=false; T.userData.rcvHid.push(o); } }); }
+  else { T.userData.rcvHid.forEach(o=>o.visible=true); T.userData.rcvHid=[]; } }
+function rcvApply(v){ v=v===2?2:1; const D=rcvDef(), V2=edStore.v2||{};
+  if(typeof ED!=='undefined'&&ED.sel&&D[ED.sel.userData.eid]) edDeselect();
+  for(const id in D){ const d=D[id], e=V2[id];
+    if(d.lib){ const o=edMap.get(id); if(!o||o.userData.rcvV===v) continue; const rec=edStore.a.find(c=>c.i===id);
+      const w=v===2?{p:(e&&e.p)||d.p,r:e&&e.r!==undefined?e.r:d.r,o:Object.assign({},d.o,(e&&e.o)||{})}:rec?{p:rec.p,r:rec.r,o:rec.o}:null;
+      if(!w) continue; const g=rcvRespawn(id,w.o,w.p,w.r); if(g) g.userData.rcvV=v; continue; }
+    const o=d.o, b=o.userData.base, m=edStore.m[id];
+    const P=v===2?(e?e.p:d.p):(m?m.slice(0,3):b?b.slice(0,3):null), R=v===2?(e?e.r:d.r):(m?m[3]:b?b[3]:o.rotation.y);
+    if(P){ o.position.set(P[0],P[1],P[2]); o.rotation.y=R; } }
+  if(F.cnT){ rdoorSet(F.cnT,v===2?1:0); F.cnT.userData.rdU=v===2?1:0; rcvCargo(v); }
+  if(typeof DOOR!=='undefined'&&DOOR.L2){ if(RCV.l2Open===undefined) RCV.l2Open=DOOR.L2.open; doorSet(DOOR.L2,v===2?0:RCV.l2Open); }   // у Л2 машины нет — ворота закрыты
+  RCV.v=v; RCV.applied=v; edStore.v=v; edSave();
+  scene.updateMatrixWorld(true); renderer.shadowMap.needsUpdate=true; }
+/* правка в редакторе, пока выбран П1: для этих объектов — в edStore.v2, остальное — как обычно */
+{ const recO=edRecord, rebO=libRebuild;
+  edRecord=function(o){ const id=o&&o.userData&&o.userData.eid;
+    if(RCV.v===2&&id&&rcvDef()[id]){ const s2=edStore.v2||(edStore.v2={}), e=s2[id]||(s2[id]={});
+      e.p=[+o.position.x.toFixed(3),+o.position.y.toFixed(3),+o.position.z.toFixed(3)]; e.r=+o.rotation.y.toFixed(4); edSave(); return; }
+    recO(o); };
+  libRebuild=function(o,key,val){ const id=o&&o.userData&&o.userData.eid;
+    if(RCV.v===2&&id==='t-l2'&&edMap.get(id)===o){ const s2=edStore.v2||(edStore.v2={}), e=s2[id]||(s2[id]={});
+      e.o=Object.assign({},o.userData.libOpts,{[key]:val}); e.p=[o.position.x,o.position.y,o.position.z]; e.r=o.rotation.y;
+      const g=rcvRespawn(id,e.o,e.p,e.r); if(g) g.userData.rcvV=2; edSave(); if(g){ ED.sel=g; edUI(); libPanel(true); } return; }
+    rebO(o,key,val); }; }
+F.rcv={apply:rcvApply,cargo:rcvCargo,get v(){ return RCV.v; },get applied(){ return RCV.applied; }};          // для prepScene/unprepScene фильма (они во внешнем модуле)
+if(SIM.cfg.variant!==2&&(edStore.v|0)===2) SIM.cfg.variant=2;              // выбранный вариант — из сохранённой расстановки
+if(SIM.cfg.variant===2) rcvApply(2);
 /* ---------- кнопки: запуск, скорость, строка состояния ---------- */
 { const bt=mkBtn('▶ Живой процесс · непрерывно',true,()=>{ if(SIM.on) SIM.exit(); else SIM.enter(); });
   bt.title='Склад работает сам, в реальном времени: выгрузка машин из Китая (три клиента, свои SKU), образцы в отдельный поддон, замер образцов на двух DWS, стойки в ячейки, автопоезд грузится по FIFO до полного и уезжает — пока ячейки не опустеют; затем всё заново. Зайдите в режим обхода и смотрите изнутри.';
@@ -875,8 +926,11 @@ SIM.owns=H=>SIM.on&&(H===F.PW||H===F.WP||H===F.SUP);
   [1,4,16].forEach(k=>{ const b=document.createElement('button'); b.textContent='×'+k; b.style.flex='1'; b.onclick=()=>{ SIM.speed=k; sp.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); }; if(k===1) b.className='on'; sp.appendChild(b); });
   bt.parentNode.insertBefore(sp,bt.nextSibling);
   /* вариант приёмки: у Л2 (площадка) или через П1 (машина заезжает задним ходом на полосу Л1–П1) */
-  const vb=mkBtn('Приёмка: машина у Л2 · переключить на П1',true,()=>{ SIM.cfg.variant=SIM.cfg.variant===2?1:2; vb.textContent=SIM.cfg.variant===2?'Приёмка: машина через П1 · переключить на Л2':'Приёмка: машина у Л2 · переключить на П1';
-    if(SIM.on){ SIM.exit(); SIM.enter(); if(typeof walk!=='undefined'&&walk&&typeof WALKP!=='undefined') WALKP.build(); } });
+  const vbTxt=()=>SIM.cfg.variant===2?'Приёмка: машина через П1 · переключить на Л2':'Приёмка: машина у Л2 · переключить на П1';
+  const vb=mkBtn(vbTxt(),true,()=>{ const on=SIM.on; if(on) SIM.exit(); SIM.cfg.variant=SIM.cfg.variant===2?1:2; vb.textContent=vbTxt();
+    if(!F.on) rcvApply(SIM.cfg.variant); else { RCV.v=SIM.cfg.variant; edStore.v=RCV.v; edSave(); }            // в фильме — после выхода (unprepScene)
+    if(on){ SIM.enter(); if(typeof walk!=='undefined'&&walk&&typeof WALKP!=='undefined') WALKP.build(); }
+    else if(typeof walk!=='undefined'&&walk&&typeof WALKP!=='undefined') WALKP.build(); });
   vb.title='Вариант 2: машина из Китая задним ходом заезжает через П1 и встаёт на полосе Л1–П1 кабиной к воротам; конвейер заходит в кузов через задние двери, стойки собираются южнее полосы и уходят в ячейки с северной магистрали. Зона DWS — одна для обоих вариантов. Переключение перезапускает живой процесс.';
   bt.parentNode.insertBefore(vb,sp.nextSibling);
   const st=document.createElement('div'); st.id='simstat'; st.style.cssText='display:none;position:absolute;left:50%;bottom:40px;transform:translateX(-50%);max-width:88%;z-index:25;background:rgba(10,14,20,.78);color:#e9ecef;border:1px solid rgba(242,183,5,.5);border-radius:6px;padding:6px 12px;font:500 12px/1.4 system-ui,sans-serif;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';

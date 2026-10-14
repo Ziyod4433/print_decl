@@ -4398,10 +4398,10 @@ const ZONES = [
   {id:'4', s:'Стойки', n:'Стоечные поддоны: запас пустых', c:PAL.orange, x0:11.6, x1:15.3, z0:7.4, z1:13.0, m2:21,
    note:'Пустые стоечные поддоны стоят здесь в два яруса и по одному подаются к концу ленты. Короба собираются сразу в стойку: тяжёлое вниз, лёгкое наверх, плёнка не нужна. Выход прямо на магистраль.',
    eq:'стоечные поддоны 1500 × 1500 × 1600 · запас пустых'},
-  {id:'О', s:'Охрана', n:'Здание охраны и бытовой блок', c:0x7c8794, x0:1.2, x1:30.0, z0:0.8, z1:6.6, m2:167,
+  {id:'О', s:'Охрана', n:'Здание охраны и бытовой блок', c:0x7c8794, x0:1.2, x1:31.55, z0:0.8, z1:6.6, m2:184,
    note:'Существующее низкое здание вдоль южной стены, высота около 2 м, длина 29 м. Пост охраны у входа, дальше комната отдыха смены и щитовая. Занимает то место, где раньше стояли резерв и длинномер, — оба перенесены.',
    eq:'пост охраны · LPR-монитор · комната смены · щитовая'},
-  {id:'D', s:'DWS', n:'Зона DWS — замер образцов', c:0x2a7fb8, x0:33.4, x1:44.6, z0:0.9, z1:6.5, m2:63,
+  {id:'D', s:'DWS', n:'Зона DWS — замер образцов', c:0x2a7fb8, x0:34.9, x1:44.6, z0:0.9, z1:6.5, m2:54,
    note:'Сюда погрузчик привозит поддон образцов после выгрузки машины: по одному коробу каждого размера от каждого клиента. Крупные (классы C и D) меряют на портальном DWS, мелкие (A и B) — на ленточном Goodscan; замеренный короб кладут на второй поддон, и он уходит в ячейку своего дня приёмки. Данные — габарит, вес, штрихкод, фото — сразу в WMS и в план загрузки SafeLoad. Брак, упаковочные материалы, зарядка АКБ и план-доски отсюда убраны: им нужно новое место (см. замечания по расстановке).',
    eq:'портальный DWS 2 м (крупные) · ленточный DWS Goodscan GM220 (мелкие) · два места под поддоны образцов'},
   {id:'L', s:'Пост П2', n:'Пост погрузки П2 — автопоезд внутри', c:0xb08b4f, x0:21.4, x1:47.3, z0:9.1, z1:12.1, m2:78,
@@ -6452,11 +6452,12 @@ function goodscanDWS(o){
   g.userData.gs=gs; g.userData.dws2={L:gs.len};
   return g;
 }
-/* ---------- зона DWS (14.10): на месте брака, упаковочных материалов, зарядки АКБ и досок, x 33,4…44,6, z 0,9…6,5 ----------
+/* ---------- зона DWS (14.10): на месте брака, упаковочных материалов, зарядки АКБ и досок, x 34,9…44,6, z 0,9…6,5 ----------
+   (западнее, x 31,55…34,55, — проходная здания охраны)
    Стоит одинаково при любом варианте приёмки. Ленточный Goodscan — вдоль южной стены, ход груза на восток, оператор с севера;
    портальный DWS — у восточного края; между ними и магистралью — два места под поддоны образцов (погрузчик заезжает с севера,
    с южной магистрали). Поддон с образцами ставят на свободное место; замеренные короба ложатся на поддон на втором месте. */
-const DWSZ={x0:33.4,x1:44.6,z0:0.9,z1:6.5,gs:[36.85,2.1,0],big:[43.0,3.9,0],spots:[[37.65,4.7],[40.05,4.7]],
+const DWSZ={x0:34.9,x1:44.6,z0:0.9,z1:6.5,gs:[36.85,2.1,0],big:[43.0,3.9,0],spots:[[37.65,4.7],[40.05,4.7]],
   /* где стоят люди: TS — у весового стола Goodscan, OS — у выходного рольганга, PS — у платформы портала (короб ставят с севера,
      экран — на шкафу у юго-западного угла портала), wPW/wCT — ожидание (вне коридоров, куда заезжает погрузчик, и не на пути
      второго к граням поддонов: стоявший на перекрёстке у восточной грани контролёр не пускал упаковщика); Z0 — вход в зону */
@@ -7462,14 +7463,15 @@ function signPlate(text,w,h,x,y,z,rotY,bgc,fgc,px){
   m.position.set(x,y,z); m.rotation.y=rotY||0; m.castShadow=false; return m;
 }
 {
-  const GX0=1.2, GX1=30.0, GZ0=0.8, GZ1=6.6, H=2.3;
+  const GX0=1.2, GX1=31.55, GZ0=0.8, GZ1=6.6, H=2.3;           // 14.10: торец — у колонны x 32,05 (её опорная плита и кольцо — с x 31,6)
   const G0=grp(0,0,0,G.guard);
   const M_pan=std(0xe4e7ea,.55,.12), M_panDark=std(0x9aa3ad,.7,.1), M_frame=std(0xf5f6f7,.35,.2),
         M_door=std(0x2c4a6b,.5,.25), M_roof=std(0x3a3f46,.85,.05), M_trim=std(0x5b636d,.5,.4),
         M_glassG=std(0x8fb3cc,.08,.6,{transparent:true,opacity:.42,envMapIntensity:1.8,side:THREE.DoubleSide}),
         M_ac=std(0xd9dcdf,.6,.3), M_lamp=std(0xfff3d6,.3,0,{emissive:0xffe9b8,emissiveIntensity:1.1});
   const cx=(GX0+GX1)/2, cz=(GZ0+GZ1)/2, L=GX1-GX0, Dd=GZ1-GZ0;
-  box(L+0.3,0.12,Dd+0.3,std(0xb9bec4,.9,0),cx,0.06,cz,G0);                 // плита
+  { const ms=std(0xb9bec4,.9,0), xc=31.58;                             // плита; у колонны (x ≥ 31,6) без свеса на север — там опорная плита колонны
+    box(xc-GX0+0.15,0.12,Dd+0.3,ms,(GX0-0.15+xc)/2,0.06,cz,G0); box(GX1+0.15-xc,0.12,Dd+0.14,ms,(xc+GX1+0.15)/2,0.06,cz-0.08,G0); }
   box(L,H,0.12,M_pan,cx,0.12+H/2,GZ0,G0);                                  // южная стена (глухая)
   for(const x of [GX0,GX1]) box(0.12,H,Dd,M_pan,x,0.12+H/2,cz,G0);          // торцы
   box(L,0.28,0.13,M_panDark,cx,0.26,GZ0-0.005,G0);                         // цокольная лента
@@ -7508,6 +7510,34 @@ function signPlate(text,w,h,x,y,z,rotY,bgc,fgc,px){
     }
   });
   seg(cur,GX1);
+  /* проходная (14.10, по фото объекта): небольшой блок за восточным торцом, вдоль южной стены; вход с севера, через неё — внутрь здания */
+  { const AX0=GX1, AX1=GX1+3.0, AZ1=3.6, AH=2.12, aw=AX1-AX0, ax=(AX0+AX1)/2, ad=AZ1-GZ0, az=(GZ0+AZ1)/2, top=0.12+AH, fr=0.06;
+    box(AX1-GX1,0.12,ad+0.3,std(0xb9bec4,.9,0),(GX1+0.15+AX1+0.15)/2,0.06,az,G0);                       // плита (западнее — плита основного здания)
+    box(aw,AH,0.12,M_pan,ax,0.12+AH/2,GZ0,G0); box(0.12,AH,ad,M_pan,AX1,0.12+AH/2,az,G0);                 // южная стена и восточный торец
+    box(aw,0.28,0.13,M_panDark,ax,0.26,GZ0-0.005,G0); box(0.13,0.28,ad,M_panDark,AX1+0.005,0.26,az,G0);
+    const dx=AX0+0.85, dw=1.05, dh=2.0, wx=AX1-0.75, ww=1.0, ws=1.05, wh=0.75;                            // дверь и окно на северной стене
+    const wall=(x0,x1)=>{ if(x1-x0<0.02) return; box(x1-x0,AH,0.12,M_pan,(x0+x1)/2,0.12+AH/2,AZ1,G0); box(x1-x0,0.28,0.13,M_panDark,(x0+x1)/2,0.26,AZ1+0.005,G0); };
+    wall(AX0,dx-dw/2); wall(dx+dw/2,wx-ww/2); wall(wx+ww/2,AX1);
+    box(dw,AH-dh,0.12,M_pan,dx,0.12+dh+(AH-dh)/2,AZ1,G0);                                                  // над дверью
+    box(ww,top-ws-wh,0.12,M_pan,wx,ws+wh+(top-ws-wh)/2,AZ1,G0); box(ww,ws-0.12,0.12,M_pan,wx,0.12+(ws-0.12)/2,AZ1,G0);   // над и под окном
+    box(ww+0.02,0.28,0.13,M_panDark,wx,0.26,AZ1+0.005,G0);
+    [[dx,dw,0.12,dh],[wx,ww,ws,wh]].forEach(([x,w,s0,h])=>{ box(w+0.1,fr,0.16,M_frame,x,s0+h+fr/2,AZ1,G0);
+      box(fr,h,0.16,M_frame,x-w/2+fr/2,s0+h/2,AZ1,G0); box(fr,h,0.16,M_frame,x+w/2-fr/2,s0+h/2,AZ1,G0); });
+    box(ww+0.1,fr,0.16,M_frame,wx,ws+fr/2,AZ1,G0);
+    box(dw-0.12,dh-0.08,0.05,M_door,dx,0.12+dh/2,AZ1,G0);                                                  // дверь
+    box(0.32,0.32,0.02,M_glassG,dx,0.12+dh-0.4,AZ1+0.035,G0).castShadow=false;
+    box(0.03,0.16,0.08,M_frame,dx+dw/2-0.18,0.12+1.05,AZ1+0.06,G0);
+    box(ww-0.12,wh-0.12,0.02,M_glassG,wx,ws+wh/2,AZ1,G0).castShadow=false; box(0.04,wh-0.12,0.1,M_frame,wx,ws+wh/2,AZ1,G0);
+    box(ww+0.16,0.05,0.22,M_frame,wx,ws-0.02,AZ1+0.06,G0);                                                 // отлив
+    box(dw+0.5,0.08,0.64,M_trim,dx,top-0.06,AZ1+0.38,G0);                                                  // козырёк под кровлей
+    mesh(new THREE.CylinderGeometry(0.06,0.06,0.05,12),M_lamp,dx,top-0.125,AZ1+0.5,G0).castShadow=false;
+    box(dw+0.5,0.12,0.45,std(0xa9adb2,.8,0),dx,0.06,AZ1+0.375,G0);                                          // ступенька у входа (до уровня плиты)
+    G0.add(signPlate('ПРОХОДНАЯ',ww+0.2,0.26,wx,2.02,AZ1+0.075,0,'#1d232b','#f2b705'));
+    box(AX1+0.15-AX0,0.16,ad+0.3,M_roof,(AX0+AX1+0.15)/2,top+0.08,az,G0);                                  // кровля — ниже свеса основной
+    box(AX1+0.2-(GX1+0.16),0.14,0.08,M_trim,(GX1+0.16+AX1+0.2)/2,top+0.2,AZ1+0.14,G0);
+    box(AX1+0.2-(GX1+0.16),0.14,0.08,M_trim,(GX1+0.16+AX1+0.2)/2,top+0.2,GZ0-0.14,G0);
+    box(0.08,0.14,ad+0.36,M_trim,AX1+0.14,top+0.2,az,G0);
+  }
   /* кровля с парапетом */
   box(L+0.3,0.16,Dd+0.3,M_roof,cx,0.12+H+0.08,cz,G0);
   box(L+0.36,0.14,0.08,M_trim,cx,0.12+H+0.2,GZ1+0.14,G0); box(L+0.36,0.14,0.08,M_trim,cx,0.12+H+0.2,GZ0-0.14,G0);
@@ -7526,9 +7556,9 @@ function signPlate(text,w,h,x,y,z,rotY,bgc,fgc,px){
   cyl(0.09,0.5,std(0xd23b2c,.5,.2),2.0,0.37,GZ1+0.3,G0,12);
   cyl(0.16,0.55,M_trim,7.0,0.4,GZ1+0.6,G0,14);
   G0.add(signPlate('ЗДАНИЕ ОХРАНЫ · SECURITY · 安保',6.0,0.62,15.6,1.75,GZ1+0.075,0,'#e9ecef','#1d232b',120));
-  label('[О] ЗДАНИЕ ОХРАНЫ · h ≈ 2,3 м · 29 × 5,8 м',cx,3.6,cz,'#ffffff',44,0.8);
-  tag(G0,{t:'Здание охраны и бытовой блок',q:'существующее · 28,8 × 5,8 м · высота ≈ 2,3 м',
-    n:'Низкое здание вдоль южной стены. У западного входа — пост охраны с окном на ворота Л2 и монитором LPR; дальше комната отдыха смены с бытовкой и щитовая. Оно заняло место резерва и длинномера: длинномер уехал к южной стене третьего пролёта, резерв порожних поддонов — в юнитизацию.',
+  label('[О] ЗДАНИЕ ОХРАНЫ · h ≈ 2,3 м · 30,4 × 5,8 м + проходная',cx,3.6,cz,'#ffffff',44,0.8);
+  tag(G0,{t:'Здание охраны и бытовой блок',q:'существующее · 30,4 × 5,8 м + проходная 3,0 × 2,8 м · высота ≈ 2,3 м',
+    n:'Низкое здание вдоль южной стены, восточным торцом до колонны x 32,05; за торцом вдоль стены — небольшая проходная со входом с севера, через неё — внутрь здания. У западного входа — пост охраны с окном на ворота Л2 и монитором LPR; дальше комната отдыха смены с бытовкой и щитовая. Оно заняло место резерва и длинномера: длинномер уехал к южной стене третьего пролёта, резерв порожних поддонов — в юнитизацию.',
     k:'security guard cabin / пост охраны модульный / 门卫室'});
 }
 person(3.1,7.5,0.5,false,'ОХРАННИК');
@@ -10566,7 +10596,8 @@ function find(){
   F.cnT=TRK_L2; F.kzT=TRK_IN; F.fork0=FORK0;
   F.a14=CELLSTACK[13]; F.a6=CELLSTACK[5];
   F.lpr=null; G.equip.children.forEach(o=>{ const b=o.userData.base; if(o.userData.info===EQ[14]&&Math.abs((b?b[0]:o.position.x)+6.2)<0.3) F.lpr=o; });
-  const near=(x,z)=>{ let best=null,bd=1e9; PEOPLE.forEach(H=>{ const p=H.root.position; if(!H.root.parent||H.root.parent!==G.people) return;
+  /* люди фильма — по исходному месту в расстановке (userData.base): переключение приёмки на П1 переставляет их и в обычном виде */
+  const near=(x,z)=>{ let best=null,bd=1e9; PEOPLE.forEach(H=>{ const b=H.root.userData.base, p=b?{x:b[0],z:b[2]}:H.root.position; if(!H.root.parent||H.root.parent!==G.people) return;
     const d=Math.hypot(p.x-x,p.z-z); if(d<bd){bd=d;best=H;} }); return bd<0.8?best:null; };
   F.PW=near(3.8,8.2); F.WP=near(12.2,9.2); F.SUP=near(9.2,12.4);
 }
@@ -10688,6 +10719,7 @@ function hideUI(){ return [G.flow,G.labels,G.roles,G.addr,G.dims,marker,edSelBox
    объекты видны и в фильме */
 function prepScene(live){
   find();
+  if(F.rcv) F.rcv.cargo(1); rdoorSet(F.cnT,0);                         // приёмка у П1 в обычном виде: груз и задние двери — как в штатной машине (вернёт unprepScene)
   const anch=[F.cnT,F.kzT,F.lpr,F.a6,F.a14].concat(live?Object.values(CELLSTACK):[]).filter((o,i,a)=>o&&a.indexOf(o)===i);
   saved.lay=anch.map(o=>[o,o.position.clone(),o.rotation.y,o.visible]);
   anch.forEach(o=>{ const b=o.userData.base; if(b){ o.position.set(b[0],b[1],b[2]); o.rotation.y=b[3]; } o.visible=true; });
@@ -10719,6 +10751,7 @@ function unprepScene(){
   F.cnT.rotation.set(0,F.cn0.r,0); F.kzT.rotation.set(0,F.kz0.r,0); if(F.cnCab) F.cnCab.rotation.z=0; if(F.kzCab) F.kzCab.rotation.z=0;
   saved.lay.forEach(([o,p,r,v])=>{ o.position.copy(p); o.rotation.y=r; o.visible=v; });   // правка пользователя — обратно
   F.WTr.visible=false; F.lasers.forEach(l=>l.visible=true); F.lm.opacity=0; if(F.scan) F.scan.visible=false;
+  if(F.rcv&&(F.rcv.v!==1||F.rcv.applied!==1)) F.rcv.apply(F.rcv.v);   // вариант приёмки в обычном виде: П1 — конвейер, машина, стойки и люди у П1 (при Л2 всё уже вернула правка выше)
   renderer.shadowMap.needsUpdate=true;
 }
 function enter(opts){
@@ -11322,6 +11355,8 @@ const isCarton=m=>LOOK.cartons.includes(m)||(Array.isArray(m)&&LOOK.ctypeM.inclu
 function dwsIdle(){ const G2=F.gs&&F.gs.userData.gs; if(G2){ G2.setBelt(0); G2.setRoll(0,0); G2.setCurtain(0); G2.setScan(0,'idle'); G2.setFlash(0); G2.screen({state:'idle'}); G2.weight(0); }
   F.lasers.forEach(l=>l.visible=false); F.lm.opacity=0; if(F.scan) F.scan.visible=false; if(F.dwsScr&&F.ptMat){ F.dwsScr.material=F.ptMat; F.ptDraw({state:'idle'}); } }
 function teardown(){
+  (S.boxes||[]).forEach(b=>{ if(b.o&&b.o.parent) b.o.parent.remove(b.o); });   // короба процесса — и те, что в кузовах машин, на DWS и в стойках (иначе остаются в обычном виде и копятся)
+  (S.racks||[]).forEach(r=>{ if(r.o&&r.o.parent) r.o.parent.remove(r.o); });
   if(S.grp) scene.remove(S.grp);
   (S.hidden||[]).forEach(([o,v])=>o.visible=v); S.hidden=[];
   F.cnT.position.set(F.cn0.x,F.cn0.y,F.cn0.z); F.cnT.rotation.set(0,F.cn0.r,0); F.cnT.visible=true; F.kzT.position.set(F.kz0.x,F.kz0.y,F.kz0.z); F.kzT.visible=true;
@@ -11973,6 +12008,55 @@ SIM.exit=function(){ if(!SIM.on) return; SIM.on=false; HUM.attn=null; teardown()
 SIM.state=()=>S; SIM.log=()=>S.log;
 SIM._dbg={Track,carrySeg,freeSlot,slotY,placeFor,putOnMP,takeFromSP,gsTry,ptTry,walkPlan,walkPair,trackSafe,apart,fkPoseAt,fkHit,fkEnd,pocketBusy,humIn,locSpot,locRP,locSPP,cellFor,zoneNext,humClear,planOK,homeOf,walkSeg,faceCands};   // для проверок
 SIM.owns=H=>SIM.on&&(H===F.PW||H===F.WP||H===F.SUP);
+/* ---------- вариант приёмки и в обычном виде (14.10) ----------
+   Кнопка варианта переставляет и обычную сцену (без живого процесса): машина из Китая, конвейер, запас пустых стоек и люди
+   приёмки переезжают к П1 (места — из RCPV[2]) или обратно к Л2. Правка пользователя у Л2 не трогается: если он двигает эти
+   объекты, пока выбран П1, правка пишется отдельно (edStore.v2 = {eid:{p,r,o}}). Выбранный вариант хранится в edStore.v. */
+const RCV={v:1,applied:1};                                           // v — выбранный вариант, applied — какой сейчас расставлен в обычной сцене
+function rcvDef(){ find(); const rc=RCPV[2], D={}, yawTo=(a,b)=>Math.atan2(b[0]-a[0],b[1]-a[1]);
+  const add=(o,p,r)=>{ if(o&&o.userData&&o.userData.eid) D[o.userData.eid]={o,p,r}; };
+  D['t-l2']={lib:true,p:[rc.tl[0],0,rc.tl[2]],r:rc.tl[3],o:{lift:0.0,tilt:3,ext:TELE_EXT,dir:-1}};     // как конвейер живого процесса у П1
+  add(F.cnT,[rc.home.x,rc.home.y,rc.home.z],rc.home.r);                                               // машина задним ходом на полосе Л1–П1
+  add(G.equip.children.find(o=>/Запас пустых/.test(o.userData.nm||'')),[15.0,0,30.65],PI/2);       // два штабеля у западного конца полосы (x 11,0 и 12,7)
+  add(F.PW&&F.PW.root,[rc.PK[0],0,rc.PK[1]],yawTo(rc.PK,[27.9,32.8]));                                 // упаковщик — у хвоста ленты
+  add(F.WP&&F.WP.root,[25.3,0,31.78],PI);                                                             // второй упаковщик — у места стойки клиента
+  add(F.SUP&&F.SUP.root,[rc.SUP[0],0,rc.SUP[1]],rc.SUP[2]);                                           // старший смены
+  return D; }
+/* конвейер — объект каталога: другая высота и уклон, поэтому пересобирается (запись правки у Л2 остаётся как была) */
+function rcvRespawn(id,opts,p,r){ const o=edMap.get(id); if(!o) return null; const kind=o.userData.libKind, vis=o.visible;
+  const rec=edStore.a.find(c=>c.i===id), keep=rec?JSON.parse(JSON.stringify(rec)):null;
+  libRemove(o); const g=libSpawn(kind,opts,p,r,id); if(keep&&!edStore.a.some(c=>c.i===id)) edStore.a.push(keep); if(g&&!vis) edHide(g); return g; }
+/* груз машины у П1: короба рабочей зоны (там, куда заходит конвейер и где стоит грузчик) убраны — машину уже начали разгружать */
+function rcvCargo(v){ const T=F.cnT; if(!T) return; if(!T.userData.rcvHid) T.userData.rcvHid=[];
+  if(v===2){ if(T.userData.rcvHid.length) return; T.traverse(o=>{ if(o.isMesh&&isCarton(o.material)&&!o.userData.batch&&o.position.x<RCPV[2].hideX&&o.visible){ o.visible=false; T.userData.rcvHid.push(o); } }); }
+  else { T.userData.rcvHid.forEach(o=>o.visible=true); T.userData.rcvHid=[]; } }
+function rcvApply(v){ v=v===2?2:1; const D=rcvDef(), V2=edStore.v2||{};
+  if(typeof ED!=='undefined'&&ED.sel&&D[ED.sel.userData.eid]) edDeselect();
+  for(const id in D){ const d=D[id], e=V2[id];
+    if(d.lib){ const o=edMap.get(id); if(!o||o.userData.rcvV===v) continue; const rec=edStore.a.find(c=>c.i===id);
+      const w=v===2?{p:(e&&e.p)||d.p,r:e&&e.r!==undefined?e.r:d.r,o:Object.assign({},d.o,(e&&e.o)||{})}:rec?{p:rec.p,r:rec.r,o:rec.o}:null;
+      if(!w) continue; const g=rcvRespawn(id,w.o,w.p,w.r); if(g) g.userData.rcvV=v; continue; }
+    const o=d.o, b=o.userData.base, m=edStore.m[id];
+    const P=v===2?(e?e.p:d.p):(m?m.slice(0,3):b?b.slice(0,3):null), R=v===2?(e?e.r:d.r):(m?m[3]:b?b[3]:o.rotation.y);
+    if(P){ o.position.set(P[0],P[1],P[2]); o.rotation.y=R; } }
+  if(F.cnT){ rdoorSet(F.cnT,v===2?1:0); F.cnT.userData.rdU=v===2?1:0; rcvCargo(v); }
+  if(typeof DOOR!=='undefined'&&DOOR.L2){ if(RCV.l2Open===undefined) RCV.l2Open=DOOR.L2.open; doorSet(DOOR.L2,v===2?0:RCV.l2Open); }   // у Л2 машины нет — ворота закрыты
+  RCV.v=v; RCV.applied=v; edStore.v=v; edSave();
+  scene.updateMatrixWorld(true); renderer.shadowMap.needsUpdate=true; }
+/* правка в редакторе, пока выбран П1: для этих объектов — в edStore.v2, остальное — как обычно */
+{ const recO=edRecord, rebO=libRebuild;
+  edRecord=function(o){ const id=o&&o.userData&&o.userData.eid;
+    if(RCV.v===2&&id&&rcvDef()[id]){ const s2=edStore.v2||(edStore.v2={}), e=s2[id]||(s2[id]={});
+      e.p=[+o.position.x.toFixed(3),+o.position.y.toFixed(3),+o.position.z.toFixed(3)]; e.r=+o.rotation.y.toFixed(4); edSave(); return; }
+    recO(o); };
+  libRebuild=function(o,key,val){ const id=o&&o.userData&&o.userData.eid;
+    if(RCV.v===2&&id==='t-l2'&&edMap.get(id)===o){ const s2=edStore.v2||(edStore.v2={}), e=s2[id]||(s2[id]={});
+      e.o=Object.assign({},o.userData.libOpts,{[key]:val}); e.p=[o.position.x,o.position.y,o.position.z]; e.r=o.rotation.y;
+      const g=rcvRespawn(id,e.o,e.p,e.r); if(g) g.userData.rcvV=2; edSave(); if(g){ ED.sel=g; edUI(); libPanel(true); } return; }
+    rebO(o,key,val); }; }
+F.rcv={apply:rcvApply,cargo:rcvCargo,get v(){ return RCV.v; },get applied(){ return RCV.applied; }};          // для prepScene/unprepScene фильма (они во внешнем модуле)
+if(SIM.cfg.variant!==2&&(edStore.v|0)===2) SIM.cfg.variant=2;              // выбранный вариант — из сохранённой расстановки
+if(SIM.cfg.variant===2) rcvApply(2);
 /* ---------- кнопки: запуск, скорость, строка состояния ---------- */
 { const bt=mkBtn('▶ Живой процесс · непрерывно',true,()=>{ if(SIM.on) SIM.exit(); else SIM.enter(); });
   bt.title='Склад работает сам, в реальном времени: выгрузка машин из Китая (три клиента, свои SKU), образцы в отдельный поддон, замер образцов на двух DWS, стойки в ячейки, автопоезд грузится по FIFO до полного и уезжает — пока ячейки не опустеют; затем всё заново. Зайдите в режим обхода и смотрите изнутри.';
@@ -11980,8 +12064,11 @@ SIM.owns=H=>SIM.on&&(H===F.PW||H===F.WP||H===F.SUP);
   [1,4,16].forEach(k=>{ const b=document.createElement('button'); b.textContent='×'+k; b.style.flex='1'; b.onclick=()=>{ SIM.speed=k; sp.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); }; if(k===1) b.className='on'; sp.appendChild(b); });
   bt.parentNode.insertBefore(sp,bt.nextSibling);
   /* вариант приёмки: у Л2 (площадка) или через П1 (машина заезжает задним ходом на полосу Л1–П1) */
-  const vb=mkBtn('Приёмка: машина у Л2 · переключить на П1',true,()=>{ SIM.cfg.variant=SIM.cfg.variant===2?1:2; vb.textContent=SIM.cfg.variant===2?'Приёмка: машина через П1 · переключить на Л2':'Приёмка: машина у Л2 · переключить на П1';
-    if(SIM.on){ SIM.exit(); SIM.enter(); if(typeof walk!=='undefined'&&walk&&typeof WALKP!=='undefined') WALKP.build(); } });
+  const vbTxt=()=>SIM.cfg.variant===2?'Приёмка: машина через П1 · переключить на Л2':'Приёмка: машина у Л2 · переключить на П1';
+  const vb=mkBtn(vbTxt(),true,()=>{ const on=SIM.on; if(on) SIM.exit(); SIM.cfg.variant=SIM.cfg.variant===2?1:2; vb.textContent=vbTxt();
+    if(!F.on) rcvApply(SIM.cfg.variant); else { RCV.v=SIM.cfg.variant; edStore.v=RCV.v; edSave(); }            // в фильме — после выхода (unprepScene)
+    if(on){ SIM.enter(); if(typeof walk!=='undefined'&&walk&&typeof WALKP!=='undefined') WALKP.build(); }
+    else if(typeof walk!=='undefined'&&walk&&typeof WALKP!=='undefined') WALKP.build(); });
   vb.title='Вариант 2: машина из Китая задним ходом заезжает через П1 и встаёт на полосе Л1–П1 кабиной к воротам; конвейер заходит в кузов через задние двери, стойки собираются южнее полосы и уходят в ячейки с северной магистрали. Зона DWS — одна для обоих вариантов. Переключение перезапускает живой процесс.';
   bt.parentNode.insertBefore(vb,sp.nextSibling);
   const st=document.createElement('div'); st.id='simstat'; st.style.cssText='display:none;position:absolute;left:50%;bottom:40px;transform:translateX(-50%);max-width:88%;z-index:25;background:rgba(10,14,20,.78);color:#e9ecef;border:1px solid rgba(242,183,5,.5);border-radius:6px;padding:6px 12px;font:500 12px/1.4 system-ui,sans-serif;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';

@@ -9,5 +9,6 @@
    C.humans.forEach(([nm,H])=>{ if(!H||!H.root.visible) return; H.root.getWorldPosition(P); if(P.y>0.5) return;
      const bx=P.x-ox, bz=P.z-oz, dl=Math.abs(bx*c-bz*s), df=bx*s+bz*c; const front=carried?2.72:0.9; const out=Math.max(dl-(carried&&df>1.2?0.75:0.6), df-front, -1.45-df);
      if(out<0.25){ const h=C.hum[nm]||(C.hum[nm]={d:9,T:0,n:0}); h.n++; if(out<h.d){ h.d=+out.toFixed(2); h.T=+T.toFixed(1); } } });
+   if(n%3===0) C.hstat(T,rb);
    if(S.cycle!==c0) break; } }catch(e){ return {err:e.message+' '+(e.stack||'').split('\n').slice(0,3).join(' | '),T:S.T}; }
- return {T:Math.round(S.T),cycle:S.cycle,stat:SIM.stat.slice(0,150),eo:S.eo.map(s=>s.tiers.length),nhits:Object.keys(C.hits).length}; })()
+ return {T:Math.round(S.T),cycle:S.cycle,stat:SIM.stat.slice(0,150),eo:S.eo.map(s=>s.tiers.length),nhits:Object.keys(C.hits).length,nhp:Object.keys(C.hp).length}; })()

@@ -2,7 +2,7 @@
  F._apply(F.tfOf(MK.set1)); scene.updateMatrixWorld(true);   // автопоезд стоит на посту, шторы открыты
  /* --- статические препятствия: видимые сетки сцены, кроме актёров фильма, пола и того, что выше 2,3 м --- */
  const skip=new Set(); F.grp.traverse(o=>skip.add(o)); [F.cnT,F.PW&&F.PW.root,F.SUP&&F.SUP.root,F.WP&&F.WP.root].forEach(r=>r&&r.traverse(o=>skip.add(o)));
- const movers=new Set(); [F.kzT].forEach(r=>r.traverse(o=>movers.add(o)));
+ const movers=new Set(); [F.kzT,CHOCKS].forEach(r=>r.traverse(o=>movers.add(o)));   // автопоезд и упоры — только пока стоят на посту
  const vis=o=>{ for(let p=o;p;p=p.parent) if(!p.visible) return false; return true; };
  const nameOf=o=>{ for(let p=o;p;p=p.parent){ const u=p.userData||{}; if(u.info&&(u.info.t||u.info.n)) return (u.info.t||u.info.n).slice(0,40); if(u.nm) return u.nm.slice(0,40); if(u.role) return 'чел:'+u.role; } return (o.material&&o.material.name)||o.type; };
  const obs=[], bb=new THREE.Box3();
@@ -12,6 +12,10 @@
    if(bb.max.y-bb.min.y<0.02&&bb.min.y<0.1) return;
    if(o.material&&!Array.isArray(o.material)&&(o.material.transparent&&o.material.opacity<0.35)) return;   // тени-подложки, световые пятна
    obs.push({x0:bb.min.x,x1:bb.max.x,z0:bb.min.z,z1:bb.max.z,y0:bb.min.y,y1:bb.max.y,n:nameOf(o),mv:movers.has(o)}); });
+ /* аппараты DWS фильма (в F.grp, поэтому выше пропущены) — тоже препятствия */
+ [F.dws,F.gs].forEach(g=>g&&g.traverse(o=>{ if(!o.isMesh||!vis(o)) return; if(!o.geometry.boundingBox) o.geometry.computeBoundingBox(); bb.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+   if(bb.max.y<0.07||bb.min.y>2.4) return; if(o.material&&!Array.isArray(o.material)&&(o.material.transparent&&o.material.opacity<0.35)) return;
+   obs.push({x0:bb.min.x,x1:bb.max.x,z0:bb.min.z,z1:bb.max.z,y0:bb.min.y,y1:bb.max.y,n:'DWS:'+nameOf(o),mv:false}); }));
  const G2=new Map(), key=(i,j)=>i*1000+j;
  obs.forEach((b,k)=>{ for(let i=Math.floor(b.x0/2);i<=Math.floor(b.x1/2);i++) for(let j=Math.floor(b.z0/2);j<=Math.floor(b.z1/2);j++){ const kk=key(i+50,j+50); if(!G2.has(kk)) G2.set(kk,[]); G2.get(kk).push(k); } });
  /* --- ориентированная коробка против выровненных --- */
@@ -27,7 +31,7 @@
        if(what!=='погрузчик'&&/Стоечный поддон/.test(b.n)&&Math.hypot((b.x0+b.x1)/2-cx,(b.z0+b.z1)/2-cz)<(what==="вилы"?1.7:0.9)) continue;
        if(pen>(pad||0.01)){ const id=what+' × '+b.n+' @'+((b.x0+b.x1)/2).toFixed(1)+','+((b.z0+b.z1)/2).toFixed(1); const h=hits[id]||(hits[id]={pen:0,T0:T,T1:T,at:null}); h.T1=T; if(pen>h.pen){ h.pen=pen; h.at=[+cx.toFixed(2),+cz.toFixed(2),+((b.x0+b.x1)/2).toFixed(2),+((b.z0+b.z1)/2).toFixed(2),+T.toFixed(1)]; } } } } }
  const P=new THREE.Vector3(), Q=new THREE.Quaternion(), E=new THREE.Euler(0,0,0,'YXZ');
- const racks=[F.RK,F.R14[0],F.R14[1]], rr=[F.RKr,F.R14r[0],F.R14r[1]];
+ const racks=[F.RK,F.R14[0],F.R14[1],F.SP,F.MP], rr=[F.RKr,F.R14r[0],F.R14r[1],F.SPr,F.MPr];
  const humans=[['CT',F.CT],['PK',F.PW],['K1',F.KH.K1],['K2',F.KH.K2],['K3',F.KH.K3],['K4',F.KH.K4],['W3',F.W3],['W4',F.W4],['W5',F.W5],['SUP',F.SUP]].filter(h=>h[1]);
  const T1=MK.go-0.2, hum={};
  for(let T=MK.fk0-2;T<T1;T+=0.08){ F._apply(F.tfOf(T)); const fk=F.fk; fk.updateMatrixWorld(true);
@@ -44,7 +48,8 @@
  const hp={};
  for(let T=0;T<T1;T+=0.25){ F._apply(F.tfOf(T)); humans.forEach(([n,H])=>{ if(!H.root.visible) return; H.root.getWorldPosition(P); const y=P.y;
      const L=G2.get(key(Math.floor(P.x/2)+50,Math.floor(P.z/2)+50)); if(!L) return;
-     for(const k of L){ const b=obs[k]; if(b.y1<y+0.25||b.y0>y+1.5) continue; const dx=Math.max(b.x0-P.x,0,P.x-b.x1), dz=Math.max(b.z0-P.z,0,P.z-b.z1);
+     for(const k of L){ const b=obs[k]; if(b.y1<y+0.25||b.y0>y+1.5) continue; if(b.mv&&(T<MK.kin||T>MK.go+12||/^K\d/.test(n))) continue;
+       const dx=Math.max(b.x0-P.x,0,P.x-b.x1), dz=Math.max(b.z0-P.z,0,P.z-b.z1);   // автопоезд и упоры — только пока стоят на посту; грузчики K1…K4 сами заходят в кузов и спрыгивают из проёма
        if(Math.hypot(dx,dz)<0.12){ const id=n+' × '+b.n; const h=hp[id]||(hp[id]={n:0,T0:+T.toFixed(1),at:[+P.x.toFixed(2),+P.z.toFixed(2)]}); h.n++; h.T1=+T.toFixed(1); } } }); }
  const out=Object.entries(hits).map(([k,h])=>[k,+h.pen.toFixed(2),+h.T0.toFixed(1),+h.T1.toFixed(1),h.at]).sort((a,b)=>b[1]-a[1]);
  return {nobs:obs.length,hits:out.slice(0,40),hum,hp:Object.entries(hp).slice(0,40)}; })()

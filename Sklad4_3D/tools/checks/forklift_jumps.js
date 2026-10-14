@@ -6,6 +6,6 @@
    pp={x:p.x,z:p.z,y}; }
  out.maxv=+maxv.toFixed(2);
  // стойки: скачки положения
- const R=[F.RK,F.R14[0],F.R14[1]], last=R.map(()=>null); out.rj=[];
+ const R=[F.RK,F.R14[0],F.R14[1],F.SP,F.MP], last=R.map(()=>null); out.rj=[];
  for(let T=MK.fk0-1;T<T1;T+=0.02){ F._apply(F.tfOf(T)); R.forEach((o,i)=>{ const p=o.position; if(last[i]){ const d=p.distanceTo(last[i]); if(d>0.12) out.rj.push([i,+T.toFixed(2),+d.toFixed(3)]); } last[i]=p.clone(); }); }
  return out; })()

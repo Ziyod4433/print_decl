@@ -88,17 +88,18 @@ function rackFrame(p,x,y,z,o){                                // пустая с
   if(!(o&&o.ao===false)&&!(y>0.01)) ao(1.75,1.75,0,0,g);
   return g;
 }
-function rackFill(g,n,R){                                     // первые n коробов раскладки (по умолчанию все 20)
+function rackFill(g,n,R,cl){                                  // первые n коробов раскладки (по умолчанию все 20); cl — клиент: его SKU, высоты рядов по фактическим коробам
   R=R||LOOK.R; n=n===undefined?RSLOT.length:n;
-  for(let i=0;i<n;i++){ const q=RSLOT[i], m=cartonMesh(q.ti);
-    m.position.set(q.x+(R()-.5)*0.008,q.y,q.z+(R()-.5)*0.008); m.rotation.y=(R()-.5)*0.02; g.add(m); }
+  const sk=cl===undefined||cl===null?null:rackSkus(cl), ys=sk?slotYs(sk.map(si=>SKUS[si].h)):null;
+  for(let i=0;i<n;i++){ const q=RSLOT[i], m=sk?skuMesh(sk[i]):cartonMesh(q.ti);
+    m.position.set(q.x+(R()-.5)*0.008,sk?ys[i]:q.y,q.z+(R()-.5)*0.008); m.rotation.y=(R()-.5)*0.02; g.add(m); }   // три вызова R() на короб — как раньше (общий генератор)
   return g;
 }
 function rackStack(p,tiers,fill,day,o){                       // штабель стоек: tiers ярусов, fill — доля загрузки верхнего
   const g=new THREE.Group(); if(p) p.add(g); g.userData.tiers=[];
   for(let i=0;i<tiers;i++){ const r=rackFrame(g,0,i*RACK.PITCH,0,o);
     const n=fill===0?0:(i<tiers-1?20:Math.max(4,Math.round(20*(fill===undefined?1:fill))));
-    if(n) rackFill(r,n);
+    if(n) rackFill(r,n,undefined,o&&o.cl!==undefined?o.cl:undefined);       // оба яруса ячейки — одна отправка
     if(day!==undefined&&n){ const tg=dayTag(r,-0.5,1.24,0.765,day); r.userData.tag=tg; }
     g.userData.tiers.push(r); }
   g.userData.nm='Стоечные поддоны · '+tiers+' яруса';
@@ -106,7 +107,7 @@ function rackStack(p,tiers,fill,day,o){                       // штабель 
 }
 function cellRack(c,tiers,day,idx){
   const cx=(c.x0+c.x1)/2, cz=(c.z0+c.z1)/2-(c.row==='B'?0.75:0);   // ряд B: стойка в глубине ячейки, у северной магистрали остаётся место для дуги погрузчика
-  const g=rackStack(G.equip,tiers,[1,0.7,0.55,1,0.7][idx%5],day);
+  const g=rackStack(G.equip,tiers,[1,0.7,0.55,1,0.7][idx%5],day,{cl:(idx*5)%CLIENTS.length});   // ячейка — одна отправка (клиент), соседние ячейки — разные
   g.position.set(cx,0,cz); g.rotation.y=c.row==='A'?Math.PI:0;                     // петли и бирка — к своему проезду
   tag(g,{t:'Стоечные поддоны в ячейке '+c.id, q:'ярусов: '+tiers+' · бирка дня приёмки: '+DAYN[day],
     n:'Короба лежат не на паллете под плёнкой, а в стоечном поддоне: стойки несут верхний ярус, поэтому груз не давится, а ячейка вмещает два яруса вместо одного. В одной ячейке оба яруса — одного дня приёмки, поэтому FIFO не ломается: ячейка уходит целиком, сначала верхняя стойка, потом нижняя. Бирка цвета дня висит на каждой стойке.',

@@ -40,9 +40,9 @@ function route(tr,t,pts,v,pose){                         // идёт по точ
     tr.key(t,q[0],q[1],q[2]!==undefined?q[2]:Math.atan2(q[0]-p[0],q[1]-p[1]),pose); } return t; }
 
 /* ===================== казахский кузов: дорожки по типам, разбор стойки двумя рабочими ===================== */
-function laneSlot(r,side,ti){ const L=KZLANE[ti], n=F.kCnt[r][side][ti]++, st=Math.floor(n/L.n), lv=n%L.n, T=CTYPE[ti];
+function laneSlot(r,side,ti,h){ const L=KZLANE[ti], n=F.kCnt[r][side][ti]++, st=Math.floor(n/L.n), lv=n%L.n, hy=F.kHy[r][side][ti], y=lv?(hy[st]||0):0; hy[st]=y+h+0.004;   // высота стопки — по фактическим коробам
   const xc=side==='S'?XS0+L.d*(st+0.5):XN0-L.d*(st+0.5), xf=side==='S'?XS0+L.d*(st+1):XN0-L.d*(st+1);
-  return {lp:V(xc,BEDY+lv*(T.h+0.004),L.z),stand:[side==='S'?xf+0.42:xf-0.42,L.z],yaw:side==='S'?-Math.PI/2:Math.PI/2,y:lv*T.h}; }
+  return {lp:V(xc,BEDY+y,L.z),stand:[side==='S'?xf+0.42:xf-0.42,L.z],yaw:side==='S'?-Math.PI/2:Math.PI/2,y}; }
 function unloadPlan(r,t0){                                // кузов r (0 — грузовик, 1 — прицеп): двое берут из стойки по одному коробу
   const PI=Math.PI, wn=CREW[r][0], ws=CREW[r][1], seq={}, sideOf={}, idx={}, free={}, idle=F.kIdle, g={}, tr=F.trK, cur=F.kPos;
   seq[wn]=[16,19,6,5,4,8,10,1,3]; seq[ws]=[14,15,17,18,13,12,11,7,9,0,2]; sideOf[wn]='N'; sideOf[ws]='S'; idx[wn]=idx[ws]=0; free[wn]=t0+0.6; free[ws]=t0;
@@ -53,14 +53,14 @@ function unloadPlan(r,t0){                                // кузов r (0 —
     const cand=CREW[r].filter(w=>idx[w]<seq[w].length).sort((p,q)=>free[p]-free[q]);
     let w=null; for(const c of cand){ const s=seq[c][idx[c]]; if((DEP[s]||[]).every(d=>g[d]!==undefined)){ w=c; break; } }
     if(!w) break;
-    const s=seq[w][idx[w]++], q=RSLOT[s], ti=q.ti, T=CTYPE[ti], hv=heavy(ti), cw=T.w, side=sideOf[w], trk=tr[w];
+    const s=seq[w][idx[w]++], q=RSLOT[s], ti=q.ti, T=SKUS[F.k14[s]], hv=heavyKg(T.kg), cw=T.w, qy=F.ys14[s], side=sideOf[w], trk=tr[w];
     const ps=[RB.x+(side==='S'?-1:1)*(0.75+0.38),Math.max(-0.05,Math.min(0.95,RB.z+q.z))], pyaw=side==='S'?PI/2:-PI/2;
     let t=free[w]+Math.max(0.4,hyp(cur[w],ps)/1.35); trk.key(t,ps[0],ps[1],pyaw,{});
     let tw=t; (DEP[s]||[]).forEach(d=>{ tw=Math.max(tw,g[d]+0.7); }); if(tw>t+0.05){ trk.key(tw,ps[0],ps[1],pyaw,{}); t=tw; }
-    trk.key(t+0.42,ps[0],ps[1],pyaw,q.y<0.6?{reach:1,bend:0.5,squat:0.3}:q.y<1.0?{reach:1,bend:0.28}:{reach:1,bend:0.08});
+    trk.key(t+0.42,ps[0],ps[1],pyaw,qy<0.6?{reach:1,bend:0.5,squat:0.3}:qy<1.0?{reach:1,bend:0.28}:{reach:1,bend:0.08});
     const grab=t+0.48; g[s]=grab;
     trk.key(t+0.86,ps[0],ps[1],pyaw,{carry:1,cw,heavy:hv});
-    const L=laneSlot(r,side,ti), t1=t+0.86+Math.max(0.6,hyp(ps,L.stand)/(1.2-0.25*hv));
+    const L=laneSlot(r,side,ti,T.h), t1=t+0.86+Math.max(0.6,hyp(ps,L.stand)/(1.2-0.25*hv));
     trk.key(t1,L.stand[0],L.stand[1],L.yaw,{carry:1,cw,heavy:hv});
     trk.key(t1+0.42,L.stand[0],L.stand[1],L.yaw,Object.assign({cw,heavy:hv*0.5},placePose(L.y)));
     const rel=t1+0.5; trk.key(t1+0.9,L.stand[0],L.stand[1],L.yaw,{bend:0.05});
@@ -72,6 +72,51 @@ function unloadPlan(r,t0){                                // кузов r (0 —
   return {tEnd};
 }
 
+/* ===================== замер образцов в фильме =====================
+   Тот же порядок, что в живом процессе: с поддона образцов снимают сверху, мелкие и крупные по очереди; места на поддоне
+   замеренных считаются сразу для всех. Упаковщик работает с южной стороны поддонов (весовой стол и выход Goodscan), контролёр —
+   с северной (портал); каждый ждёт, если короб под ним ещё не сняли или то, на что класть, ещё не положили. */
+function zoneFilm(PK,CT,MK){ const Z=DWSZ, s1=Z.spots[0], s2=Z.spots[1], items=Object.values(F.spIt), PI=Math.PI;
+  const ov=(o,it)=>o.base>=it.top-0.012&&o.i<it.i+it.fx&&it.i<o.i+o.fx&&o.j<it.j+it.fz&&it.j<o.j+o.fz, small=it=>SKUS[FSKU[it.k]].ti<2;
+  const on=new Set(items), ord=[], top=f=>f.slice().sort((a,b)=>b.top-a.top)[0]; let n=0;
+  while(on.size){ const L=[...on], free=L.filter(it=>!L.some(o=>o!==it&&ov(o,it))), p=top(free.filter(i=>small(i)===(n%2===0)))||top(free); n++; on.delete(p); ord.push(p); }
+  const MPK=new Pack(); ord.forEach(it=>{ it.mp=MPK.put(packFind(MPK,SKUS[FSKU[it.k]])); });
+  let q=20261015; const rnd=()=>{ q=(q*1664525+1013904223)>>>0; return q/4294967296; };
+  const P={PW:{tr:PK,t:Math.max(MK.pwArr,MK.spSet+0.8),pos:[Z.wPW[0],Z.wPW[1]],w:Z.wPW,faces:Z.FPW},CT:{tr:CT,t:Math.max(MK.ctArr,MK.spSet+0.8),pos:[Z.wCT[0],Z.wCT[1]],w:Z.wCT,faces:Z.FCT}};
+  F.gsJobs=[]; F.ptJobs=[]; F.zj={}; let gsU=0, ptU=0, cnt=0;
+  const mon=Math.atan2(Z.gs[0]-0.16-Z.TS[0],Z.gs[1]-0.16-Z.TS[1]), btn=Math.atan2(Z.gs[0]+GS.L0+0.2-Z.TS[0],Z.gs[1]+GS.BW/2+0.13-Z.TS[1]), arch=Math.atan2(Z.gs[0]+GS.ARCH-Z.OS[0],Z.gs[1]-Z.OS[1]);
+  const cab=[Z.big[0]-1.22,Z.big[1]-0.62], px=Z.PS[0], pz=Z.PS[1]+0.15, scr=Math.atan2(cab[0]-px,cab[1]-pz);
+  ord.forEach((it,idx)=>{ const k=it.k, K=SKUS[FSKU[k]], sm=small(it), W=sm?P.PW:P.CT, tr=W.tr, b={l:K.l,w:K.w,h:K.h,kg:K.kg,si:FSKU[k],cl:K.cl,hv:heavyKg(K.kg)};
+    const st1=faceCands(s1[0],s1[1],0,it.x,it.z,W.faces)[0], st2=faceCands(s2[0],s2[1],0,it.mp.x,it.mp.z,W.faces)[0];
+    const grabAt=Math.max(0,...ord.slice(0,idx).filter(o=>ov(o,it)).map(o=>F.zj[o.k].g1+0.7));
+    const relAt2=Math.max(0,...it.mp.under.map(id=>F.zj[ord[id].k].rel2+0.45));
+    tr.key(W.t,W.pos[0],W.pos[1],W.w[2],{});
+    let j, c1, c2, tE;
+    if(sm){ c1=carrySeg(tr,W.t+0.05,b,{toPick:F.nav.route(W.pos,[st1.x,st1.z]),pick:[st1.x,st1.z,st1.yaw],pickY:it.y,grabAt,toPlace:F.nav.route([st1.x,st1.z],[Z.TS[0],Z.TS[1]]),place:Z.TS,placeY:GS.TOP,relAt:gsU});
+      const tPut=c1.rel, tS0=tPut+0.55, tS1=tS0+1.6, tB0=tS1+0.55;
+      tr.key(tS0,Z.TS[0],Z.TS[1],mon,{look:0.15}); tr.key(tS1,Z.TS[0],Z.TS[1],mon,{look:0.1}); tr.key(tS1+0.3,Z.TS[0],Z.TS[1],btn,{reach:0.6,push:0.5}); tr.key(tB0,Z.TS[0],Z.TS[1],btn,{});
+      j=gsJobMake(b,tPut,tS0,tS1,tB0);
+      const t=walkSeg(tr,tB0+0.15,F.nav.route([Z.TS[0],Z.TS[1]],[Z.OS[0],Z.OS[1]]),arch,1.2);
+      c2=carrySeg(tr,t,b,{pick:Z.OS,pickY:GS.TOP-0.02,grabAt:j.tO1+0.35,toPlace:F.nav.route([Z.OS[0],Z.OS[1]],[st2.x,st2.z]),place:[st2.x,st2.z,st2.yaw],placeY:it.mp.y,relAt:relAt2});
+      gsU=c2.grab+0.3; F.gsJobs.push(j); }
+    else { c1=carrySeg(tr,W.t+0.05,b,{toPick:F.nav.route(W.pos,[st1.x,st1.z]),pick:[st1.x,st1.z,st1.yaw],pickY:it.y,grabAt,toPlace:F.nav.route([st1.x,st1.z],[Z.PS[0],Z.PS[1]]),place:Z.PS,placeY:Z.PT[1],relAt:ptU});
+      const tPut=c1.rel; tr.key(tPut+0.75,px,pz,Z.PS[2],{scan:1,scanner:true}); tr.key(tPut+1.5,px,pz,Z.PS[2],{scan:1,scanner:true});
+      const tS0=tPut+1.6, tS1=tS0+2.2; tr.key(tS0+0.35,px,pz,scr,{look:0.2}); tr.key(tS1+0.4,px,pz,scr,{look:0.1});
+      j={b,tPut,tS0,tS1,m:null,n:0,grab2:Infinity};
+      c2=carrySeg(tr,tS1+0.4,b,{pick:Z.PS,pickY:Z.PT[1],grabAt:tS1+0.9,toPlace:F.nav.route([Z.PS[0],Z.PS[1]],[st2.x,st2.z]),place:[st2.x,st2.z,st2.yaw],placeY:it.mp.y,relAt:relAt2});
+      ptU=c2.grab+0.3; F.ptJobs.push(j); }
+    tE=walkSeg(tr,c2.t,F.nav.route([st2.x,st2.z],[W.w[0],W.w[1]]),W.w[2]);
+    j.grab2=c2.grab; j.m=dwsMeas(b,rnd); j.n=++cnt;
+    F.zj[k]={dev:sm?'gs':'pt',j,g1:c1.grab,r1:c1.rel,g2:c2.grab,rel2:c2.rel,mp:it.mp}; W.t=tE; W.pos=[W.w[0],W.w[1]]; });
+  /* бирка дня на поддон замеренных — контролёр, со стороны петель */
+  const C=P.CT, last=Math.max(...Object.values(F.zj).map(z=>z.rel2))+0.6, L=[s2[0]-0.5,s2[1]+1.12,PI];
+  let t=Math.max(C.t,last); CT.key(t,C.pos[0],C.pos[1],C.w[2],{}); t=walkSeg(CT,t+0.2,F.nav.route(C.pos,[L[0],L[1]]),L[2]);
+  CT.key(t+0.45,L[0],L[1],L[2],{reach:0.85,bend:0.1}); MK.mpTag=t+0.45; CT.key(t+0.95,L[0],L[1],L[2],{scan:1,scanner:true}); CT.key(t+1.45,L[0],L[1],L[2],{scan:1,scanner:true});
+  t=walkSeg(CT,t+1.65,F.nav.route([L[0],L[1]],[C.w[0],C.w[1]]),C.w[2]); MK.ctIdle=t;
+  MK.m0=Math.min(...Object.values(F.zj).map(z=>z.g1)); MK.mEnd=last; F.zord=ord;
+  PK.key(900,P.PW.pos[0],P.PW.pos[1],P.PW.w[2],{}); CT.key(900,C.w[0],C.w[1],C.w[2],{}); PK.fin(); CT.fin(); F.trPK=PK; F.trCT=CT;
+}
+
 /* ===================== расписание ===================== */
 function plan(){
   const MK=F.MK={}, PI=Math.PI; teleSet(TELE_EXT);                 // расписание ленты — по выдвинутому конвейеру
@@ -80,7 +125,7 @@ function plan(){
   /* накопление на ленте: короб едет со скоростью ленты (с проскальзыванием при разгоне), упирается в упор или в предыдущий
      короб, если того ещё не сняли, и трогается снова, когда место освободилось. Считается по шагам 1/120 с. */
   const LW=F.bTip-F.bBase-0.34, kS=(F.bTip-F.bBase)/LW, Lb=F.bTip-F.bBase, sdt=1/120; F.bsim=[];
-  const simBelt=(k,gPrev)=>{ const e=E0+OFF[k], P=F.bsim[k-1], D=k>0?((CTYPE[SEQ[k-1]].l+CTYPE[SEQ[k]].l)/2+0.04)*kS:0;
+  const simBelt=(k,gPrev)=>{ const e=E0+OFF[k], P=F.bsim[k-1], D=k>0?((SKUS[FSKU[k-1]].l+SKUS[FSKU[k]].l)/2+0.04)*kS:0;
     const s=[], stops=[]; let x=0, v=0, t=e, arr=null;
     for(let i=0;i<120*60;i++){ let lim=Lb; if(P&&t<gPrev) lim=Math.min(lim,bsAt(P,t)-D);
       const vf=v+(BELTV-v)*(1-Math.exp(-sdt/SLIP)); let xn=x+(v+vf)/2*sdt;
@@ -93,7 +138,7 @@ function plan(){
   const cn0=F.cn0; CN=mkPath([{t0:4.6,t1:11.6,pts:[[cn0.x,-48],[cn0.x,cn0.z-14],[cn0.x,cn0.z]],ease:'brake',u0:0.5}]);
   /* --- грузчик в кузове (локально в кузове): цикл «взял со штабеля → на ленту» --- */
   const WT=new Track(), wx=-0.32, wz=0.62; WT.key(0,wx,wz,0,{});
-  SEQ.forEach((ti,k)=>{ const e=E0+OFF[k], side=k%2?1:-1, low=[0.15,0.55,0.35,0.7,0.25,0.5][k%6], cw=CTYPE[ti].w, hv=heavy(ti);
+  SEQ.forEach((ti,k)=>{ const e=E0+OFF[k], side=k%2?1:-1, low=[0.15,0.55,0.35,0.7,0.25,0.5][k%6], cw=SKUS[FSKU[k]].w, hv=hvK(k);
     WT.key(e-2.3,wx,wz,0,{}); WT.key(e-1.95,wx+0.08*side,wz-0.05,PI-0.35*side,{twist:0.25*side});
     WT.key(e-1.55,wx+0.1*side,wz-0.08,PI-0.35*side,{reach:1,bend:0.25+low*0.6,squat:low*0.35});
     WT.key(e-1.3,wx+0.1*side,wz-0.08,PI-0.35*side,{reach:0.6,carry:0.5,bend:0.2+low*0.5,squat:low*0.3,cw,heavy:hv});
@@ -102,46 +147,35 @@ function plan(){
     WT.key(e-0.12,wx,wz+0.1,0,{reach:0.9,carry:0.3,bend:0.3,cw});
     WT.key(e+0.25,wx,wz+0.05,0,{bend:0.05}); });
   WT.fin(); F.trWT=WT;
-  /* --- упаковщик (с ленты — в стойку) и контролёр (образец → DWS → стойка) --- */
+  /* --- упаковщик (с ленты — в стойку клиента) и контролёр (образец каждого SKU — в поддон образцов рядом) --- */
   const PK=new Track(), CT=new Track(), pk0=F.pw0, ct0=F.ct0;
   const pyP=faceTo(PK_PICK[0],PK_PICK[1],beltEnd.x,beltEnd.z), pyC=faceTo(CT_WAIT[0],CT_WAIT[1],beltEnd.x,beltEnd.z);
   PK.key(0,pk0.x,pk0.z,F.pwYaw,{}); PK.key(E0-2.6,pk0.x,pk0.z,F.pwYaw,{}); PK.key(E0-0.2,PK_PICK[0],PK_PICK[1],pyP,{});
   CT.key(0,ct0.x,ct0.z,F.ctYaw,{}); CT.key(E0-2.2,ct0.x,ct0.z,F.ctYaw,{}); CT.key(E0+1.6,CT_WAIT[0],CT_WAIT[1],pyC,{});
+  F.nav=new Nav(NAV_L2.concat(DWSZ.nav)); const SPK=new Pack(); F.spIt={};
   PICK=[]; CTS=[]; let pkFree=E0-0.2, ctFree=E0+1.6;
-  SEQ.forEach((ti,k)=>{ const ak=simBelt(k,k>0?PICK[k-1].grab+0.1:-1), s=SLOT_OF[k], q=RSLOT[s], cw=CTYPE[ti].w, hv=heavy(ti), carry={carry:1,cw,heavy:hv};
+  SEQ.forEach((ti,k)=>{ const ak=simBelt(k,k>0?PICK[k-1].grab+0.1:-1), K=SKUS[FSKU[k]], cw=K.w, hv=hvK(k), carry={carry:1,cw,heavy:hv};
     if(!SAMPLE[k]){                                      // упаковщик: с ленты — в стойку
-      const st=standFor(s,'PK'), p=Math.max(ak+0.15,pkFree+0.55);
+      const s=SLOT_OF[k], st=standFor(s,'PK'), p=Math.max(ak+0.15,pkFree+0.55);
       PK.key(Math.max(p-0.5,pkFree+0.05),PK_PICK[0],PK_PICK[1],pyP,{});
       PK.key(p-0.06,PK_PICK[0],PK_PICK[1]+0.03,pyP,{reach:1,bend:0.3});
       PK.key(p+0.32,PK_PICK[0],PK_PICK[1],pyP-0.3,Object.assign({bend:0.08},carry));
       const via=st.f==='S'?[[4.8,10.86]]:st.f==='N'?[[4.6,13.07]]:[];
       let t=route(PK,p+0.32,[PK_PICK,...via,[st.x,st.z,st.yaw]],1.3-0.3*hv,carry);
-      PK.key(t+0.42,st.x,st.z,st.yaw,Object.assign({cw,heavy:hv*0.5},placePose(q.y)));
+      PK.key(t+0.42,st.x,st.z,st.yaw,Object.assign({cw,heavy:hv*0.5},placePose(FYS[s])));
       const rel=t+0.5; PK.key(t+0.9,st.x,st.z,st.yaw,{bend:0.05});
       t=route(PK,t+0.9,[[st.x,st.z],...via.slice().reverse(),[PK_PICK[0],PK_PICK[1],pyP]],1.45,{});
       PICK[k]={by:'PK',grab:p,rel,slot:s,ti}; pkFree=t;
-    } else {                                              // контролёр: образец → DWS → стойка
-      const st=standFor(s,'CT'), c=Math.max(ak+0.3,ctFree+0.55), east=PI/2, north=PI;
+    } else {                                              // контролёр: образец — в поддон образцов («как ляжет», Pack)
+      const it=SPK.put(packFind(SPK,K)); it.k=k; F.spIt[k]=it;
+      const st=faceCands(SP_AT[0],SP_AT[1],0,it.x,it.z)[0], c=Math.max(ak+0.3,ctFree+0.55);
       CT.key(Math.max(c-0.45,ctFree+0.05),CT_WAIT[0],CT_WAIT[1],pyC,{});
       CT.key(c-0.05,CT_WAIT[0]-0.04,CT_WAIT[1]+0.04,pyC,{reach:1,bend:0.3});
       CT.key(c+0.32,CT_WAIT[0],CT_WAIT[1],pyC+0.5,Object.assign({bend:0.08},carry));
-      const tD=route(CT,c+0.32,[CT_WAIT,[DWS_PLACE[0],DWS_PLACE[1],east]],1.35-0.25*hv,carry);
-      CT.key(tD+0.6,DWS_PLACE[0],DWS_PLACE[1],east,{reach:0.9,bend:0.55,squat:0.35,carry:0.2,cw});
-      const dws0=tD+0.66;
-      CT.key(tD+1.15,DWS_VIEW[0],DWS_VIEW[1],east,{scan:1,scanner:true});           // скан штрихкода
-      CT.key(tD+1.7,DWS_VIEW[0],DWS_VIEW[1],east+0.2,{scan:1,scanner:true});
-      CT.key(tD+2.1,DWS_VIEW[0],DWS_VIEW[1],north+0.25,{look:0.2});                   // смотрит на экран
-      const scan0=tD+2.2, scan1=scan0+2.0;
-      CT.key(scan1+0.5,DWS_VIEW[0],DWS_VIEW[1],north+0.25,{look:-0.1});
-      CT.key(scan1+0.9,DWS_PLACE[0],DWS_PLACE[1],east,{});
-      CT.key(scan1+1.3,DWS_PLACE[0],DWS_PLACE[1],east,{reach:0.9,bend:0.55,squat:0.35,carry:0.2,cw});
-      const dws1=scan1+1.35;
-      CT.key(scan1+1.72,DWS_PLACE[0],DWS_PLACE[1],east,carry);
-      const tE=route(CT,scan1+1.72,[DWS_PLACE,[st.x,st.z,st.yaw]],1.3-0.25*hv,carry);
-      CT.key(tE+0.42,st.x,st.z,st.yaw,Object.assign({cw,heavy:hv*0.5},placePose(q.y)));
-      const rel=tE+0.5; CT.key(tE+0.9,st.x,st.z,st.yaw,{bend:0.05});
-      const back=route(CT,tE+0.9,[[st.x,st.z],[6.8,10.8],[CT_WAIT[0],CT_WAIT[1],pyC]],1.45,{});
-      PICK[k]={by:'CT',grab:c,dws0,dws1,rel,slot:s,scan0,scan1,ti}; CTS.push(PICK[k]); ctFree=back;
+      let t=route(CT,c+0.32,F.nav.route(CT_WAIT,[st.x,st.z]),1.3-0.25*hv,carry); t+=0.22; CT.key(t,st.x,st.z,st.yaw,carry);
+      CT.key(t+0.42,st.x,st.z,st.yaw,Object.assign({cw,heavy:hv*0.5},placePose(it.y))); const rel=t+0.5; CT.key(t+0.9,st.x,st.z,st.yaw,{bend:0.05});
+      const back=walkSeg(CT,t+0.9,F.nav.route([st.x,st.z],CT_WAIT),pyC,1.45);
+      PICK[k]={by:'CT',grab:c,rel,sp:it,ti}; CTS.push(PICK[k]); ctFree=back;
     } });
   /* бирка дня и этикетка адреса: контролёр вешает на стойку, когда она собрана */
   const lastRel=Math.max(...PICK.map(p=>p.rel));
@@ -150,9 +184,11 @@ function plan(){
   tL=route(CT,tL,[CT_WAIT,[6.8,10.75],[6.95,13.0],[5.25,13.07,PI]],1.4,{});
   CT.key(tL+0.7,5.25,13.07,PI,{reach:0.85,bend:0.1}); F.tLabel=tL+0.7;
   CT.key(tL+1.2,5.25,13.07,PI,{scan:1,scanner:true}); CT.key(tL+1.7,5.25,13.07,PI,{scan:1,scanner:true});
-  route(CT,tL+1.9,[[5.25,13.07],[7.0,13.05],[8.7,11.9,-2.2]],1.4,{}); CT.key(900,8.7,11.9,-2.2,{});
-  PK.key(pkFree+0.6,PK_PICK[0],PK_PICK[1],pyP,{}); route(PK,pkFree+0.6,[PK_PICK,[4.75,10.3],[3.6,9.5,PI*0.6]],1.3,{}); PK.key(900,3.6,9.5,PI*0.6,{});
-  PK.fin(); CT.fin(); F.trPK=PK; F.trCT=CT;
+  /* выгрузка закончена: упаковщик и контролёр идут в зону DWS (по линии z 9,25 перед комнатой смены; автопоезда на посту ещё нет) */
+  const Z=DWSZ;
+  PK.key(pkFree+0.6,PK_PICK[0],PK_PICK[1],pyP,{}); const pwArr=walkSeg(PK,pkFree+0.9,F.nav.route(PK_PICK,[Z.wPW[0],Z.wPW[1]]),Z.wPW[2],1.35);
+  const ctArr=walkSeg(CT,tL+1.9,[[5.25,13.07],[7.0,13.05],...F.nav.route([7.0,10.83],[Z.wCT[0],Z.wCT[1]])],Z.wCT[2],1.35);   // в проход между стойкой и поддоном образцов — не через карман, куда заезжает погрузчик
+  MK.pwArr=pwArr; MK.ctArr=ctArr;
 
   /* --- погрузчик: пробеги из прямых и дуг; остановки — только у груза и на смене направления --- */
   const S=[], LK=[[0,0.06]], TK=[[0,0]]; let tc=0, lv=0.06, tv=0, lEnd=0, tEnd=0;
@@ -188,6 +224,28 @@ function plan(){
   hold(0.3); Tl(0,1.2); const l3=Lf(PT-0.012,1.6); hold(0.4);
   c1.rs=l3.ta; c1.tb=l3.tb; c1.tr=cross(l3,PT+0.008); MK.seat1=c1.tr;
   Lf(0.06,2.6,false,2.8); backZ(ZC,0.8); arc(R90,aR,true,RC); close(); MK.out6=tc;
+  /* 3) выгрузка закончена — поддон образцов в зону DWS. От A6 выезд только на восток (ограждение проезда), поэтому разворот у
+        пустой ячейки A8; к поддону у Л2, затем по южной магистрали и через пост П2 (автопоезда ещё нет) — на место 1 зоны */
+  const s1=Z.spots[0], s2=Z.spots[1];
+  fwdX(27.6,VE); arc(R90,aR,true); arc(R90,aR); close(); MK.ut1=tc;                       // разворот: дуга назад + дуга вперёд, курс на запад (вилы проходят восточнее рохли у поста, x 24)
+  fwdX(SP_AT[0]+RHO,VE); arc(L90,aE); close(); MK.spA=tc; fwdZ(SP_AT[1]+FR-AX,VS); close(); MK.spIn=tc;
+  hold(0.3); Tl(-0.06,1.0); const lsp=Lf(0.22,1.1); hold(0.3); const csp={ta:lsp.ta,pe:lsp.tb,tp:cross(lsp,0.008)};
+  backZ(ZL-RHO,0.9); arc(L90,aR,true); close(); MK.spOut=tc;                                  // корма на запад — курс на восток
+  Tl(-0.025,1.5); fwdX(s1[0]-RHO,VL); arc(R90,aL); close(); MK.spZ=tc;
+  fwdZ(s1[1]+FR-AX+2.2,VL); fwdZ(s1[1]+FR-AX,VS); close(); MK.spAt=tc;                     // долгий заезд: быстро, последние 2 м — медленно
+  csp.tm=tc; hold(0.3); Tl(0,0.9); const lsp2=Lf(0.0,1.0); csp.rs=lsp2.ta; csp.tb=lsp2.tb; csp.tr=cross(lsp2,0.008); hold(0.4); MK.spSet=csp.tr;
+  Lf(0.06,1.4,false,1.6); backZ(ZL-RHO,1.0); arc(L90,aR,true); close(); MK.spBack=tc;     // на магистраль, курс на восток — ждёт, пока замеряют
+  /* 4) замер образцов: упаковщик — мелкие на ленточном Goodscan, контролёр — крупные на портале; замеренные — на поддон на месте 2 */
+  zoneFilm(PK,CT,MK);
+  /* 5) поддон замеренных (бирка ЧТ) → пустая ячейка A8 */
+  hold(Math.max(0,MK.mpTag+1.6-tc)); MK.mpGo=tc;
+  fwdX(s2[0]-RHO,VS+0.35); arc(R90,aL); close(); fwdZ(s2[1]+FR-AX+2.2,VE); fwdZ(s2[1]+FR-AX,VS); close(); MK.mpIn=tc;
+  hold(0.3); Tl(-0.06,1.0); const lmp=Lf(0.22,1.1); hold(0.3); const cmp={ta:lmp.ta,pe:lmp.tb,tp:cross(lmp,0.008)};
+  backZ(ZL-RHO,1.0); arc(R90,aR,true); close(); MK.mpOut=tc;                                  // корма на восток — курс на запад
+  const a8=cellC(A8C); Tl(-0.025,1.5); fwdX(a8[0]+RC,VL); arc(R90,aL,false,RC); close(); MK.a8A=tc;
+  Lf(0.25,1.2); hold(0.2); fwdZ(a8[1]-FR+AX,VS); close(); MK.a8At=tc;
+  cmp.tm=tc; hold(0.3); Tl(0,0.9); const lmp2=Lf(0.0,1.0); cmp.rs=lmp2.ta; cmp.tb=lmp2.tb; cmp.tr=cross(lmp2,0.008); hold(0.4); MK.a8Set=cmp.tr;
+  Lf(0.06,1.4,false,1.6); backZ(ZC,0.8); arc(R90,aR,true,RC); close(); MK.outA8=tc;          // курс на восток — к A14
   /* 3) FIFO: ячейка A14 (ПН — самый старый день), верхняя стойка */
   MK.tr2a=tc; fwdX(a14[0]-RC,VE); arc(L90,aE,false,RC); close(); MK.tr2b=tc;
   Lf(PT-0.005,3.0); hold(0.2); MK.up2=tc;
@@ -202,9 +260,9 @@ function plan(){
   const present=c=>{                                     // стойка — на высоту пола кузова, подъезд в проём; стойка остаётся на вилах
     Tl(-0.02,1.0); Lf(HOLDY,2.4); hold(0.2); c.up=tc; fwdZ(ZS-AX,0.6); close(); c.in=tc; c.tm=tc; hold(0.3); Tl(0,0.8); };
   /* --- автопоезд: заезд через П2, упоры, шторы; в конце — выезд задним ходом --- */
-  MK.kin=MK.out6+0.3; MK.kst=MK.kin+11; MK.chk0=MK.kst+1.4; MK.cop0=MK.kst+1.8; MK.cop1=MK.cop0+3.6;
+  MK.kin=MK.outA8+0.3; MK.kst=MK.kin+11; MK.chk0=MK.kst+1.4; MK.cop0=MK.kst+1.8; MK.cop1=MK.cop0+3.6;
   /* бригады: K1, K2 — грузовик; K3, K4 — прицеп. Ждут в зале, открывают шторы, поднимаются в кузов через проём */
-  F.kCnt=[0,1].map(()=>({S:{0:0,1:0,2:0,3:0},N:{0:0,1:0,2:0,3:0}}));
+  F.kCnt=[0,1].map(()=>({S:{0:0,1:0,2:0,3:0},N:{0:0,1:0,2:0,3:0}})); F.kHy=[0,1].map(()=>({S:{0:[],1:[],2:[],3:[]},N:{0:[],1:[],2:[],3:[]}}));
   F.kPos={K1:[1.9,-0.4],K2:[-1.9,-0.3],K3:[1.9,-0.4],K4:[-1.9,-0.3]}; F.kIdle={K1:-PI/2,K2:PI/2,K3:-PI/2,K4:PI/2}; F.kFree={}; KB=[];
   F.KZE=[[],[]]; F.J={}; F.CI={}; F.trK={};
   { const C=F.bod[0].userData.curt, n=C.strips.length, xo=C.x0+0.05+(n-1)*C.pitch, xc=C.x0+C.w*(n-0.5); F.cEdge=[xo,xc]; }
@@ -263,9 +321,11 @@ function plan(){
   F.R14r=[{o:F.R14[0],rest:[{T:0,f:fixed(a14[0],PT,a14[1],PI)},{T:c2.tm,f:fixed(EO[0],0,EO[1],0)}],carry:[c2],ring:[[c4.tr,-0.002]]},
            {o:F.R14[1],rest:[{T:0,f:fixed(a14[0],0,a14[1],PI)},{T:c4.tm,f:fixed(EO[0],PT,EO[1],0)}],carry:[c4],ring:[[c4.tr,-0.003]]}];
   F.a6ring=[[c1.tr,-0.002]];
+  F.SPr={o:F.SP,rest:[{T:0,f:fixed(SP_AT[0],0,SP_AT[1],0)},{T:csp.tm,f:fixed(s1[0],0,s1[1],0)}],carry:[csp],ring:[[csp.tr,-0.002]]};
+  F.MPr={o:F.MP,rest:[{T:0,f:fixed(s2[0],0,s2[1],0)},{T:cmp.tm,f:fixed(a8[0],0,a8[1],PI)}],carry:[cmp],ring:[[cmp.tr,-0.002]]};
   /* нагрузка на погрузчик: взял — просадка передней оси; стойку разобрали — отыграл; поставил пустую */
-  F.FKE=[[c1.tp,1],[c1.tr,-1],[c2.tp,1],[lerp(MK.u1a,MK.u1b,0.5),-0.75],[c2.tr,-0.25],[c4.tp,1],[lerp(MK.u2a,MK.u2b,0.5),-0.75],[c4.tr,-0.25]];
-  F.CAR=[c1,c2,c4];
+  F.FKE=[[c1.tp,1],[c1.tr,-1],[csp.tp,1],[csp.tr,-1],[cmp.tp,1],[cmp.tr,-1],[c2.tp,1],[lerp(MK.u1a,MK.u1b,0.5),-0.75],[c2.tr,-0.25],[c4.tp,1],[lerp(MK.u2a,MK.u2b,0.5),-0.75],[c4.tr,-0.25]];
+  F.CAR=[c1,csp,cmp,c2,c4]; F.carTr=c4;                         // carTr — вторая стойка из A14 в прицеп (камеру ставить по ней, не по номеру в CAR)
   /* --- кладовщик: фото открытого кузова; затем рабочие закрывают шторы --- */
   const tw=c4.tr-1.5, w3x=B2X+1.1, ly=PI+0.12;
   W3P=new Track().key(0,46.5,7.5,0,{}).key(tw,46.5,7.5,0,{});
@@ -289,8 +349,13 @@ function plan(){
   W5P=new Track().key(0,22,14.85,PI/2,{}).key(24,22,14.85,PI/2,{}).key(40,39.6,14.85,PI/2,{scanner:true}).key(41,39.9,14.75,PI*0.9,{scan:1,scanner:true})
     .key(46,39.9,14.75,PI*0.9,{scan:1,scanner:true}).key(60,26.5,14.85,-PI/2,{}).key(66.4,18.6,14.85,-PI/2,{}).key(68.4,17.8,17.1,PI*0.7,{}).key(900,17.8,17.1,PI*0.7,{}).fin();
   /* --- таймлапсы и подписи --- */
-  MK.tl1a=PICK[0].rel+2.4; MK.tl1b=MK.lab0+4.1; F.w4off=lerp(MK.tl1a,MK.tl1b,0.36);
-  const WARPS=[[TELE_T0+0.6,TELE_T1-0.6,4],[MK.tl1a,MK.tl1b,8],[MK.in1+3.2,MK.tr1b-0.4,4],[MK.tr1b+0.3,MK.at6-1.4,2],[MK.seat1+1.6,MK.out6+0.2,4],
+  MK.tl1a=PICK[0].rel+5.0; MK.tl1b=MK.lab0+4.1; F.w4off=lerp(MK.tl1a,MK.tl1b,0.36);
+  /* замер в кадре: первый короб на Goodscan целиком, затем первый крупный на портале после него; остальное — ускорено */
+  const G1=F.gsJobs[0], PJ=F.ptJobs.find(j=>j.tPut>G1.tB1+5.4)||F.ptJobs[F.ptJobs.length-1]; MK.G1=G1; MK.PJ=PJ; MK.gOut=G1.tB0+(GS.ARCH+G1.b.l/2+0.05-0.42)/GSV;
+  const ZW=[]; const zw=(a,b,k)=>{ if(b-a>=0.4&&(!ZW.length||a>=ZW[ZW.length-1][1])) ZW.push([a,b,k]); };
+  zw(MK.out6+0.25,MK.spA-0.6,8); zw(MK.spIn+2.6,MK.spOut-0.1,3); zw(MK.spOut+0.4,MK.spZ-0.6,10); zw(MK.spZ+0.6,MK.spAt-1.4,5); zw(MK.spSet+1.2,G1.tPut-2.0,5);
+  zw(MK.gOut+3.6,PJ.tPut-1.8,7); zw(Math.max(PJ.tS1+1.6,MK.gOut+3.6),MK.mEnd-0.6,8); zw(MK.mpTag+1.8,MK.mpIn-0.6,8); zw(MK.mpIn+2.6,MK.mpOut-0.1,4); zw(MK.mpOut+0.4,MK.a8A-0.4,8); zw(MK.a8A+0.8,MK.a8At-0.6,3); zw(MK.a8Set+1.4,MK.outA8+0.2,5);
+  const WARPS=[[TELE_T0+0.6,TELE_T1-0.6,4],[MK.tl1a,MK.tl1b,8],[MK.in1+3.2,MK.tr1b-0.4,4],[MK.tr1b+0.3,MK.at6-1.4,2],[MK.seat1+1.6,MK.out6+0.2,4],...ZW,
     [MK.kst+0.9,MK.cop0-0.3,2],[MK.cop1+0.3,MK.up2+0.4,2],[MK.up2+0.9,MK.in2-0.8,2.5],[MK.out14+0.3,MK.trn1-0.3,4],[MK.trn1+1.6,MK.set1-2.4,2.5],
     [MK.u1a+5.0,MK.u1b-0.6,12],[MK.u1b+1.4,MK.e1s+1.5,3],[MK.e1s+1.5,MK.trn2-0.3,14],[MK.trn2+1.6,MK.set2-2.4,3.5],
     [MK.u2a+2.6,MK.u2b-0.6,12],[MK.u2b+1.4,MK.back2+1.6,3],[MK.back2+5.0,MK.eo2+1.6,7]];
@@ -319,27 +384,36 @@ function bakePhys(){ const MK=F.MK, fT0=FK[0].t0-2, fT1=MK.fkEnd+4;
 function fkBack(T){ const I=F.PH&&F.PH.fv; if(!I) return 0; let s=0,n=0; for(let k=-4;k<=7;k++){ s+=inAt(I,T+k*0.1)<-0.06?1:0; n++; } const u=s/n; return u*u*(3-2*u); }
 function mkCaps(){
   const MK=F.MK, cap=(T0,T1,no,a,b)=>({t0:tfOf(T0),t1:tfOf(T1),no,a,b}), P0=PICK[0];
+  const PJ=MK.PJ, G1=MK.G1, rkKg=FRK.reduce((a,si)=>a+SKUS[si].kg,0), kgS=v=>v.toFixed(1).replace('.',','), mm=m=>m.L+' × '+m.W+' × '+m.H+' мм';
   CAPS=[cap(0.6,4.3,'T','СКЛАД №4 · БЛОК 4-1 · YUZHE PARK, ХОРГОС','Перегрузка Китай → Казахстан: от въезда машины до выезда автопоезда'),
     cap(4.8,12.0,'1','Заезд к воротам Л2','LPR фиксирует номер и время · фото пломбы · сверка документов'),
-    cap(12.2,P0.grab-0.3,'2','Конвейер выдвигается в кузов · выгрузка лентой','телескопическая лента: база 4,6 м + 4,6 м хода · A — малый · B — стандарт · C — длинный · D — крупный'),
-    cap(P0.grab+0.1,P0.rel+2.2,'3','Образец каждого типа — на DWS','вес, габарит и штрихкод за 2 секунды · образец возвращается в стойку'),
-    cap(P0.rel+2.6,MK.lab0+2.6,'4','Сборка в стоечный поддон','тяжёлое вниз, лёгкое наверх · стойки несут верхний ярус — плёнка не нужна'),
+    cap(12.2,P0.grab-0.3,'2','Конвейер выдвигается в кузов · выгрузка лентой','сборная машина: груз нескольких клиентов · в кадре — отправка XY, 5 SKU разного размера и веса'),
+    cap(P0.grab+0.1,P0.rel+2.2,'3','Образец каждого SKU — в поддон образцов','с каждого размера один короб · поддон стоит рядом с местом разгрузки'),
+    cap(P0.rel+2.6,MK.lab0+2.6,'4','Остальное — в стоечный поддон клиента','20 коробов XY · тяжёлое вниз, лёгкое наверх · стойки несут верхний ярус — плёнка не нужна'),
     cap(MK.lab0+3.0,MK.out6+0.1,'5','Размещение по FIFO · второй ярус','ячейка A6 — тот же день приёмки (ЧТ) · опоры садятся в чаши нижней стойки'),
-    cap(MK.kin+0.4,MK.up2+0.3,'6','Автопоезд заезжает через П2','тандем 145 м³ встаёт внутри, правым бортом к ячейкам · упоры · шторы открыты, под ними каркас с проёмом'),
-    cap(MK.up2+0.7,MK.trn1-0.5,'7','Отбор по FIFO','первой уходит самая старая дата — ПН: ячейка A14, сначала верхняя стойка'),
-    cap(MK.trn1-0.1,MK.back1+1.0,'8','Стойка — в проём кузова, на поднятых вилах','погрузчик держит стойку у пола кузова · грузчики берут по одному коробу и кладут в свою дорожку'),
-    cap(MK.back1+1.4,MK.out14b+0.2,'9','Пустая стойка — к приёмке · следующая из той же ячейки','ячейка A14 освобождается целиком — FIFO без остатков'),
-    cap(MK.out14b+0.6,MK.back2+1.0,'10','Прицеп · погрузка через проём','вторая стойка · проём прицепа — через магистраль от ячейки · своя пара грузчиков'),
-    cap(MK.back2+1.4,MK.e2+1.2,'11','Пустые стойки — в два яруса у ворот Л2','готовы к следующей машине из Китая'),
-    cap(MK.e2+1.8,MK.curt1+0.8,'12','Фото кузова · шторы · пломба','100 % скан против плана · фото уходит клиенту'),
-    cap(MK.go-1.6,MK.aer-0.2,'13','Выезд через П2','задним ходом по прямой · LPR на выезде'),
+    cap(MK.out6+0.5,MK.spSet+1.0,'6','Выгрузка закончена — образцы в зону DWS','погрузчик везёт поддон образцов через пост П2, пока автопоезда нет · зона — на месте брака, АКБ и упаковки'),
+    cap(MK.spSet+1.4,MK.gOut+3.4,'7','Мелкие образцы — ленточный DWS Goodscan','весовой стол → 3D-камера → лента через световой занавес и фото · ±1 мм · ±10 г · 1–2 с на короб'),
+    cap(MK.gOut+3.8,PJ.tS1+1.4,'8','Крупные — портальный DWS','платформа с весами · два сканера сверху · штрихкод — ручным сканером'),
+    cap(PJ.tS1+1.8,MK.mpTag+1.4,'9','Замеренные — на второй поддон · бирка дня','габарит, вес и фото каждого SKU — в WMS и SafeLoad'),
+    cap(MK.mpTag+1.8,MK.outA8+0.1,'10','Образцы — в ячейку A8','поддон замеренных уходит в отгрузку вместе с грузом своего дня'),
+    cap(MK.kin+0.4,MK.up2+0.3,'11','Автопоезд заезжает через П2','тандем 145 м³ встаёт внутри, правым бортом к ячейкам · упоры · шторы открыты, под ними каркас с проёмом'),
+    cap(MK.up2+0.7,MK.trn1-0.5,'12','Отбор по FIFO','первой уходит самая старая дата — ПН: ячейка A14, сначала верхняя стойка'),
+    cap(MK.trn1-0.1,MK.back1+1.0,'13','Стойка — в проём кузова, на поднятых вилах','погрузчик держит стойку у пола кузова · грузчики берут по одному коробу и кладут в свою дорожку'),
+    cap(MK.back1+1.4,MK.out14b+0.2,'14','Пустая стойка — к приёмке · следующая из той же ячейки','ячейка A14 освобождается целиком — FIFO без остатков'),
+    cap(MK.out14b+0.6,MK.back2+1.0,'15','Прицеп · погрузка через проём','вторая стойка · проём прицепа — через магистраль от ячейки · своя пара грузчиков'),
+    cap(MK.back2+1.4,MK.e2+1.2,'16','Пустые стойки — в два яруса у ворот Л2','готовы к следующей машине из Китая'),
+    cap(MK.e2+1.8,MK.curt1+0.8,'17','Фото кузова · шторы · пломба','100 % скан против плана · фото уходит клиенту'),
+    cap(MK.go-1.6,MK.aer-0.2,'18','Выезд через П2','задним ходом по прямой · LPR на выезде'),
     cap(MK.aer+0.2,MK.end-0.3,'O','Цикл машины ≤ 4 ч · FIFO без исключений','Buraq Logistics · Склад №4, блок 4-1 · Yuzhe International Logistics Park, Хоргос')]; F.caps=CAPS;
   const card=(T0,T1,a,b,c)=>({t0:tfOf(T0),t1:tfOf(T1),a,b,c});
   CARDS=[card(6.0,11.2,'LPR · ВЪЕЗД 08:42','新F·3K218 · пломба № 0472913 ✓','#53d16f'),
-    card(P0.scan1-0.3,P0.scan1+3.4,'ОБРАЗЕЦ D · 23,5 кг','600 × 500 × 500 мм · SKU-D4211 ✓','#f2b705'),
-    card(MK.tl1a+4,MK.tl1b-3,'ОБРАЗЦЫ: D · C · B · A','4 из 4 измерены · данные в WMS','#f2b705'),
-    card(F.tLabel-0.2,F.tLabel+4.2,'СТОЙКА → A6 · БИРКА ЧТ','20 коробов · 262 кг · ярус 2','#4caf50'),
+    card(P0.rel-0.2,P0.rel+3.6,'ОБРАЗЕЦ · '+SKUS[FSKU[0]].code,'в поддон образцов · по одному с каждого SKU','#f2b705'),
+    card(MK.tl1a+4,MK.tl1b-3,'XY · 5 SKU · 25 КОРОБОВ','5 образцов — в поддон образцов · 20 — в стойку клиента','#f2b705'),
+    card(F.tLabel-0.2,F.tLabel+4.2,'СТОЙКА XY → A6 · БИРКА ЧТ','20 коробов · '+kgS(rkKg)+' кг · ярус 2','#4caf50'),
     card(MK.at6-0.4,MK.seat1+2.6,'ДВА ЯРУСА В ОДНОЙ ЯЧЕЙКЕ','нагрузку несут стойки, а не короба','#4caf50'),
+    card(MK.gOut+0.2,MK.gOut+3.6,'GOODSCAN · '+SKUS[G1.b.si].code,mm(G1.m)+' · '+kgS(G1.m.kg)+' кг ✓','#53d16f'),
+    card(PJ.tS1-0.1,PJ.tS1+3.2,'ПОРТАЛ · '+SKUS[PJ.b.si].code,mm(PJ.m)+' · '+kgS(PJ.m.kg)+' кг ✓','#53d16f'),
+    card(MK.mpTag-0.3,MK.mpTag+3.6,'ОБРАЗЦЫ XY: 5 ИЗ 5','Goodscan — '+F.gsJobs.length+' · портал — '+F.ptJobs.length+' · данные в WMS','#f2b705'),
     card(MK.kin+3.0,MK.kst+0.6,'LPR · ВЪЕЗД П2 · 10:05','248 KZA 13 · тандем 145 м³','#53d16f'),
     card(MK.up2+1.0,MK.out14+1.0,'FIFO · ПН — САМАЯ СТАРАЯ','A14 уходит первой · скан при отборе','#e0412f'),
     card(MK.set1+1.0,MK.u1a+4.8,'КУЗОВ: ДОРОЖКИ ПО ТИПАМ','проём в каркасе борта · A · C · B · D','#f2b705'),
@@ -362,14 +436,6 @@ function teleGeom(){ const c=F.tlCargo&&F.tlCargo[0]; if(!c) return; const tipIs
   F.bTip=tipIsX1?c.x1:c.x0; F.bBase=tipIsX1?c.x0:c.x1; F.yTip=tipIsX1?c.y1:c.y0; F.yBase=tipIsX1?c.y0:c.y1; }
 function teleSet(e){ const t=F.tl2&&F.tl2.userData.tele; if(!t||Math.abs(t.ext-e)<1e-5) return; t.setExt(e); teleGeom(); }
 function wheelsOf(root){ const w=[]; root.traverse(o=>{ if(o.userData&&o.userData.isWheel) w.push(o); }); return w; }
-function screenMat(L){
-  const c=cnv(512,300),g=c.getContext('2d'); g.fillStyle='#0c1a2e'; g.fillRect(0,0,512,300);
-  g.fillStyle='#f2b705'; g.fillRect(0,0,512,8);
-  g.font='700 70px "Barlow Condensed",sans-serif'; g.fillStyle='#e9ecef'; g.fillText(L[0],26,92);
-  g.font='500 32px "IBM Plex Mono",monospace'; g.fillStyle='#9fb4ca'; g.fillText(L[1],26,150);
-  g.font='700 52px "Barlow Condensed",sans-serif'; g.fillStyle='#53d16f'; g.fillText(L[2],26,226);
-  g.font='500 26px "IBM Plex Mono",monospace'; g.fillStyle='#53d16f'; g.fillText(L[3],250,280);
-  const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; const m=new THREE.MeshBasicMaterial({map:t}); m.color.multiplyScalar(1.6); return m; }
 function build(){ seeded(()=>{
   find();
   F.grp=new THREE.Group(); F.grp.visible=false; scene.add(F.grp);
@@ -382,19 +448,24 @@ function build(){ seeded(()=>{
   F.cnGap=[]; F.cnT.traverse(o=>{ if(o.isMesh&&isCarton(o.material)&&o.position.x>-1.45&&o.position.x<0.85&&o.position.z>-0.25) F.cnGap.push(o); });
   /* грузчик в кузове и короба в руках (по одному на тип) */
   F.WT=HUM.build({role:'ГРУЗЧИК',rnd:Math.random}); F.WTr=F.WT.root; F.WTr.visible=false; F.cnT.add(F.WTr);
-  F.WTy=1.28; F.WTbox=CTYPE.map((T,i)=>{ const b=cartonT(i); own(b); b.visible=false; return b; });
+  F.WTy=1.28; F.WTbox={}; FSKU.forEach(si=>{ if(!F.WTbox[si]){ const b=skuBox(si); own(b); b.visible=false; F.WTbox[si]=b; } });
   /* лента телескопического конвейера */
   /* телескопический конвейер и DWS — свои экземпляры фильма в штатном положении: правка и удаление таких объектов в редакторе фильм не ломают */
   const mine=(kind,o,p,r,id)=>{ const g=libSpawn(kind,o,p,r,id); edMap.delete(id); const k=pickables.indexOf(g); if(k>=0) pickables.splice(k,1); return own(g); };
   F.tl2=mine('tele',{lift:0.0,tilt:3,ext:TELE_EXT,dir:-1},[0.35,0,10.9],Math.PI,'film-tl');   // лента с подъёмом к машине: голова в кузове выше основания; база отодвинута от ворот, чтобы сложенный конвейер не мешал закрыть створки
-  F.dws=mine('dws',{h:2.0,w:1.6,load:1},[9.0,0,10.4],0,'film-dws');
+  F.dws=mine('dws',{h:2.0,w:1.6,load:0},[DWSZ.big[0],0,DWSZ.big[1]],DWSZ.big[2],'film-dws');      // DWS — в своей зоне (бывшие брак, АКБ, упаковка, доски)
+  F.gs=mine('dws2',{out:1},[DWSZ.gs[0],0,DWSZ.gs[1]],DWSZ.gs[2],'film-gs');                       // ленточный Goodscan рядом
+  { const c=cnv(512,300), t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding; const m=new THREE.MeshBasicMaterial({map:t}); m.color.multiplyScalar(1.6); F.ptMat=m;
+    let last=''; F.ptDraw=d=>{ const k=JSON.stringify(d); if(k===last) return; last=k; ptScreenDraw(c,d); t.needsUpdate=true; }; F.ptDraw({state:'idle'}); }
   const cg=beltCargo.filter(c=>c.eid==='film-tl'); F.tlCargo=cg; F.tlRuns=beltRuns.filter(b=>b.eid==='film-tl');
   if(cg.length){ F.boom=cg[0].o.parent; teleGeom(); }
   /* параметры оседания короба: высота отпускания, наклон, ось, небольшой разброс укладки */
-  const rs=ti=>{ const ax=Math.random()<0.5, T=CTYPE[ti]; return {jx:(Math.random()-.5)*0.008,jz:(Math.random()-.5)*0.008,jy:(Math.random()-.5)*0.02,
-    h:0.035+Math.random()*0.035,th:(Math.random()<.5?-1:1)*(0.03+Math.random()*0.035),ax,half:(ax?T.w:T.l)/2}; };
-  /* 20 коробов процесса: на ленте → в руках → (DWS) → в стойке */
-  F.box=SEQ.map(ti=>{ const b=cartonT(ti); own(b); b.visible=false; return b; }); F.bs=SEQ.map(rs);
+  const rs=(K,rnd)=>{ const ax=rnd()<0.5; return {jx:(rnd()-.5)*0.008,jz:(rnd()-.5)*0.008,jy:(rnd()-.5)*0.02,
+    h:0.035+rnd()*0.035,th:(rnd()<.5?-1:1)*(0.03+rnd()*0.035),ax,half:(ax?K.w:K.l)/2}; };
+  let q5=20261014; const rb=()=>{ q5=(q5*1664525+1013904223)>>>0; return q5/4294967296; };
+  /* 25 коробов процесса: на ленте → в руках → в стойку клиента или в поддон образцов → (зона DWS) → поддон замеренных.
+     Первые 20 — тем же генератором, что раньше: люди фильма строятся после них и не должны поменяться */
+  F.box=FSKU.map(si=>{ const b=skuBox(si); own(b); b.visible=false; return b; }); F.bs=FSKU.map((si,k)=>rs(SKUS[si],k<20?Math.random:rb));
   /* стоечный поддон приёмки: собирается у ленты, уезжает вторым ярусом в A6 */
   F.RK=own(rackFrame(null,RK_AT[0],0,RK_AT[1],{ao:false}));
   F.RKtag=dayTag(F.RK,-0.5,1.24,0.765,3); F.RKtag.visible=false;
@@ -405,9 +476,13 @@ function build(){ seeded(()=>{
     F.RKlab=new THREE.Mesh(new THREE.PlaneGeometry(0.2,0.125),new THREE.MeshStandardMaterial({map:t,roughness:.6}));
     F.RKlab.position.set(-0.5,1.02,0.775); F.RK.add(F.RKlab); F.RKlab.visible=false;
     const bk=box(0.24,0.16,0.012,M.dark,-0.5,1.02,0.765,F.RK); bk.castShadow=false; F.RKbk=bk; bk.visible=false; }
-  /* ячейка A14 (ПН): две стойки фильма вместо штатного штабеля — их разбирают по одному коробу */
+  /* поддон образцов (у ленты, рядом со стойкой) и поддон замеренных (в зоне DWS, место 2) */
+  F.SP=own(rackFrame(null,SP_AT[0],0,SP_AT[1],{ao:false})); F.MP=own(rackFrame(null,DWSZ.spots[1][0],0,DWSZ.spots[1][1],{ao:false}));
+  F.MPtag=dayTag(F.MP,-0.5,1.24,0.765,3); F.MPtag.visible=false;
+  /* ячейка A14 (ПН): две стойки фильма вместо штатного штабеля — их разбирают по одному коробу; в ячейке — отправка её клиента */
   F.R14=[0,1].map(i=>{ const r=own(rackFrame(null,0,0,0,{ao:false})); dayTag(r,-0.5,1.24,0.765,0); return r; });
-  F.kb=[0,1].map(()=>RSLOT.map(q=>own(cartonT(q.ti)))); F.ks=[0,1].map(()=>RSLOT.map(q=>rs(q.ti)));
+  F.k14=rackSkus((13*5)%CLIENTS.length); F.ys14=slotYs(F.k14.map(si=>SKUS[si].h));
+  F.kb=[0,1].map(()=>F.k14.map(si=>own(skuBox(si)))); F.ks=[0,1].map(()=>F.k14.map(si=>rs(SKUS[si],Math.random)));
   /* DWS: штатный груз прячем; лазеры, линия сканирования, экраны */
   F.dwsLoad=[]; if(F.dws) F.dws.children.forEach(o=>{ if((o.userData&&/Поддон/.test(o.userData.nm||''))||(o.isMesh&&isCarton(o.material))) F.dwsLoad.push(o); });
   const lm=new THREE.MeshBasicMaterial({color:0xff2a1a,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
@@ -419,8 +494,6 @@ function build(){ seeded(()=>{
     const lineM=new THREE.MeshBasicMaterial({color:0xff2010}); lineM.color.multiplyScalar(3); lineM.name='LASERLINE';
     F.scan=new THREE.Mesh(new THREE.BoxGeometry(0.004,0.004,0.9),lineM); F.dws.add(F.scan); F.scan.visible=false;
     F.dwsScr=F.dws.userData.dwsScreen; }
-  F.scr=[screenMat(['ОЖИДАНИЕ','образец с ленты','','']),screenMat(['СКАН…','вес · габарит · код','','']),
-    ...CTYPE.map(T=>screenMat([(T.kg).toFixed(1).replace('.',',')+' кг',Math.round(T.l*1000)+' × '+Math.round(T.w*1000)+' × '+Math.round(T.h*1000)+' мм','SKU-'+T.id+' · тип '+T.id,'✓ в WMS']))];
   /* погрузчик процесса, контролёр, люди */
   F.fk=own(forklift(0,0,0)); F.fk.rotation.order='YXZ'; F.fkW=F.fk.userData.rig.wheels;
   F.CT=HUM.build({role:'КОНТРОЛЁР',rnd:Math.random}); own(F.CT.root);
@@ -428,7 +501,7 @@ function build(){ seeded(()=>{
   F.KH={}; for(const w of ['K1','K2','K3','K4']){ F.KH[w]=HUM.build({role:'ГРУЗЧИК',rnd:Math.random}); own(F.KH[w].root); }
   F.W3=HUM.build({role:'КЛАДОВЩИК',rnd:Math.random}); own(F.W3.root);
   F.W4=HUM.build({role:'ГРУЗЧИК',rnd:Math.random}); own(F.W4.root);
-  F.W4box=cartonT(1); own(F.W4box);
+  F.W4box=skuBox(7); own(F.W4box);                                 // фон: короб посуды Мэйцзя
   F.W5=HUM.build({role:'БРИГАДИР',rnd:Math.random}); own(F.W5.root);
   /* казахский автопоезд на посту П2: кузова грузовика и прицепа (подвеска, шторы) */
   F.bod=[F.kzT.userData.b1,F.kzT.userData.b2]; F.b1=F.bod[0];
@@ -480,11 +553,12 @@ function prepScene(live){
   saved.lay=anch.map(o=>[o,o.position.clone(),o.rotation.y,o.visible]);
   anch.forEach(o=>{ const b=o.userData.base; if(b){ o.position.set(b[0],b[1],b[2]); o.rotation.y=b[3]; } o.visible=true; });
   if(!F.built) build();
-  const uo=['t-l2','dws-3'].map(id=>edMap.get(id)).filter(o=>o&&o.visible);     // конвейер и DWS пользователя: в фильме работают штатные
+  const uo=['t-l2','dws-3','dws-gs'].map(id=>edMap.get(id)).filter(o=>o&&o.visible);     // конвейер и оба DWS пользователя: в фильме работают штатные
   routeCheck(anch.concat(uo));
   const a6low=F.a6&&F.a6.userData.tiers?F.a6.userData.tiers[0]:null; F.a6low=a6low;
   saved.objs=[F.cnT,F.kzT,F.fork0,F.lpr,F.bod[0],F.bod[1],a6low,F.PW&&F.PW.root,F.WP&&F.WP.root,F.SUP&&F.SUP.root].filter(Boolean).map(snap);
-  const hid=[F.a14].concat(uo), hu=live?hideUI().filter(o=>o!==G.addr&&o!==G.labels):hideUI();   // в живом режиме адреса ячеек и подписи зон остаются
+  const eo0=live?[]:G.equip.children.filter(o=>/Запас пустых/.test(o.userData.nm||'')&&o.visible);   // штатный запас пустых у Л2: в фильме пустые стойки ставят на свой запас, а по линии z 9,25 идут в зону DWS
+  const hid=[F.a14].concat(uo,eo0), hu=live?hideUI().filter(o=>o!==G.addr&&o!==G.labels):hideUI();   // в живом режиме адреса ячеек и подписи зон остаются
   saved.vis=hu.concat(hid).map(o=>[o,o.visible]).concat(F.cnGap.map(o=>[o,o.visible]),F.dwsLoad.map(o=>[o,o.visible]),F.tlCargo.map(c=>[c.o,c.o.visible]));
   saved.curt=F.bod.map(b=>b.userData.curt.u); saved.chk=CHOCKS.visible;
   saved.misc={roof:G.roof.visible,inter:interior.intensity,fov:camera.fov,expo:renderer.toneMappingExposure,pr:renderer.getPixelRatio(),
@@ -573,7 +647,7 @@ function apply(t){
     F.WTr.position.set(st.x,F.WTy,st.z); F.WTr.rotation.y=st.yaw; HUM.pose(F.WT,Object.assign({t:T,walk:st.walk*0.6,phase:st.phase},st.pose));
     let hk=-1; SEQ.forEach((ti,k)=>{ const e=E0+OFF[k]; if(T>e-1.3&&T<e) hk=k; });
     if(F.boom) F.boom.updateMatrixWorld(true);
-    F.WTbox.forEach((b,i)=>{ b.visible=on&&hk>=0&&SEQ[hk]===i; if(!b.visible) return; inHands(F.WT,b);
+    Object.keys(F.WTbox).forEach(si=>{ const b=F.WTbox[si]; b.visible=on&&hk>=0&&FSKU[hk]===+si; if(!b.visible) return; inHands(F.WT,b);
       const e=E0+OFF[hk], u=(T-(e-0.32))/0.32; if(u<=0) return;                 // короб с рук — на ленту, короткой дугой
       _p0.copy(b.position); _q0.copy(b.quaternion); beltPos(b,hk,e);
       b.position.lerpVectors(_p0,b.position,ez(u)); b.position.y+=0.10*Math.sin(Math.PI*c01(u)); b.quaternion.copy(_q0.slerp(b.quaternion,ez(u))); }); }
@@ -607,7 +681,7 @@ function apply(t){
     F.bod.forEach(b=>curtainSet(b,u)); CHOCKS.visible=T>MK.chk0&&T<MK.curt0-0.5;
     F.kzT.updateMatrixWorld(true); }
   /* стойки */
-  rackAt(F.RKr,T); rackAt(F.R14r[0],T); rackAt(F.R14r[1],T);
+  rackAt(F.RKr,T); rackAt(F.R14r[0],T); rackAt(F.R14r[1],T); rackAt(F.SPr,T); rackAt(F.MPr,T); F.MPtag.visible=T>MK.mpTag;
   if(F.a6low) F.a6low.position.y=sumE(F.a6ring,T,u=>ringR(u,40,7));
   F.RKtag.visible=F.RKlab.visible=F.RKbk.visible=T>F.tLabel;
   /* грузчики: ждут в зале, открывают шторы, поднимаются в кузов через проём; работают на полу кузова (в его системе координат);
@@ -625,30 +699,31 @@ function apply(t){
         HUM.pose(H,{t:T,squat:0.3-0.12*Math.sin(u*PI),reach:0.4,bend:0.12}); }
       else drive(H,J.W.at(T),T); }); });
   /* 20 коробов с ленты → стойка */
-  SEQ.forEach((ti,k)=>{ const b=F.box[k], e=E0+OFF[k], P=PICK[k], S=F.bs[k], q=RSLOT[P.slot];
+  /* 25 коробов с ленты: короб клиента → стойка; образец → поддон образцов → (зона DWS) руки → аппарат → руки → поддон замеренных */
+  SEQ.forEach((ti,k)=>{ const b=F.box[k], e=E0+OFF[k], P=PICK[k], S=F.bs[k];
     if(T<e){ b.visible=false; return; } b.visible=true;
     if(T<P.grab){ beltPos(b,k,T); return; }
-    const who=P.by==='PK'?F.PW:F.CT, put=dt=>putSlot(b,F.RK,q.x+S.jx,q.y,q.z+S.jz,S.jy,dt,S);
-    if(P.by==='CT'){
-      const onD=dt=>putSlot(b,F.dws,-0.2,0.062,0,0,dt,S);
-      if(T<P.dws0){ if(!handFrom(b,who,T,P.grab,()=>beltPos(b,k,T),onD)) handTo(b,who,T,P.dws0,onD); return; }
-      if(T<P.dws1){ onD(T-P.dws0); return; }
-      if(T<P.rel){ if(!handFrom(b,who,T,P.dws1,()=>onD(9),put)) handTo(b,who,T,P.rel,put); return; }
-    } else if(T<P.rel){ if(!handFrom(b,who,T,P.grab,()=>beltPos(b,k,T),put)) handTo(b,who,T,P.rel,put); return; }
-    put(T-P.rel); });
+    const who=P.by==='PK'?F.PW:F.CT;
+    if(P.by==='PK'){ const q=RSLOT[P.slot], put=dt=>putSlot(b,F.RK,q.x+S.jx,FYS[P.slot],q.z+S.jz,S.jy,dt,S);
+      if(T<P.rel){ if(!handFrom(b,who,T,P.grab,()=>beltPos(b,k,T),put)) handTo(b,who,T,P.rel,put); return; }
+      put(T-P.rel); return; }
+    const it=P.sp, onSP=dt=>putSlot(b,F.SP,it.x+S.jx,it.y,it.z+S.jz,(it.rot?PI/2:0)+S.jy,dt,S), Zj=F.zj&&F.zj[k];
+    if(T<P.rel){ if(!handFrom(b,who,T,P.grab,()=>beltPos(b,k,T),onSP)) handTo(b,who,T,P.rel,onSP); return; }
+    if(!Zj||T<Zj.g1){ onSP(T-P.rel); return; }
+    const w2=Zj.dev==='gs'?F.PW:F.CT, dev=tt=>Zj.dev==='gs'?gsPlace(b,Zj.j,tt,S):ptPlace(b,Zj.j,tt,S), m=Zj.mp, onMP=dt=>putSlot(b,F.MP,m.x+S.jx,m.y,m.z+S.jz,(m.rot?PI/2:0)+S.jy,dt,S);
+    if(T<Zj.r1){ if(!handFrom(b,w2,T,Zj.g1,()=>onSP(9),dt=>dev(Zj.r1+dt))) handTo(b,w2,T,Zj.r1,dt=>dev(Zj.r1+dt)); return; }
+    if(T<Zj.g2){ dev(T); return; }
+    if(T<Zj.rel2){ if(!handFrom(b,w2,T,Zj.g2,()=>dev(T),onMP)) handTo(b,w2,T,Zj.rel2,onMP); return; }
+    onMP(T-Zj.rel2); });
   /* 2 × 20 коробов стоек A14 → руки → дорожки кузова (первая стойка — грузовик, вторая — прицеп) */
   for(let r=0;r<2;r++) RSLOT.forEach((q,s)=>{ const b=F.kb[r][s], K=KB[r][s], S=F.ks[r][s], R=F.R14[r];
-    const inR=dt=>putSlot(b,R,q.x+S.jx,q.y,q.z+S.jz,S.jy,9,null);
+    const inR=dt=>putSlot(b,R,q.x+S.jx,F.ys14[s],q.z+S.jz,S.jy,9,null);
     if(T<K.grab){ inR(); return; }
     const who=F.KH[K.by], put=dt=>putSlot(b,F.bod[r],K.lp.x+S.jx,K.lp.y,K.lp.z+S.jz,PI/2+S.jy,dt,S);
     if(T<K.rel){ if(!handFrom(b,who,T,K.grab,inR,put)) handTo(b,who,T,K.rel,put); return; }
     put(T-K.rel); });
-  /* DWS: сканирование образцов, экран */
-  { let si=0, on=false, sp=0; CTS.forEach(P=>{ if(T>=P.dws0&&T<P.dws1){ si=1; if(T>=P.scan0&&T<P.scan1){ on=true; sp=(T-P.scan0)/(P.scan1-P.scan0); } if(T>=P.scan1) si=2+P.ti; } });
-    F.lm.opacity=on?0.24+0.08*Math.sin(T*55):0; F.lasers.forEach(l=>l.visible=on);
-    if(F.scan){ F.scan.visible=on; const P=CTS.find(P=>T>=P.dws0&&T<P.dws1); const hh=P?CTYPE[P.ti].h:0.4;
-      F.scan.position.set(-0.2+(sp<0.5?-0.35+sp*1.4:0.35-(sp-0.5)*1.4),0.062+hh+0.003,0); }
-    if(F.dwsScr) F.dwsScr.material=F.scr[si]; }
+  /* аппараты DWS: лента, ролики, занавес, вспышка, камера, экраны, весы — по заданиям замера */
+  F.gs.updateMatrixWorld(true); F.dws.updateMatrixWorld(true); gsVisAt(F.gsJobs,T); ptVisAt(F.ptJobs,T);
   /* фон: кладовщик (фото кузова), грузчик с коробом, бригадир со сканером */
   drive(F.W3,W3P.at(T),T); drive(F.W4,W4P.at(T),T); inHands(F.W4,F.W4box); F.W4.root.visible=F.W4box.visible=T<F.w4off;   // грузчик донёс короб и ушёл (за склейкой)
   drive(F.W5,W5P.at(T),T);

@@ -19,7 +19,7 @@ function batchStatic(){
   [TRK_L2,TRK_IN].forEach(t=>t.traverse(o=>{ if(o.userData.isWheel) keep(o); }));
   TRK_L2.children.forEach(o=>{ if(o.isMesh&&isCartonMat(o.material)&&o.position.x>-2.95&&o.position.x<5.6) keep(o); });   // рабочая зона кузова: эти короба фильм и живой процесс скрывают и заменяют своими; груз в передней части остаётся (транзит)
   [TRK_IN.userData.b1,TRK_IN.userData.b2].forEach(b=>{ keep(b); const C=b.userData.curt; if(C){ C.strips.forEach(keep); C.posts.forEach(keep); } });
-  scene.traverse(o=>{ const u=o.userData; if(u.tiers) u.tiers.forEach(keep); if(u.cab) keep(u.cab); if(u.rdoors) u.rdoors.forEach(keep); if(u.tele) u.tele.secG.forEach(keep);
+  scene.traverse(o=>{ const u=o.userData; if(u.tiers) u.tiers.forEach(keep); if(u.cab) keep(u.cab); if(u.rdoors) u.rdoors.forEach(keep); if(u.tele) u.tele.secG.forEach(keep); if(u.gs) u.gs.K.forEach(keep);
     if(u.rig){ const R=u.rig; keep(o); [R.mast,R.inner,R.carriage,R.swSpin].forEach(keep); R.wheels.forEach(keep); R.steer.forEach(keep); if(R.driver) SKIP.add(R.driver); } });
   [G.people,G.flow,G.labels,G.roles,G.addr,G.dims].forEach(g=>g&&SKIP.add(g));
   const fake=m=>!m||m.transparent||m.isShadowMaterial||m.isPointsMaterial||m.isLineBasicMaterial||m.isSpriteMaterial||(m.visible===false);

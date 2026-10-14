@@ -5,7 +5,7 @@
   TRK_IN.position.set(26,0,44); TRK_IN.rotation.y=0.4; TRK_L2.position.z+=6;
   const src=CELLSTACK[Object.keys(CELLSTACK)[0]].userData.eid; const c=edClone(src,[27,0,15.6],0.3,'ctest');
   const tl=edMap.get('t-l2'); edHide(tl); const dw=edMap.get('dws-3'); dw.position.set(20,0,9);
-  JACK_P2a.position.set(40,0,7.5);
+  JACK_P2a.position.set(46.2,0,7.6);                       // в стороне от путей: (40; 7,5) с 14.10 — подъезд погрузчика к зоне DWS
   const a=snap(); FILM.enter({size:[640,360],paused:true}); const F=FILM;
   const inFilm={trk:st(TRK_IN),cn:st(TRK_L2),cloneVis:c.visible,userTl:tl.visible,userDws:dw.visible,jack:st(JACK_P2a),warn:F.warn,warnShown:F.wn.style.display,
     filmTl:F.tl2.visible&&F.grp.visible, boom:!!F.boom, filmDwsAt:[F.dws.position.x,F.dws.position.z]};

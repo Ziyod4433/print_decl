@@ -7,6 +7,6 @@
  const p=FILM.fk.position, yaw=FILM.fk.rotation.y, dirx=Math.sin(yaw)*Math.sign(S.kinFk.v), dirz=Math.cos(yaw)*Math.sign(S.kinFk.v);
  wPos.set(p.x+dirx*4.2,1.7,p.z+dirz*4.2); wYaw=Math.atan2(dirx,dirz); W.feet=0; W.vx=W.vz=0; WALKP.step(0.016);
  out.fk0=[+p.x.toFixed(2),+p.z.toFixed(2),+S.kinFk.v.toFixed(2)]; out.me0=[+wPos.x.toFixed(2),+wPos.z.toFixed(2)];
- for(let i=0;i<60*7;i++){ SIM.tick(1/60); WALKP.step(1/60); if(i%15===0) out.seq.push([+(i/60).toFixed(2),W.down?+W.down.t.toFixed(2):-1,+camera.position.y.toFixed(2),+wPos.x.toFixed(2),+wPos.z.toFixed(2)]); }
+ for(let i=0;i<60*12;i++){ SIM.tick(1/60); WALKP.step(1/60); if(i%15===0) out.seq.push([+(i/60).toFixed(2),W.down?+W.down.t.toFixed(2):-1,+camera.position.y.toFixed(2),+wPos.x.toFixed(2),+wPos.z.toFixed(2)]); }
  out.hits=W.hits; out.fx=document.getElementById('walkhit')?document.getElementById('walkhit').innerText.slice(0,40):null; out.tries=tries;
  return out; })()

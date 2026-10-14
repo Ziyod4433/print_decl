@@ -5,6 +5,24 @@ const kzPos=T=>{ const p=pathAt(KZ,T); return V(p.x,0,p.z); };
 const fkP=()=>F.fk.position.clone();
 const boxW=k=>F.box[k].position.clone();
 let SHOTS=[];
+/* планы зоны DWS: стыкуются по времени процесса; в ускоренных участках — общий план */
+function zoneShots(){ const MK=F.MK, Z=DWSZ, G1=MK.G1, PJ=MK.PJ, a8=cellC(A8C), out=[], gs0=Z.gs, gOut=MK.gOut;
+  const add=(T1,o)=>{ const T0=out.length?out[out.length-1].T1:MK.out6+0.3; if(T1-T0<0.3) return; out.push(Object.assign({T0,T1},o)); };
+  add(MK.spIn+0.6,{fov:46,mb:1,dof:{k:0.4,tgt:'fk'},f:u=>[L3([12.9,2.4,9.1],[12.4,2.3,9.5],sst(u)),V(8.6,0.9,13.6)]});                 // погрузчик к поддону образцов
+  add(MK.spOut+0.6,{fov:40,dof:{k:0.5,tgt:'sp'},hand:0.008,f:u=>[L3([11.3,1.6,10.0],[11.0,1.55,10.2],sst(u)),V(8.25,0.7,12.2)]});      // вилы — в петли, подъём
+  add(MK.spZ+0.4,{fov:50,mb:0.9,f:()=>{ const p=F.fk.position; return [V(p.x-6.2,2.7,17.8),V(p.x+1.6,1.0,15.0)]; }});                // по южной магистрали на восток
+  add(MK.spSet+1.6,{fov:44,mb:1,dof:{k:0.3,tgt:'fk'},f:u=>[L3([44.6,3.1,9.6],[44.2,2.9,9.2],sst(u)),V(38.4,0.8,4.6)]});                // через пост П2 в зону DWS, поддон — на место 1
+  add(G1.tS1,{fov:42,dof:{k:0.5,tgt:'gs'},hand:0.006,f:u=>[L3([38.75,1.85,4.15],[38.55,1.8,4.3],sst(u)),V(37.3,0.9,2.2)]});         // упаковщик ставит короб на весовой стол, 3D-камера
+  add(gOut+0.6,{fov:40,dof:{k:0.5,tgt:'gsbelt'},hand:0.006,f:u=>[L3([38.9,2.55,5.0],[39.2,2.45,4.8],sst(u)),V(38.4,0.95,2.1)]});       // лента через световой занавес, вспышка (сверху — поверх упаковщика)
+  add(gOut+3.4,{fov:28,hand:0.004,f:()=>[V(37.12,1.58,3.1),V(gs0[0]-0.16,1.36,gs0[1]-0.16)]});                                       // экран Goodscan: габарит, вес, клиент
+  add(PJ.tPut-1.6,{fov:50,mb:0.8,f:u=>[L3([39.3,4.5,9.6],[38.9,4.3,9.3],sst(u)),V(39.6,0.6,3.6)]});                                   // зона сверху (ускорено)
+  add(PJ.tS1+1.4,{fov:42,dof:{k:0.4,tgt:'pt'},hand:0.006,f:u=>[L3([41.0,2.1,6.7],[41.3,2.05,6.5],sst(u)),V(Z.big[0],0.6,Z.big[1]+0.4)]});   // контролёр на портале, лучи сканеров
+  add(MK.mEnd,{fov:50,mb:0.8,f:u=>[L3([39.5,4.7,9.9],[39.0,4.4,9.6],sst(u)),V(39.3,0.6,3.7)]});                                       // остальные образцы (ускорено)
+  add(MK.mpTag+1.6,{fov:40,dof:{k:0.5,tgt:'mp'},hand:0.008,f:u=>[L3([37.9,1.75,7.1],[38.2,1.7,6.9],sst(u)),V(39.6,1.0,5.2)]});        // бирка дня на поддон замеренных
+  add(MK.mpOut+0.6,{fov:46,mb:1,dof:{k:0.3,tgt:'fk'},f:u=>[L3([44.4,3.0,9.4],[44.1,2.9,9.1],sst(u)),V(40.0,0.8,5.0)]});                 // погрузчик забирает поддон
+  add(MK.a8A,{fov:50,mb:0.9,f:()=>{ const p=F.fk.position; return [V(p.x+6.3,2.7,17.6),V(p.x-1.3,1.0,15.0)]; }});                     // к ячейке A8
+  add(MK.outA8+0.3,{fov:46,mb:1,f:u=>[L3([a8[0]-4.3,2.2,14.2],[a8[0]-4.0,2.15,14.5],sst(u)),V(a8[0],1.0,18.6)]});                    // A8: поддон на пол ячейки
+  return out; }
 function mkShots(){ const MK=F.MK, a6=cellC(5), a14=cellC(13), P=PICK[0], rx=RK_AT[0], rz=RK_AT[1];
 const d6=a6[0]-18.29, d14=a14[0]-42.65, B2X=F.bw[1][0];                 // камеры у ячеек привязаны к центрам ячеек
 const inB=(r,x,y,z)=>F.bod[r].localToWorld(V(x,y,z));                   // точка в системе кузова (камера внутри кузова)
@@ -17,9 +35,9 @@ SHOTS=[
   {T0:11.6,T1:E0+0.9,fov:42,ext:true,dof:{k:0.8,tgt:'wt'},hand:0.012,f:u=>[L3([-1.2,2.25,12.9],[-1.0,2.2,12.5],sst(u)),V(-5.9,1.9,11.2)]},
   {T0:E0+0.9,T1:P.grab-0.6,fov:48,mb:1.2,dof:{k:0.7,tgt:'box0'},f:()=>{ const b=boxW(0); return [V(Math.min(3.9,b.x+0.9),1.95,12.0),V(b.x-0.6,b.y+0.15,10.9)]; }},
   {T0:P.grab-0.6,T1:P.grab+1.5,fov:44,dof:{k:0.6,tgt:'ct'},hand:0.01,f:u=>[L3([6.6,1.7,8.5],[6.3,1.65,8.8],sst(u)),V(4.6,1.0,10.7)]},
-  {T0:P.grab+1.5,T1:P.dws0+0.3,fov:46,mb:1.2,f:u=>{ const c=F.CT.root.position; return [V(lerp(7.0,8.8,sst(u)),1.6,13.0),V(c.x+0.5,0.95,c.z)]; }},
-  {T0:P.dws0+0.3,T1:P.scan1+0.9,fov:44,dof:{k:0.5,tgt:'dwsbox'},hand:0.008,f:u=>[L3([10.9,2.05,13.3],[10.6,1.95,13.5],sst(u)),V(8.4,0.85,10.2)]},
-  {T0:P.scan1+0.9,T1:MK.tl1a,fov:44,mb:1,dof:{k:0.4,tgt:'rk'},f:u=>[L3([8.5,1.95,13.9],[8.1,1.85,14.1],sst(u)),V(6.0,0.8,11.8)]},
+  {T0:P.grab+1.5,T1:P.rel-0.6,fov:46,mb:1.2,f:u=>{ const c=F.CT.root.position; return [V(lerp(5.4,6.3,sst(u)),1.65,8.3),V(c.x+0.6,0.95,c.z+0.3)]; }},   // контролёр несёт образец к поддону образцов
+  {T0:P.rel-0.6,T1:P.rel+2.4,fov:42,dof:{k:0.5,tgt:'sp'},hand:0.008,f:u=>[L3([10.7,1.95,9.5],[10.4,1.9,9.8],sst(u)),V(8.25,0.55,11.9)]},          // образец ложится в поддон образцов
+  {T0:P.rel+2.4,T1:MK.tl1a,fov:44,mb:1,dof:{k:0.4,tgt:'rk'},f:u=>[L3([8.5,1.95,13.9],[8.1,1.85,14.1],sst(u)),V(6.0,0.8,11.8)]},
   {T0:MK.tl1a,T1:lerp(MK.tl1a,MK.tl1b,0.36),fov:48,mb:1,f:u=>[L3([9.9,3.4,15.4],[9.3,3.2,15.7],sst(u)),V(5.7,0.7,11.3)]},
   {T0:lerp(MK.tl1a,MK.tl1b,0.36),T1:lerp(MK.tl1a,MK.tl1b,0.7),fov:42,f:orb(rx,0.75,rz,3.6,2.5,1.0,0.1)},
   {T0:lerp(MK.tl1a,MK.tl1b,0.7),T1:MK.tl1b,fov:46,f:u=>[L3([2.2,3.0,14.4],[2.5,2.8,14.1],sst(u)),V(5.7,0.8,11.6)]},
@@ -31,8 +49,10 @@ SHOTS=[
   {T0:MK.up1-0.2,T1:MK.at6+0.2,fov:44,mb:1,dof:{k:0.4,tgt:'rk'},f:u=>[L3([14.9+d6,2.2,15.9],[15.2+d6,2.3,16.3],sst(u)),V(18.3+d6,1.9,18.6)]},
   {T0:MK.at6+0.2,T1:MK.seat1+1.5,fov:30,dof:{k:0.5,tgt:'cup'},hand:0.006,f:u=>[L3([20.25+d6,1.88,20.95],[20.15+d6,1.85,20.85],sst(u)),V(19.01+d6,1.6,19.92)]},
   {T0:MK.seat1+1.5,T1:MK.out6+0.3,fov:50,mb:1,f:u=>[L3([14.6+d6,2.5,15.0],[14.3+d6,2.7,14.7],sst(u)),V(18.5+d6,1.6,18.5)]},
+  /* поддон образцов → зона DWS; замер на Goodscan и на портале; замеренные → A8 */
+  ...zoneShots(),
   /* автопоезд заезжает через П2; упоры, шторы, грузчики поднимаются в кузов */
-  {T0:MK.out6+0.3,T1:MK.kin+4.4,fov:46,mb:1,f:(u,T)=>{ const k=kzPos(T); return [L3([39.9,1.9,15.4],[39.6,1.85,15.6],sst(u)),V(Math.min(k.x-11.5,50.5),1.9,10.7)]; }},
+  {T0:MK.outA8+0.3,T1:MK.kin+4.4,fov:46,mb:1,f:(u,T)=>{ const k=kzPos(T); return [L3([39.9,1.9,15.4],[39.6,1.85,15.6],sst(u)),V(Math.min(k.x-11.5,50.5),1.9,10.7)]; }},
   {T0:MK.kin+4.4,T1:MK.kst+0.9,fov:40,mb:1,dof:{k:0.3,tgt:'kz'},hand:0.006,f:(u,T)=>{ const k=kzPos(T); return [V(17.4,1.3,13.0),V(k.x-13.2,1.9,10.7)]; }},
   {T0:MK.kst+0.9,T1:MK.up2+0.6,fov:50,hand:0.006,f:u=>[L3([25.6,2.2,15.6],[26.4,2.1,15.0],sst(u)),V(31.2,1.9,11.6)]},
   /* отбор по FIFO: ячейка A14 */
@@ -47,8 +67,8 @@ SHOTS=[
   /* пустая стойка — к приёмке; вторая стойка из A14 — в прицеп */
   {T0:MK.e1s+1.5,T1:MK.e1out+2.0,fov:52,mb:0.6,f:u=>[L3([9.0,5.0,8.4],[9.3,4.8,8.8],sst(u)),V(14.0,0.6,14.0)]},
   {T0:MK.e1out+2.0,T1:MK.out14b+0.5,fov:50,mb:0.5,f:()=>[V(39.6+d14,3.4,13.4),fkL(0,1.0,0.6)]},
-  {T0:MK.out14b+0.5,T1:F.CAR[2].up,fov:46,mb:1,dof:{k:0.3,tgt:'fk'},f:u=>[L3([45.4,2.0,16.0],[45.1,1.9,15.6],sst(u)),V(41.3,1.4,13.2)]},
-  {T0:F.CAR[2].up,T1:MK.u2a+2.6,fov:44,dof:{k:0.4,tgt:'bed2'},hand:0.006,f:u=>[L3([44.3,2.1,13.5],[44.1,2.05,13.2],sst(u)),V(B2X+0.2,1.55,11.5)]},
+  {T0:MK.out14b+0.5,T1:F.carTr.up,fov:46,mb:1,dof:{k:0.3,tgt:'fk'},f:u=>[L3([45.4,2.0,16.0],[45.1,1.9,15.6],sst(u)),V(41.3,1.4,13.2)]},
+  {T0:F.carTr.up,T1:MK.u2a+2.6,fov:44,dof:{k:0.4,tgt:'bed2'},hand:0.006,f:u=>[L3([44.3,2.1,13.5],[44.1,2.05,13.2],sst(u)),V(B2X+0.2,1.55,11.5)]},
   {T0:MK.u2a+2.6,T1:MK.u2b-0.6,fov:64,ev:0.7,mb:0.6,f:u=>[inB(1,-3.9+0.2*sst(u),3.55,-0.7),inB(1,0.2,1.55,0.45)]},
   {T0:MK.u2b-0.6,T1:MK.e2s+0.5,fov:48,hand:0.006,f:u=>[L3([B2X+3.4,1.9,13.5],[B2X+3.2,1.85,13.9],sst(u)),V(B2X+0.2,1.3,12.8)]},
   /* пустая стойка — по магистрали к приёмке, вторым ярусом */
@@ -77,7 +97,11 @@ function focusDist(s,look){
   else if(tg==='wt') p=F.WTr.getWorldPosition(V(0,0,0)).add(V(0,1.1,0));
   else if(tg==='ct') p=F.CT.root.position.clone().add(V(0,1.2,0));
   else if(tg==='box0') p=F.box[0].position.clone();
-  else if(tg==='dwsbox') p=F.dws.localToWorld(V(-0.2,0.35,0));
+  else if(tg==='sp') p=F.SP.position.clone().add(V(0,0.7,0));
+  else if(tg==='mp') p=F.MP.position.clone().add(V(0,0.9,0));
+  else if(tg==='gs') p=F.gs.localToWorld(V(0.42,0.95,0));
+  else if(tg==='gsbelt') p=F.gs.localToWorld(V(GS.ARCH,0.95,0));
+  else if(tg==='pt') p=F.dws.localToWorld(V(DWSZ.PT[0],0.5,DWSZ.PT[2]));
   else if(tg==='rk') p=F.RK.position.clone().add(V(0,0.8,0));
   else if(tg==='tag') p=F.RK.localToWorld(V(-0.5,1.2,0.77));
   else if(tg==='a14tag') p=V(cellC(13)[0],1.9,cellC(13)[1]-0.75);

@@ -10,17 +10,18 @@
 | `python3 build.py` | сборка | без AssertionError, «собрано … байт» |
 | `node tools/ev.js <html> <snippet.js>` | выполнить JS в странице, вывести JSON | — |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/forklift_jumps.js` | рывки погрузчика в фильме (скачки позиции/курса) | `"jumps":[]` |
+| `node tools/ev.js Sklad4_realistic_film.html tools/checks/film_shots.js` | планы камеры и подписи фильма: подряд, без разрывов и перекрытий | `"bad":[]`, `"capsBad":[]` |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/film_restore.js` | вход/выход из фильма возвращает сцену как была | в `diff` только `n` (число узлов: объекты фильма строятся один раз) |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/user_edits_in_film.js` | правка пользователя видна в фильме, якоря на месте | `"diff":[]`, есть `warn` по стойке на маршруте |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/pick.js` | выбор объектов мышью (подпись `sig`) | сравнивать `sig` до/после |
 | `NOBATCH=1 node tools/ev.js Sklad4_realistic_film.html tools/checks/obb.js` | пересечения коробов в фильме | нет постоянных пересечений > 7 мм |
 | `bash tools/run_coll.sh` | столкновения в фильме: погрузчик, вилы, стойка, люди | пустой список |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/walk_knock.js` | обход: наезд погрузчика — падение и подъём | `hits` 1, камера опускается до ~0,23 м и через ~3,5 с встаёт |
-| `node tools/simrun.js Sklad4_realistic_film.html 30000 3` | живой процесс: два полных цикла (третий аргумент — на каком цикле остановиться, по умолчанию 2) со столкновениями погрузчика и людей; ~12 мин счёта | доходит до `=== НОВЫЙ ЦИКЛ 3`, `HITS` пусто, `HUM {}` |
-| `SIMV=2 node tools/simrun.js Sklad4_realistic_film.html 30000 3` | то же для второго варианта приёмки (машина через П1 на полосе Л1–П1) | `HITS` пусто, `HUM {}` |
+| `node tools/simrun.js Sklad4_realistic_film.html 30000 3` | живой процесс: два полных цикла (третий аргумент — на каком цикле остановиться, по умолчанию 2): погрузчик, вилы и стойка на вилах против препятствий (`HITS`), люди рядом с погрузчиком (`HUM`), люди против неподвижных препятствий, аппаратов DWS и стоек (`HP`, с 14.10); ~40 мин счёта | доходит до `=== НОВЫЙ ЦИКЛ 3`, `HITS` пусто, `HUM {}`, `HP []` |
+| `SIMV=2 node tools/simrun.js Sklad4_realistic_film.html 30000 3` | то же для второго варианта приёмки (машина через П1 на полосе Л1–П1) | `HITS` пусто, `HUM {}`, `HP []` |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/sim_timeline.js` | хронология цикла (машины, задачи погрузчика, журнал) | — |
 | `node tools/test_save.js` | автосохранение правки в сам файл и открытие копии | шаг 2 видит правку |
-| `node tools/ev.js Sklad4_realistic_film.html tools/checks/walk_phys.js` | физика обхода: колонна, решётка, спрыгнуть с платформы Л2, подняться по лестнице, прыжок | нормы — в шапке файла |
+| `node tools/ev.js Sklad4_realistic_film.html tools/checks/walk_phys.js` | физика обхода: колонна, решётка, спрыгнуть с платформы Л2, подняться по лестнице, прыжок, не пройти сквозь Goodscan и портальный DWS | нормы — в шапке файла |
 | `node tools/walktest.js` | режим обхода включает живой процесс, ходьба | `walk:true, simOn:true`, камера сдвинулась; кадр в `out/walk.jpg` |
 | `node tools/filmtest.js <html> out/ft 960 540 6,14,22,…` | контрольные кадры фильма в моменты t (с) | смотреть глазами |
 | `node tools/filmclean.js <html> out/fc 1920 1080 1.5,6,10,…` | те же кадры без надписей (стартовые кадры для Higgsfield image-to-video) | смотреть глазами |

@@ -55,7 +55,7 @@ PASS.forEach((p,i)=>{
   signBoard(2.4,0.6,st,cx,4.3,17.0,Math.PI,G.struct,{two:true,hang:1.6}); signBoard(2.4,0.6,st,cx,4.3,26.5,0,G.struct,{two:true,hang:1.6});
   /* сферические зеркала на колоннах у обоих выездов */
   const colx=i?32.05:16.05;
-  convexMirror(colx+0.34,2.9,14.1+0.34,Math.PI*0.25); convexMirror(colx+0.34,2.9,28.2-0.34,Math.PI*0.75);
+  convexMirror(colx+0.34,2.9,COLZ[1]+0.34,Math.PI*0.25); convexMirror(colx+0.34,2.9,COLZ[3]-0.34,Math.PI*0.75);
 });
 /* подвесные таблички секций: ряд, диапазон ячеек, цвет зоны */
 [[1.2,15.3,'1–5'],[20.2,31.25,'6–10'],[36.2,46.85,'11–15']].forEach((s,si)=>{ const cx=(s[0]+s[1])/2, col='#'+BANDS[si].c.toString(16).padStart(6,'0');
@@ -63,18 +63,20 @@ PASS.forEach((p,i)=>{
     const t=signTex(['РЯД '+r[0],'ячейки '+r[0]+s[2].replace('–','–'+r[0])],col,'#ffffff',768,384,{px:[190,84]});
     signBoard(1.5,0.75,t,cx,4.6,r[1],r[2],G.struct,{two:true,hang:1.4}); }); });
 /* номера ворот и знаки над воротами, выходы */
-[[0.22,GATES[0].z,'Л1',Math.PI/2],[0.22,GATES[1].z,'Л2',Math.PI/2],[W-0.22,GATES[0].z,'П1',-Math.PI/2],[W-0.22,GATES[1].z,'П2',-Math.PI/2]].forEach(p=>{
-  signBoard(1.5,0.9,signTex([p[2]],'#f2b705','#14161a',384,256,{px:[210]}),p[0],GATE_H+2.45,p[1],p[3],G.walls);
+[[0.22,GATES[0].z,'Л1',Math.PI/2,GATES[0].w,GATE_H+2.45],[0.22,GATES[1].z,'Л2',Math.PI/2,GATES[1].w,GATE_H+2.45],
+ [W-0.22,GATES_P[0].z,'П1',-Math.PI/2,GATES_P[0].w,GATE_HP+1.8],[W-0.22,GATES_P[1].z,'П2',-Math.PI/2,GATES_P[1].w,GATE_HP+1.8]].forEach(p=>{   // П — 6,0 × 5,5: номер над завесой
+  const hw=p[4]/2;
+  signBoard(1.5,0.9,signTex([p[2]],'#f2b705','#14161a',384,256,{px:[210]}),p[0],p[5],p[1],p[3],G.walls);
   const ex=new THREE.MeshStandardMaterial({map:signTex(['ВЫХОД · EXIT'],'#1f8f4a','#ffffff',512,128,{px:[84]}),emissive:0x1f8f4a,emissiveIntensity:.35,roughness:.5});
-  const e=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.22),ex); e.position.set(p[0]+(p[0]<1?0.03:-0.03),GATE_H+0.42,p[1]+3.0); e.rotation.y=p[3]; G.walls.add(e);
+  const e=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.22),ex); e.position.set(p[0]+(p[0]<1?0.03:-0.03),GATE_H+0.42,p[1]+hw+1.25); e.rotation.y=p[3]; G.walls.add(e);
   /* светофор въезда и пульт ворот */
-  const g=grp(p[0]+(p[0]<1?0.12:-0.12),0,p[1]-2.35,G.walls); g.rotation.y=p[3];
+  const g=grp(p[0]+(p[0]<1?0.12:-0.12),0,p[1]-hw-0.6,G.walls); g.rotation.y=p[3];
   box(0.2,0.5,0.14,M.dark,0,2.7,0,g); box(0.14,0.14,0.02,std(0x3a0d0d,.4,0,{emissive:0xff2a1a,emissiveIntensity:.25}),0,2.82,0.075,g).castShadow=false;
   box(0.14,0.14,0.02,std(0x0d3a16,.4,0,{emissive:0x2bd14f,emissiveIntensity:1.1}),0,2.6,0.075,g).castShadow=false;
   rbox(0.26,0.36,0.12,0.02,M.steelDark,0,1.35,0,g); box(0.05,0.05,0.02,M.green,-0.05,1.42,0.065,g).castShadow=false; box(0.05,0.05,0.02,M.red,0.05,1.42,0.065,g).castShadow=false;
   box(0.03,1.3,0.03,M.galv,0,2.05,-0.03,g).castShadow=false;
   /* отбойные тумбы у косяков ворот */
-  for(const s of [-1,1]){ const bx=p[0]+(p[0]<1?0.55:-0.55), bz=p[1]+s*(GATES[0].w/2+0.25);
+  for(const s of [-1,1]){ const bx=p[0]+(p[0]<1?0.55:-0.55), bz=p[1]+s*(hw+0.25);
     cyl(0.09,1.0,M.yellow,bx,0.5,bz,G.struct,14); cyl(0.092,0.12,M.dark,bx,0.78,bz,G.struct,14).castShadow=false; cyl(0.092,0.12,M.dark,bx,0.5,bz,G.struct,14).castShadow=false; }
 });
 /* знаки ограничения скорости на колоннах у магистралей */
@@ -82,7 +84,7 @@ PASS.forEach((p,i)=>{
   g.fillStyle='#14161a'; g.font='700 150px "Barlow Condensed",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('5',128,136);
   const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding;
   const m=new THREE.MeshStandardMaterial({map:t,transparent:true,alphaTest:0.5,roughness:.5});
-  COLX.forEach(x=>[14.1,28.2].forEach(z=>{ for(const s of [-1,1]){ const d=new THREE.Mesh(new THREE.CircleGeometry(0.2,24),m); d.position.set(x+s*0.256,2.15,z); d.rotation.y=s*Math.PI/2; G.struct.add(d); } })); }
+  COLX.forEach(x=>[COLZ[1],COLZ[3]].forEach(z=>{ for(const s of [-1,1]){ const d=new THREE.Mesh(new THREE.CircleGeometry(0.2,24),m); d.position.set(x+s*0.256,2.15,z); d.rotation.y=s*Math.PI/2; G.struct.add(d); } })); }
 /* крытый пост: стоп-линия, колесоотбойная труба вдоль ограждения, противооткатные упоры */
 decal(0.3,2.9,paintMat(0xf2f2f2,.95),44.6,GATES[0].z-0.4,0.0172); stencil('СТОП',43.4,GATES[0].z-0.4,2.4,'rgba(242,242,242,.9)',Math.PI/2);
 { const g=grp(0,0,0,G.struct); const t=cyl(0.07,40,M.yellow,24,0.16,34.35,g,12); t.rotation.z=Math.PI/2;

@@ -2,7 +2,7 @@
 const PEOPLE=[];
 function person(x,z,rot,pose,role,p){
   const H=HUM.build({role:role||'ГРУЗЧИК',rnd:LOOK.R});
-  const g=H.root; g.position.set(x,0,z); g.rotation.y=rot||0; (p||G.people).add(g);
+  const g=H.root; g.position.set(x,0,z); g.rotation.y=rot||0; (p||G.people).add(g); if(H.rpm) H.rpm.scale.setScalar(HUM.RP.scl(H));   // модель уже есть — масштаб по месту (водитель погрузчика)
   g.userData.nm=role||'Человек'; g.userData.role=role||'';
   /* в покое — занятие по роли (раньше «в работе» стояли с вытянутыми вперёд руками, как манекены) */
   const n=PEOPLE.length, IDLE={'ОХРАННИК':[{behind:1}],'СТАРШИЙ СМЕНЫ':[{tablet:1}],'БРИГАДИР':[{tablet:1},{talk:1}],'КЛАДОВЩИК':[{tablet:1}],

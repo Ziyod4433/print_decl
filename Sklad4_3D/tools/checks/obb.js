@@ -1,6 +1,6 @@
 (()=>{ FILM.enter({size:[320,180],paused:true}); const F=FILM, MK=F.MK;
  const list=[]; const add=(o,tag)=>{ if(o&&o.isObject3D) list.push({o,tag}); };
- (F.box||[]).forEach((b,i)=>add(b,'belt'+i)); (F.kb||[]).forEach((r,ri)=>r.forEach((b,i)=>add(b,'kb'+ri+'_'+i))); (F.WTbox||[]).forEach((b,i)=>add(b,'wt'+i));
+ (F.box||[]).forEach((b,i)=>add(b,'belt'+i)); (F.kb||[]).forEach((r,ri)=>r.forEach((b,i)=>add(b,'kb'+ri+'_'+i))); Object.values(F.WTbox||{}).forEach((b,i)=>add(b,'wt'+i));
  // локальные габариты
  const bb=new THREE.Box3(), tb=new THREE.Box3(), inv=new THREE.Matrix4();
  list.forEach(L=>{ const o=L.o; o.updateMatrixWorld(true); inv.copy(o.matrixWorld).invert(); bb.makeEmpty();

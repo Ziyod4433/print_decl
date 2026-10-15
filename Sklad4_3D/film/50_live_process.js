@@ -43,8 +43,8 @@ const RCPV={
      tl:[32.48,0,32.8,0],eos:[[10.8,30.6],[12.8,30.6]],fk0:[10.0,ZN,PI/2,'ZN'],SUP:[20.4,32.5,1.6],hideP:[21.5,30.2],
      nav:[[21.68,31.72,28.92,31.72,1],[21.68,29.48,28.92,29.48,3],[21.68,29.48,21.68,31.72,1],[24.05,29.48,24.05,31.72,1],[26.55,29.48,26.55,31.72,1],[28.92,29.48,28.92,31.72,1],
           [28.92,31.72,30.9,31.72,1],[30.9,31.72,31.2,31.15,1],[31.2,31.15,33.6,31.15,1],[33.6,31.15,33.6,6.9,1]],   // южнее носа сложенного конвейера (площадка оператора x 31,42…32,31, z 31,45…32,31), 14.10
-     door:'P1',home:{x:38.52,y:0,z:32.8,r:PI},wt:{x:0.1,z:0.0,hx:1,hz:0},hideX:9,
-     blocks:[{x0:-3.6,x1:-0.95,z0:-1.2,z1:1.18}]}
+     door:'P1',home:{x:41.77,y:0,z:32.8,r:PI},wt:{x:3.35,z:0.0,hx:1,hz:0},hideX:12,             // 15.10: полуприцеп 17,5 м — задние ворота там же (x 33,02), тягач остаётся за П1
+     blocks:[{x0:-2.9,x1:2.3,z0:-1.2,z1:1.18}]}
 };
 
 /* ---------- фазы процесса: машина из Китая выгружается целиком → образцы на DWS → бригада грузит автопоезд ----------
@@ -202,7 +202,7 @@ function setup(){
   F.W4.root.visible=false; F.W4box.visible=false;
   S.bw=F.bod.map(b=>{ b.updateMatrixWorld(true); const p=b.localToWorld(V(RB.x,0,RB.z)); return [p.x,p.z]; });
   S.kPos={K1:[0.45,-0.8],K2:[-0.45,-0.8],K3:[0.45,-0.8],K4:[-0.45,-0.8]}; S.kIdle={K1:-0.3,K2:0.3,K3:-0.3,K4:0.3};   // ждут у дальнего борта за стойкой: на x ±1,9 стояли внутри будущих стопок (14.10)
-  CREW.forEach((cw,r)=>{ const bx=S.bw[r][0]; const spot={[cw[0]]:[bx+1.5,13.2],[cw[1]]:[bx+4.75,13.2]};
+  CREW.forEach((cw,r)=>{ const bx=S.bw[r][0]; const spot={[cw[0]]:[bx+KWAIT[r][0],13.2],[cw[1]]:[bx+KWAIT[r][1],13.2]};
     cw.forEach(w=>{ const rp=REC_SPOT[w], [ip,iy]=IDLE_AT.rec[w]; mkH(w,F.KH[w],rp[0],rp[1],iy); const h=S.hum[w]; h.tr=new Track().key(0,rp[0],rp[1],iy,ip).fin(); h.idle=ip;
       h.spot=spot[w]; h.rec=rp; h.body=r; h.state='wait'; }); });
   S.phase='unload'; S.cnDone=false; S.kzGone=false; S.crewAt='rec'; S.crewT=0;
@@ -238,11 +238,13 @@ function rackSlotPut(b,r,s,dt){ const q=RSLOT[s]; putSlot(b.o,r.o,q.x+b.pl.jx,r.
 function putFree(b,r,it,dt){ putSlot(b.o,r.o,it.x+b.pl.jx,it.y,it.z+b.pl.jz,(it.rot?PI/2:0)+b.pl.jy,dt,b.pl); }
 function putRackLater(b,r,slot){ r.slots[slot]=b; r.n++; b.rack=r; b.slot=slot; b.mode='rack'; r.o.attach(b.o); delete r.res[slot]; }
 function freeDone(b,r,it){ b.mode='rack'; b.rack=r; r.n++; it.placed=true; r.o.attach(b.o); }
-function laneFree(body,ti){ const L=KZLANE[ti], lanes=S.kz.lanes[body], cap=Math.floor(3.6/L.d)*L.n; return (cap-lanes.S[ti])+(cap-lanes.N[ti]); }   // дорожки растут от торцов к проёму (±1,25 м свободны)
+/* дорожки растут от торцов кузова к проёму (±1,25 м у проёма свободны); у секций разная длина (15.10: 7,57 и 9,70 м внутри) */
+const laneX0=body=>F.bod[body].userData.body.len/2-0.1, laneCap=(body,ti)=>Math.floor((laneX0(body)-1.25)/KZLANE[ti].d)*KZLANE[ti].n;
+function laneFree(body,ti){ const lanes=S.kz.lanes[body], cap=laneCap(body,ti); return (cap-lanes.S[ti])+(cap-lanes.N[ti]); }
 /* место в дорожке кузова: высота стопки — по фактическим коробам (SKU одного класса разной высоты) */
 function laneSlot2(body,side,ti,h){ const L=KZLANE[ti], lanes=S.kz.lanes[body];
-  const cap=Math.floor(3.6/L.d)*L.n; if(lanes[side][ti]>=cap) side=side==='S'?'N':'S'; if(lanes[side][ti]>=cap) return null;
-  const n=lanes[side][ti]++, st=Math.floor(n/L.n), lv=n%L.n, X0=side==='S'?-4.85:4.85, sg=side==='S'?1:-1, hy=lanes.hy[side][ti], y=lv?(hy[st]||0):0; hy[st]=y+h+0.004;
+  const cap=laneCap(body,ti); if(lanes[side][ti]>=cap) side=side==='S'?'N':'S'; if(lanes[side][ti]>=cap) return null;
+  const n=lanes[side][ti]++, st=Math.floor(n/L.n), lv=n%L.n, X0=(side==='S'?-1:1)*laneX0(body), sg=side==='S'?1:-1, hy=lanes.hy[side][ti], y=lv?(hy[st]||0):0; hy[st]=y+h+0.004;
   const xc=X0+sg*L.d*(st+0.5), xf=X0+sg*L.d*(st+1), sx=L.z>-0.61?(side==='S'?Math.min(xf+0.42,-KSTRIP):Math.max(xf-0.42,KSTRIP)):xf+sg*0.42;   // напротив стойки в проёме — не ближе полосы x ±1,03
   return {lp:V(xc,BEDY+y,L.z),stand:[sx,L.z],yaw:side==='S'?-PI/2:PI/2,y}; }
 /* по кузову — в обход стойки в проёме (x ±0,81, z −0,31…1,31): ждут у дальнего борта, работают в полосе x ±1,03 между стойкой
@@ -715,7 +717,7 @@ function tickTrucks(){ const T=S.T, cn=S.cn, kz=S.kz;
   /* стыковка: машина встала → (во 2-м варианте открывают задние двери) → конвейер выдвигается в кузов → выгрузка;
      кузов пуст и лента пуста → конвейер складывается → (двери закрывают) → машина уезжает */
   if(cn.state==='arrive'||cn.state==='dock'||cn.state==='in'||cn.state==='undock'){ const t0=cn.t0;
-    doorSet(cnDoor,v2?kv(T,[[t0,0],[t0+2.6,1],[t0+14.6,1],[t0+17.2,0]]):kv(T,[[t0+5.5,0],[t0+8.0,0.97]])); }
+    doorSet(cnDoor,v2?kv(T,[[t0,0],[t0+2.6,1]]):kv(T,[[t0+5.5,0],[t0+8.0,0.97]])); }                 // во 2-м варианте полуприцеп стоит в проёме П1 — ворота открыты до выезда
   if(cn.state==='arrive'&&T>=cn.tDock){ cn.state='dock'; if(v2){ cn.rd={t0:T+0.3,t1:T+2.6,open:true}; S.tele.at=T+2.8; } else S.tele.at=T+0.3; S.log.push('машина встала — конвейер выдвигается в кузов'); }
   if(cn.state==='dock'){ if(S.tele.at!==undefined&&T>=S.tele.at){ S.tele.tgt=TELE_EXT; S.tele.at=undefined; }
     if(S.tele.e>=TELE_EXT-1e-4){ cn.state='in'; F.WTr.visible=true; S.wt.free=T+1.2; } }
@@ -726,7 +728,7 @@ function tickTrucks(){ const T=S.T, cn=S.cn, kz=S.kz;
       cn.path=v2?mkPath([{t0:cn.t1,t1:cn.t1+12,pts:[[H.x,H.z],[H.x+16,H.z],[H.x+62,H.z]],ease:'go',u0:0.45}])
                 :mkPath([{t0:cn.t1,t1:cn.t1+10,pts:[[H.x,H.z],[H.x,H.z+16],[H.x,H.z+60]],ease:'go',u0:0.45}]);
       S.ev.push({T:cn.t1-0.2,f:()=>{ F.WTr.visible=false; }}); S.log.push('машина из Китая №'+cn.n+' уезжает'+(v2?' через П1':'')); } }
-  if(cn.state==='leave'){ const t1=cn.t1; doorSet(cnDoor,v2?kv(T,[[t1-3.4,0],[t1-0.8,1],[t1+12,1],[t1+14.5,0]]):kv(T,[[t1+1.5,0.97],[t1+4.0,0]]));
+  if(cn.state==='leave'){ const t1=cn.t1; doorSet(cnDoor,v2?kv(T,[[t1+12,1],[t1+14.5,0]]):kv(T,[[t1+1.5,0.97],[t1+4.0,0]]));
     if(T>=t1+(v2?12.5:10.5)){ cn.state='away'; S.cnDone=true; F.cnT.visible=false; F.cnT.position.set(H.x+(v2?70:0),H.y,H.z-(v2?0:70)); } }
   /* автопоезд: пока есть что грузить */
   const haveCargo=cellsCargo||S.rp.some(p=>p.r&&p.r.n>0)||cn.state!=='away'||S.inLeft>0;
@@ -857,7 +859,7 @@ SIM.tick=function(dt){ if(!SIM.on) return; let left=Math.min(dt,0.25)*SIM.speed;
 /* ---------- масса груза в кузовах и нагрузки на оси (оценка по рычагу) ----------
    Грузовик: передняя ось под кабиной (x −12,9), задняя тележка (x −3,9); прицеп с центральными осями — почти весь груз на его осях.
    Положение короба вдоль кузова lp.x → плечо до осей. Собственная масса не учитывается: показывается прибавка от груза. */
-const AXF=-12.9, AXR=-3.875, KZO1=-5.8;
+const AXF=-9.4, AXR=-2.655, KZO1=-6.765;                       // 15.10 B-double: секция 1 опирается на седло тягача (шкворень) и свою тележку из двух осей
 function loadReset(){ S.load=[{m:0,mx:0},{m:0,mx:0}]; }
 function loadAdd(body,kg,lx){ if(!S.load) loadReset(); const L=S.load[body]; L.m+=kg; L.mx+=kg*lx; }
 function axleInfo(){ if(!S.load) return null; const a=S.load[0], b=S.load[1];
@@ -869,7 +871,7 @@ function status(){ const racks=S.cells.reduce((a,c)=>a+c.tiers.filter(r=>r.n>0).
   const t=S.T, mm=Math.floor(t/60), ss=Math.floor(t%60);
   const now=S.fkTask?S.fkTask.name:'погрузчик ждёт';
   const ph=S.phase==='unload'?'ВЫГРУЗКА машины из Китая':S.phase==='dws'?'ЗАМЕР ОБРАЗЦОВ на DWS':'ПОГРУЗКА автопоезда';
-  return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')}${S.V===2?' · приёмка через П1':''} · ${ph} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded}${(()=>{ const A=axleInfo(); return A&&(A.m1+A.m2)>0?` · в кузовах ${tt(A.m1)} + ${tt(A.m2)} т (оси грузовика +${tt(A.front)} / +${tt(A.rear)} т)`:''; })()} · ${now}`; }
+  return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')}${S.V===2?' · приёмка через П1':''} · ${ph} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded}${(()=>{ const A=axleInfo(); return A&&(A.m1+A.m2)>0?` · в кузовах ${tt(A.m1)} + ${tt(A.m2)} т (седло тягача +${tt(A.front)} / оси секции 1 +${tt(A.rear)} т)`:''; })()} · ${now}`; }
 SIM.enter=function(){ if(SIM.on) return; if(F.on) exit(); prepScene(true); HUM.attn=attnFn;
   const keep=new Set([F.fk,F.CT.root,F.W3.root,F.W5.root,F.W4.root,F.tl2,F.dws,F.gs].concat(Object.values(F.KH).map(H=>H.root)));
   S.filmVis=F.grp.children.map(o=>[o,o.visible]); F.grp.children.forEach(o=>{ o.visible=keep.has(o); });

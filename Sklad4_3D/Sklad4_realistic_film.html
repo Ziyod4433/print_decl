@@ -204,8 +204,8 @@
       <p class="eyebrow">Yuzhe International Logistics Park · Хоргос</p>
       <h1>Склад №4<br>блок 4-1 · по SKP</h1>
       <div class="sub"><b>Геометрия из SketchUp-модели</b> · зал 48,05 × 76,05 м<br>
-        Наша часть до ограждения 35,5 м = 1 705 м² · колонны 16,05 / 32,05, шаг 7,05<br>
-        Карниз 8,8 · конёк 10,0 · 30 ячеек буфера · пост погрузки П2 · без крана</div>
+        Наша часть до ограждения 35,5 м = 1 705 м² · колонны 16,05 / 32,05, шаг 7,0<br>
+        Карниз 8,6 · конёк 11,66 · ворота П 6,0 × 5,5, Л 3,5 × 4,0 · 30 ячеек буфера · пост погрузки П2 · без крана</div>
     </div>
     <div class="scroll">
       <section><h2>Камера</h2><div class="grid2" id="views"></div></section>
@@ -4383,13 +4383,14 @@ window.__SKLAD_SRC='<!DOCTYPE html>\n'+document.documentElement.outerHTML;   // 
    Поток: Л (запад, Китай) → П (восток, Казахстан).
    ========================================================================== */
 const W = 48.05, D = 76.05, OUR = 35.5;           // зал целиком по SKP; наша часть до ограждения на 35,5
-const WALL_H = 8.0, EAVE = 8.8, RIDGE = 10.0;     // панель стены 8,0 · верх колонн 8,8 · конёк 10,0
+const WALL_H = 7.8, EAVE = 8.6, RIDGE = 11.66;    // 15.10 по SKP: карниз 8,6 · конёк 11,66; панель стены до 7,8, выше — световая лента
 const COLX = [16.05, 32.05];
-const PITCH = 7.05;                               // шаг колонн по длине из SKP
-const FR = Array.from({length:10},(_,i)=>+(PITCH*(i+1)).toFixed(2));   // 7.05 … 70.5
-const COLZ = FR.filter(z=>z<OUR+0.3);             // 7.05 14.1 21.15 28.2 35.25 — в нашей части
+const PITCH = 7.0;                                // 15.10 по SKP: первая ось 7,05 от торца, дальше шаг 7,0
+const FR = Array.from({length:10},(_,i)=>+(7.05+PITCH*i).toFixed(2));   // 7.05 14.05 … 70.05
+const COLZ = FR.filter(z=>z<OUR+0.3);             // 7.05 14.05 21.05 28.05 35.05 — в нашей части
 const GATE_H = 4.0;
-const GATES = [{z:32.80, w:3.5}, {z:10.58, w:3.5}];   // Л1/П1 — проём сдвинут на 1 м от решётки (31,05…34,55); Л2/П2 — по рулетке, в чистом пролёте
+const GATES = [{z:32.80, w:3.5}, {z:10.58, w:3.5}];   // ворота Л (запад) 3,5 × 4,0
+const GATE_HP = 5.5, GATES_P = [{z:31.55, w:6.0}, {z:10.55, w:6.0}];   // ворота П (восток) 6,0 × 5,5 по SKP: проёмы 28,55…34,55 и 7,55…13,55 — между пилястрами   // Л1/П1 — проём сдвинут на 1 м от решётки (31,05…34,55); Л2/П2 — по рулетке, в чистом пролёте
 
 const PAL = {
   concrete:0x9a9ea3, steel:0x707880, steelDark:0x3f4650, wall:0xd3d7da, plinth:0x8e939a,
@@ -4408,10 +4409,10 @@ const ZONES = [
   {id:'4', s:'Стойки', n:'Стоечные поддоны: запас пустых', c:PAL.orange, x0:11.6, x1:15.3, z0:7.4, z1:13.0, m2:21,
    note:'Пустые стоечные поддоны стоят здесь в два яруса и по одному подаются к концу ленты. Короба собираются сразу в стойку: тяжёлое вниз, лёгкое наверх, плёнка не нужна. Выход прямо на магистраль.',
    eq:'стоечные поддоны 1500 × 1500 × 1600 · запас пустых'},
-  {id:'О', s:'Охрана', n:'Здание охраны и бытовой блок', c:0x7c8794, x0:1.2, x1:31.55, z0:0.8, z1:6.6, m2:184,
+  {id:'О', s:'Охрана', n:'Здание охраны и бытовой блок', c:0x7c8794, x0:0.36, x1:31.55, z0:0.45, z1:6.57, m2:203,
    note:'Существующее низкое здание вдоль южной стены, высота около 2 м, длина 29 м. Пост охраны у входа, дальше комната отдыха смены и щитовая. Занимает то место, где раньше стояли резерв и длинномер, — оба перенесены.',
    eq:'пост охраны · LPR-монитор · комната смены · щитовая'},
-  {id:'D', s:'DWS', n:'Зона DWS — замер образцов', c:0x2a7fb8, x0:34.9, x1:44.6, z0:0.9, z1:6.5, m2:54,
+  {id:'D', s:'DWS', n:'Зона DWS — замер образцов', c:0x2a7fb8, x0:35.9, x1:45.6, z0:0.9, z1:6.5, m2:54,
    note:'Сюда погрузчик привозит поддон образцов после выгрузки машины: по одному коробу каждого размера от каждого клиента. Крупные (классы C и D) меряют на портальном DWS, мелкие (A и B) — на ленточном Goodscan; замеренный короб кладут на второй поддон, и он уходит в ячейку своего дня приёмки. Данные — габарит, вес, штрихкод, фото — сразу в WMS и в план загрузки SafeLoad. Брак, упаковочные материалы, зарядка АКБ и план-доски отсюда убраны: им нужно новое место (см. замечания по расстановке).',
    eq:'портальный DWS 2 м (крупные) · ленточный DWS Goodscan GM220 (мелкие) · два места под поддоны образцов'},
   {id:'L', s:'Пост П2', n:'Пост погрузки П2 — автопоезд внутри', c:0xb08b4f, x0:21.4, x1:47.3, z0:9.1, z1:12.1, m2:78,
@@ -5512,7 +5513,7 @@ const HALL={};
 }
 
 /* ============================================================== КАРКАС */
-const roofY = x => EAVE + (RIDGE-EAVE)*(1 - Math.abs(x - W/2)/(W/2));   // карниз 8,8 → конёк 10,0 по оси x=24,05
+const roofY = x => EAVE + (RIDGE-EAVE)*(1 - Math.abs(x - W/2)/(W/2));   // карниз 8,6 → конёк 11,66 по оси x=24,05
 {
   const fm=new THREE.MeshStandardMaterial({color:new THREE.Color(0.74,0.745,0.75),
     map:LOOK.tex(LOOK.concDetail,W/2.5,D/2.5),bumpMap:LOOK.tex(LOOK.concDetail,W/2.5,D/2.5),bumpScale:.004,
@@ -5536,7 +5537,7 @@ COLX.forEach(x=>FR.forEach(z=>{                   // бетонные колон
 }));
 /* пилястры в стенах по осям рам */
 FR.forEach(z=>{ [0,W].forEach(x=>{
-  const inGate = GATES.some(gt=>Math.abs(z-gt.z)<gt.w/2+0.4);
+  const inGate = (x?GATES_P:GATES).some(gt=>Math.abs(z-gt.z)<gt.w/2+0.4);
   if(!inGate){ box(0.5,EAVE-0.3,0.5,M.conc,x,(EAVE-0.3)/2,z,G.struct);
     box(0.56,0.6,0.56,M.concBase,x,0.3,z,G.struct); }
 });});
@@ -5604,7 +5605,7 @@ for(let x=1.2;x<W;x+=2.1) box(0.1,0.14,D,M.galv,x,roofY(x)-0.06,D/2,G.struct);
   /* спринклерная система: три магистрали вдоль зала, ветки через 3,5 м, оросители */
   const red=std(0xb3261e,.5,.3), mains=[8.05,24.05,40.05];
   mains.forEach(x=>{ const y=roofY(x)-1.32; cyl(0.056,D-0.6,red,x,y,D/2,G.roof,12).rotation.x=Math.PI/2;
-    for(let z=3.5;z<D;z+=7.05) box(0.04,0.95,0.04,M.galv,x,y+0.5,z,G.roof); });   // подвесы
+    for(let z=3.55;z<D;z+=PITCH) box(0.04,0.95,0.04,M.galv,x,y+0.5,z,G.roof); });   // подвесы
   const br=[], hd=[];
   for(let z=1.8;z<D-1;z+=3.525) mains.forEach(x=>{ br.push([x,z]); for(const k of [-2,-1,1,2]) hd.push([x+k*1.85,z]); });
   const bI=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.024,0.024,7.6,8),red,br.length);
@@ -5618,7 +5619,7 @@ for(let x=1.2;x<W;x+=2.1) box(0.1,0.14,D,M.galv,x,roofY(x)-0.06,D/2,G.struct);
     for(const s of [-1,1]) box(0.012,0.12,D-0.4,M.galv,x+0.75+s*0.16,y+0.04,D/2,G.roof).castShadow=false; });
 }
 /* ---------- пожарные шкафы у колонн (красные, как на объекте) ---------- */
-[[16.05,7.57,0],[32.05,7.57,0],[16.05,20.63,Math.PI],[32.05,20.63,Math.PI]].forEach((p,i)=>{
+[[16.05,COLZ[0]+0.52,0],[32.05,COLZ[0]+0.52,0],[16.05,COLZ[2]-0.52,Math.PI],[32.05,COLZ[2]-0.52,Math.PI]].forEach((p,i)=>{
   const g=grp(p[0],0,p[1]); g.rotation.y=p[2];
   const rd=std(0xc8221c,.45,.25);
   rbox(0.7,1.5,0.26,0.03,rd,0,0.85,0,g);
@@ -5636,8 +5637,8 @@ for(let x=1.2;x<W;x+=2.1) box(0.1,0.14,D,M.galv,x,roofY(x)-0.06,D/2,G.struct);
 
 HALL.curtain();
 /* боковые стены x=0 и x=48 — с двумя воротами каждая */
-function wallSide(xFix, inwardSign){
-  const cuts=GATES.map(g=>[g.z-g.w/2,g.z+g.w/2]).sort((a,b)=>a[0]-b[0]);
+function wallSide(xFix, inwardSign, GL, GATE_H){
+  const cuts=GL.map(g=>[g.z-g.w/2,g.z+g.w/2]).sort((a,b)=>a[0]-b[0]);
   let cur=0;
   const seg=(z0,z1)=>{ const d=z1-z0; if(d<=0.01) return;
     box(0.28,WALL_H-1.0,d,corrMat(d),xFix,1.0+(WALL_H-1.0)/2,(z0+z1)/2,G.walls);
@@ -5653,11 +5654,11 @@ function wallSide(xFix, inwardSign){
     box(0.42,0.26,gw+0.5,M.yellow,xFix,GATE_H+0.13,cz,G.walls);
     for(let s=-1;s<=1;s+=2){
       box(0.42,GATE_H,0.22,M.galv,xFix,GATE_H/2,cz+s*(gw/2+0.11),G.walls);
-      box(0.5,0.45,0.5,M.rubber,xFix+inwardSign*0.35,1.15,cz+s*(gw/2+0.5),G.walls);
+      if(inwardSign>0) box(0.5,0.45,0.5,M.rubber,xFix+inwardSign*0.35,1.15,cz+s*(gw/2+0.5),G.walls);
     }
   });
 }
-wallSide(0,+1); wallSide(W,-1);
+wallSide(0,+1,GATES,GATE_H); wallSide(W,-1,GATES_P,GATE_HP);
 /* ---------- секционные ворота: 8 панелей едут по направляющим под кровлю ---------- */
 const DOORS=[];
 function sectionalDoor(xFix,inS,gz,gw,gh){
@@ -5705,7 +5706,7 @@ function doorSet(d,o){
   });
 }
 const DOOR={ L1:sectionalDoor(0,1,GATES[0].z,GATES[0].w,GATE_H), L2:sectionalDoor(0,1,GATES[1].z,GATES[1].w,GATE_H),
-             P1:sectionalDoor(W,-1,GATES[0].z,GATES[0].w,GATE_H), P2:sectionalDoor(W,-1,GATES[1].z,GATES[1].w,GATE_H) };
+             P1:sectionalDoor(W,-1,GATES_P[0].z,GATES_P[0].w,GATE_HP), P2:sectionalDoor(W,-1,GATES_P[1].z,GATES_P[1].w,GATE_HP) };   // П — 6,0 × 5,5 (SKP)
 const DOOR_DEF={L1:1,L2:0.96,P1:1,P2:0.96};
 for(const k in DOOR) doorSet(DOOR[k],DOOR_DEF[k]);
 
@@ -5747,18 +5748,18 @@ dockPad(GATES[1].z,GATES[1].w,'Л2');
 /* подписи ворот */
 label('Л1', 1.7, 6.3, GATES[0].z-2.6, '#f2b705', 42, 1.0);
 label('Л2', 1.7, 6.3, GATES[1].z-2.9, '#f2b705', 42, 1.0);
-label('П1', W-1.7, 6.3, GATES[0].z-2.6, '#f2b705', 42, 1.0);
-label('П2', W-1.7, 6.3, GATES[1].z-2.9, '#f2b705', 42, 1.0);
+label('П1', W-1.7, 7.6, GATES_P[0].z-2.6, '#f2b705', 42, 1.0);
+label('П2', W-1.7, 7.6, GATES_P[1].z-2.9, '#f2b705', 42, 1.0);
 stencil('Л1 · ВЪЕЗД ПОД КРАН · ПРОЁМ 3,5 м ПО SKP',9,GATES[0].z-1.2,12,'rgba(242,183,5,.8)');
 stencil('Л2 · ПРИЁМ',4.4,GATES[1].z-2.1,5.5,'rgba(242,183,5,.8)');
 stencil('П1 · ВЫЕЗД',42.5,GATES[0].z-1.2,6,'rgba(242,183,5,.8)');
 stencil('П2 · ЗАЕЗД АВТОПОЕЗДА',42.6,GATES[1].z-2.2,8,'rgba(242,183,5,.8)');
 /* тепловые завесы над всеми четырьмя воротами — поз.18 */
-[[0.55,GATES[0].z],[0.55,GATES[1].z],[W-0.55,GATES[0].z],[W-0.55,GATES[1].z]].forEach((p,i)=>{
-  const g=grp(p[0],0,p[1],G.walls); g.rotation.y=Math.PI/2;
-  box(4.4,0.42,0.5,M.white,0,GATE_H+1.35,0,g);                      // завеса выше направляющих ворот
-  for(let j=0;j<10;j++) box(0.34,0.06,0.42,M.dark,-1.9+j*0.42,GATE_H+1.15,0,g);
-  box(0.5,0.3,0.3,M.steelDark,2.4,GATE_H+1.35,0,g);
+[[0.55,GATES[0].z,GATES[0].w,GATE_H+1.35],[0.55,GATES[1].z,GATES[1].w,GATE_H+1.35],[W-0.55,GATES_P[0].z,GATES_P[0].w,GATE_HP+1.1],[W-0.55,GATES_P[1].z,GATES_P[1].w,GATE_HP+1.1]].forEach((p,i)=>{
+  const g=grp(p[0],0,p[1],G.walls), L=p[2]+0.9, n=Math.round((L-0.4)/0.42), y=p[3]; g.rotation.y=Math.PI/2;   // по ширине проёма; выше направляющих и вала ворот
+  box(L,0.42,0.5,M.white,0,y,0,g);
+  for(let j=0;j<n;j++) box(0.34,0.06,0.42,M.dark,(j-(n-1)/2)*0.42,y-0.2,0,g);
+  box(0.5,0.3,0.3,M.steelDark,L/2+0.2,y,0,g);
   if(i===0) tagEq(g,18,[2,4,GATES[0].z],14); else tag(g,EQ[18]);
 });
 
@@ -5889,7 +5890,7 @@ PASS.forEach((p,i)=>{
   signBoard(2.4,0.6,st,cx,4.3,17.0,Math.PI,G.struct,{two:true,hang:1.6}); signBoard(2.4,0.6,st,cx,4.3,26.5,0,G.struct,{two:true,hang:1.6});
   /* сферические зеркала на колоннах у обоих выездов */
   const colx=i?32.05:16.05;
-  convexMirror(colx+0.34,2.9,14.1+0.34,Math.PI*0.25); convexMirror(colx+0.34,2.9,28.2-0.34,Math.PI*0.75);
+  convexMirror(colx+0.34,2.9,COLZ[1]+0.34,Math.PI*0.25); convexMirror(colx+0.34,2.9,COLZ[3]-0.34,Math.PI*0.75);
 });
 /* подвесные таблички секций: ряд, диапазон ячеек, цвет зоны */
 [[1.2,15.3,'1–5'],[20.2,31.25,'6–10'],[36.2,46.85,'11–15']].forEach((s,si)=>{ const cx=(s[0]+s[1])/2, col='#'+BANDS[si].c.toString(16).padStart(6,'0');
@@ -5897,18 +5898,20 @@ PASS.forEach((p,i)=>{
     const t=signTex(['РЯД '+r[0],'ячейки '+r[0]+s[2].replace('–','–'+r[0])],col,'#ffffff',768,384,{px:[190,84]});
     signBoard(1.5,0.75,t,cx,4.6,r[1],r[2],G.struct,{two:true,hang:1.4}); }); });
 /* номера ворот и знаки над воротами, выходы */
-[[0.22,GATES[0].z,'Л1',Math.PI/2],[0.22,GATES[1].z,'Л2',Math.PI/2],[W-0.22,GATES[0].z,'П1',-Math.PI/2],[W-0.22,GATES[1].z,'П2',-Math.PI/2]].forEach(p=>{
-  signBoard(1.5,0.9,signTex([p[2]],'#f2b705','#14161a',384,256,{px:[210]}),p[0],GATE_H+2.45,p[1],p[3],G.walls);
+[[0.22,GATES[0].z,'Л1',Math.PI/2,GATES[0].w,GATE_H+2.45],[0.22,GATES[1].z,'Л2',Math.PI/2,GATES[1].w,GATE_H+2.45],
+ [W-0.22,GATES_P[0].z,'П1',-Math.PI/2,GATES_P[0].w,GATE_HP+1.8],[W-0.22,GATES_P[1].z,'П2',-Math.PI/2,GATES_P[1].w,GATE_HP+1.8]].forEach(p=>{   // П — 6,0 × 5,5: номер над завесой
+  const hw=p[4]/2;
+  signBoard(1.5,0.9,signTex([p[2]],'#f2b705','#14161a',384,256,{px:[210]}),p[0],p[5],p[1],p[3],G.walls);
   const ex=new THREE.MeshStandardMaterial({map:signTex(['ВЫХОД · EXIT'],'#1f8f4a','#ffffff',512,128,{px:[84]}),emissive:0x1f8f4a,emissiveIntensity:.35,roughness:.5});
-  const e=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.22),ex); e.position.set(p[0]+(p[0]<1?0.03:-0.03),GATE_H+0.42,p[1]+3.0); e.rotation.y=p[3]; G.walls.add(e);
+  const e=new THREE.Mesh(new THREE.PlaneGeometry(0.9,0.22),ex); e.position.set(p[0]+(p[0]<1?0.03:-0.03),GATE_H+0.42,p[1]+hw+1.25); e.rotation.y=p[3]; G.walls.add(e);
   /* светофор въезда и пульт ворот */
-  const g=grp(p[0]+(p[0]<1?0.12:-0.12),0,p[1]-2.35,G.walls); g.rotation.y=p[3];
+  const g=grp(p[0]+(p[0]<1?0.12:-0.12),0,p[1]-hw-0.6,G.walls); g.rotation.y=p[3];
   box(0.2,0.5,0.14,M.dark,0,2.7,0,g); box(0.14,0.14,0.02,std(0x3a0d0d,.4,0,{emissive:0xff2a1a,emissiveIntensity:.25}),0,2.82,0.075,g).castShadow=false;
   box(0.14,0.14,0.02,std(0x0d3a16,.4,0,{emissive:0x2bd14f,emissiveIntensity:1.1}),0,2.6,0.075,g).castShadow=false;
   rbox(0.26,0.36,0.12,0.02,M.steelDark,0,1.35,0,g); box(0.05,0.05,0.02,M.green,-0.05,1.42,0.065,g).castShadow=false; box(0.05,0.05,0.02,M.red,0.05,1.42,0.065,g).castShadow=false;
   box(0.03,1.3,0.03,M.galv,0,2.05,-0.03,g).castShadow=false;
   /* отбойные тумбы у косяков ворот */
-  for(const s of [-1,1]){ const bx=p[0]+(p[0]<1?0.55:-0.55), bz=p[1]+s*(GATES[0].w/2+0.25);
+  for(const s of [-1,1]){ const bx=p[0]+(p[0]<1?0.55:-0.55), bz=p[1]+s*(hw+0.25);
     cyl(0.09,1.0,M.yellow,bx,0.5,bz,G.struct,14); cyl(0.092,0.12,M.dark,bx,0.78,bz,G.struct,14).castShadow=false; cyl(0.092,0.12,M.dark,bx,0.5,bz,G.struct,14).castShadow=false; }
 });
 /* знаки ограничения скорости на колоннах у магистралей */
@@ -5916,7 +5919,7 @@ PASS.forEach((p,i)=>{
   g.fillStyle='#14161a'; g.font='700 150px "Barlow Condensed",sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('5',128,136);
   const t=new THREE.CanvasTexture(c); t.encoding=THREE.sRGBEncoding;
   const m=new THREE.MeshStandardMaterial({map:t,transparent:true,alphaTest:0.5,roughness:.5});
-  COLX.forEach(x=>[14.1,28.2].forEach(z=>{ for(const s of [-1,1]){ const d=new THREE.Mesh(new THREE.CircleGeometry(0.2,24),m); d.position.set(x+s*0.256,2.15,z); d.rotation.y=s*Math.PI/2; G.struct.add(d); } })); }
+  COLX.forEach(x=>[COLZ[1],COLZ[3]].forEach(z=>{ for(const s of [-1,1]){ const d=new THREE.Mesh(new THREE.CircleGeometry(0.2,24),m); d.position.set(x+s*0.256,2.15,z); d.rotation.y=s*Math.PI/2; G.struct.add(d); } })); }
 /* крытый пост: стоп-линия, колесоотбойная труба вдоль ограждения, противооткатные упоры */
 decal(0.3,2.9,paintMat(0xf2f2f2,.95),44.6,GATES[0].z-0.4,0.0172); stencil('СТОП',43.4,GATES[0].z-0.4,2.4,'rgba(242,242,242,.9)',Math.PI/2);
 { const g=grp(0,0,0,G.struct); const t=cyl(0.07,40,M.yellow,24,0.16,34.35,g,12); t.rotation.z=Math.PI/2;
@@ -5927,7 +5930,7 @@ function wheelChock(x,z,dir){ const s=new THREE.Shape(); s.moveTo(0,0); s.lineTo
 
 /* подходы к воротам Л2 и П2 */
 paintRect(0,GATES[1].z-1.75,1.2,GATES[1].z+1.75,PAL.yellow,0.14,0.015);
-paintRect(W-1.2,GATES[1].z-1.75,W,GATES[1].z+1.75,PAL.yellow,0.14,0.015);
+paintRect(W-1.2,GATES_P[1].z-3.0,W,GATES_P[1].z+3.0,PAL.yellow,0.14,0.015);
 /* следы шин и пятна на проездах */
 skid(1.5,46.5,15.2,3.4); skid(1.5,46.5,28.6,4.0); skid(0.5,47.5,33.2,2.8);
 [[6,15.6],[19,14.6],[34,15.9],[12,28.2],[27,29.1],[41,28.0],[4.5,10.6],[43.5,10.6]]
@@ -5970,7 +5973,7 @@ paintRect(W+1.4,GATES[1].z-8,W+6.8,GATES[1].z+13,0xd8d2bb,0.16);
   dim(52.5,0,52.5,OUR,'35,5 м — наша часть');
   dim(52.5,OUR,52.5,D,'40,55 м — сосед');
   dim(55.5,0,55.5,D,'76,05 м (зал целиком, SKP)');
-  dim(-4.2,COLZ[0],-4.2,COLZ[1],'шаг 7,05 м');
+  dim(-4.2,COLZ[0],-4.2,COLZ[1],'шаг 7,0 м');
   label('ЛИНИЯ КОЛОНН x=16,05',16.05,7.6,20.6,'#c9ced3',38,0.85,G.dims);
   label('ЛИНИЯ КОЛОНН x=32,05',32.05,7.6,20.6,'#c9ced3',38,0.85,G.dims);
 }
@@ -6467,17 +6470,17 @@ function goodscanDWS(o){
    Стоит одинаково при любом варианте приёмки. Ленточный Goodscan — вдоль южной стены, ход груза на восток, оператор с севера;
    портальный DWS — у восточного края; между ними и магистралью — два места под поддоны образцов (погрузчик заезжает с севера,
    с южной магистрали). Поддон с образцами ставят на свободное место; замеренные короба ложатся на поддон на втором месте. */
-const DWSZ={x0:34.9,x1:44.6,z0:0.9,z1:6.5,gs:[36.85,2.1,0],big:[43.0,3.9,0],spots:[[37.65,4.7],[40.05,4.7]],
+const DWSZ={x0:35.9,x1:45.6,z0:0.9,z1:6.5,gs:[37.85,2.1,0],big:[44.0,3.9,0],spots:[[38.65,4.7],[41.05,4.7]],   // 15.10: на 1 м восточнее — проходная по SKP до x 35,55
   /* где стоят люди: TS — у весового стола Goodscan, OS — у выходного рольганга, PS — у платформы портала (короб ставят с севера,
      экран — на шкафу у юго-западного угла портала), wPW/wCT — ожидание (вне коридоров, куда заезжает погрузчик, и не на пути
      второго к граням поддонов: стоявший на перекрёстке у восточной грани контролёр не пускал упаковщика); Z0 — вход в зону */
-  TS:[37.27,2.96,Math.PI],OS:[40.35,3.0,Math.PI],PS:[43.0,5.0,Math.PI],wPW:[37.65,3.3,0.25],wCT:[42.1,5.75,-Math.PI/2],Z0:[33.6,6.9],
+  TS:[38.27,2.96,Math.PI],OS:[41.35,3.0,Math.PI],PS:[44.0,5.0,Math.PI],wPW:[38.65,3.3,0.25],wCT:[43.1,5.75,-Math.PI/2],Z0:[33.6,6.9],
   FPW:['S','W','E'],FCT:['N','E','W'],                                      // с каких граней поддонов работают: упаковщик — с юга (стол и выход Goodscan), контролёр — с севера (портал)
   PT:[0,0.062,0.38],                                                       // короб на платформе портала (в осях портала)
   /* дорожки людей в зоне [x0,z0,x1,z1,цена]: южная вдоль аппаратов, северная у проезда погрузчика (дороже), поперечные — между
      местами поддонов, к порталу и вход */
-  nav:[[36.5,3.45,41.2,3.45,1],[36.5,5.85,41.2,5.85,2],[36.5,3.45,36.5,5.85,1],[38.85,3.45,38.85,5.85,1],[41.2,3.45,41.2,5.85,1],
-       [41.2,5.0,43.0,5.0,1],[33.6,6.9,36.5,4.7,1]]};
+  nav:[[37.5,3.45,42.2,3.45,1],[37.5,5.85,42.2,5.85,2],[37.5,3.45,37.5,5.85,1],[39.85,3.45,39.85,5.85,1],[42.2,3.45,42.2,5.85,1],
+       [42.2,5.0,44.0,5.0,1],[33.6,6.9,37.5,4.7,1]]};
 /* экран портального DWS (живой процесс и фильм): ожидание → замер → результат */
 function ptScreenDraw(c,d){ const g=c.getContext('2d'), W=c.width, H=c.height; d=d||{};
   g.fillStyle='#0c1a2e'; g.fillRect(0,0,W,H); g.fillStyle='#f2b705'; g.fillRect(0,0,W,8);
@@ -6502,11 +6505,11 @@ function dwsZoneMarks(){
   Z.spots.forEach(([x,z],i)=>{ const h=0.82, a=0.36;
     for(const sx of [-1,1]) for(const sz of [-1,1]){ decal(a,0.07,ym,x+sx*(h-a/2),z+sz*h,0.0168); decal(0.07,a,ym,x+sx*h,z+sz*(h-a/2),0.0168); }
     stencil('ПОДДОН ОБРАЗЦОВ · '+(i+1),x,z+1.08,1.5,'rgba(242,183,5,.92)'); });
-  stencil('ЗОНА DWS · ЗАМЕР ОБРАЗЦОВ',39.0,6.15,4.2,'rgba(242,242,242,.9)');
+  stencil('ЗОНА DWS · ЗАМЕР ОБРАЗЦОВ',40.0,6.15,4.2,'rgba(242,242,242,.9)');
   hatchStrip(Z.x0+0.1,Z.z1-0.12,Z.x1-0.1,Z.z1+0.02);                     // кромка зоны со стороны проезда
   /* подвесная табличка над зоной */
   const t=signTex(['DWS · ЗАМЕР ОБРАЗЦОВ','крупные — портальный DWS · мелкие — ленточный Goodscan'],'#14161a','#f2b705',1024,256,{border:'#f2b705',px:[104,50]});
-  signBoard(3.2,0.8,t,39.6,4.3,6.4,0,G.struct,{two:true,hang:1.6});
+  signBoard(3.2,0.8,t,40.6,4.3,6.4,0,G.struct,{two:true,hang:1.6});
 }
 
 /* ========================================================= ОБОРУДОВАНИЕ */
@@ -7179,9 +7182,12 @@ const HUM=(()=>{
     RP.mat['h'+col]=m; return m; }
   const HAIR=['#16120f','#1a1512','#0f0d0c','#2b2019','#3a2b20','#1f1a17','#5b5752'];
   function rpmMat(src,key,fn){ const k=src.uuid+key; if(RP.mat[k]) return RP.mat[k]; const m=src.clone(); fn(m); RP.mat[k]=m; return m; }
+  /* рост (15.10): макушка модели при масштабе 1 — 1,866 м; люди 1,70…1,84 м (было 1,79…1,94). Водитель погрузчика — как был:
+     его руки и ноги стоят по ИК на руле, джойстиках и педалях погрузчика, а погрузчик не меняем */
+  RP.scl=H=>{ const p=H.root.parent, fk=H.fk||(p&&p.userData&&p.userData.rig); return fk?0.96+0.08*H.var.h:0.911+0.075*H.var.h; };
   function rpmAttach(H){
     if(H.rb) return; const v=H.var, prof=H.prof||{}, guard=!!prof.guard;
-    const c=THREE.SkeletonUtils.clone(RP.src.scene); c.name='RPM'; c.scale.setScalar(0.96+0.08*v.h);
+    const c=THREE.SkeletonUtils.clone(RP.src.scene); c.name='RPM'; c.scale.setScalar(RP.scl(H));
     H.rig.add(c); H.rpm=c; H.rb={}; c.traverse(o=>{ if(o.isBone) H.rb[o.name]=o; });
     const J=guard?'#2a2e35':JACKET[(v.jacket*JACKET.length)|0], Pn=guard?'#2a2d33':PANTS[(v.pants*PANTS.length)|0];
     const sk=SKIN[(v.skin*SKIN.length)|0];
@@ -7520,7 +7526,7 @@ var HUM_MT;
 const PEOPLE=[];
 function person(x,z,rot,pose,role,p){
   const H=HUM.build({role:role||'ГРУЗЧИК',rnd:LOOK.R});
-  const g=H.root; g.position.set(x,0,z); g.rotation.y=rot||0; (p||G.people).add(g);
+  const g=H.root; g.position.set(x,0,z); g.rotation.y=rot||0; (p||G.people).add(g); if(H.rpm) H.rpm.scale.setScalar(HUM.RP.scl(H));   // модель уже есть — масштаб по месту (водитель погрузчика)
   g.userData.nm=role||'Человек'; g.userData.role=role||'';
   /* в покое — занятие по роли (раньше «в работе» стояли с вытянутыми вперёд руками, как манекены) */
   const n=PEOPLE.length, IDLE={'ОХРАННИК':[{behind:1}],'СТАРШИЙ СМЕНЫ':[{tablet:1}],'БРИГАДИР':[{tablet:1},{talk:1}],'КЛАДОВЩИК':[{tablet:1}],
@@ -7548,7 +7554,7 @@ function signPlate(text,w,h,x,y,z,rotY,bgc,fgc,px){
   m.position.set(x,y,z); m.rotation.y=rotY||0; m.castShadow=false; return m;
 }
 {
-  const GX0=1.2, GX1=31.55, GZ0=0.8, GZ1=6.6, H=2.3;           // 14.10: торец — у колонны x 32,05 (её опорная плита и кольцо — с x 31,6)
+  const GX0=0.36, GX1=31.55, GZ0=0.45, GZ1=6.57, H=3.75;        // 15.10 по SKP: 32 × 7 м по осям, верх кровли ≈ 4,0; стены — у пилястр (0,25) и колонн оси 7,05 (отбойники с 6,69)           // 14.10: торец — у колонны x 32,05 (её опорная плита и кольцо — с x 31,6)
   const G0=grp(0,0,0,G.guard);
   const M_pan=std(0xe4e7ea,.55,.12), M_panDark=std(0x9aa3ad,.7,.1), M_frame=std(0xf5f6f7,.35,.2),
         M_door=std(0x2c4a6b,.5,.25), M_roof=std(0x3a3f46,.85,.05), M_trim=std(0x5b636d,.5,.4),
@@ -7563,7 +7569,7 @@ function signPlate(text,w,h,x,y,z,rotY,bgc,fgc,px){
   for(const x of [GX0,GX1]) box(0.13,0.28,Dd,M_panDark,x,0.26,cz,G0);
   /* северная стена с проёмами: двери и окна */
   const OPEN=[ {x:3.6,w:1.05,h:2.1,door:'ОХРАНА'}, {x:6.4,w:1.6,h:1.15,win:1}, {x:9.4,w:1.6,h:1.15,win:1},
-               {x:12.4,w:1.6,h:1.15,win:1}, {x:15.4,w:1.6,h:1.15,win:1}, {x:18.4,w:1.6,h:1.15,win:1},
+               {x:12.4,w:1.6,h:1.15,win:1}, {x:14.9,w:1.6,h:1.15,win:1}, {x:18.4,w:1.6,h:1.15,win:1},
                {x:21.4,w:1.05,h:2.1,door:'КОМНАТА СМЕНЫ'}, {x:24.4,w:1.6,h:1.15,win:1}, {x:27.6,w:1.05,h:2.1,door:'ЩИТОВАЯ'} ];
   let cur=GX0;
   const seg=(x0,x1)=>{ const w=x1-x0; if(w<0.02) return; box(w,H,0.12,M_pan,(x0+x1)/2,0.12+H/2,GZ1,G0);
@@ -7596,7 +7602,7 @@ function signPlate(text,w,h,x,y,z,rotY,bgc,fgc,px){
   });
   seg(cur,GX1);
   /* проходная (14.10, по фото объекта): небольшой блок за восточным торцом, вдоль южной стены; вход с севера, через неё — внутрь здания */
-  { const AX0=GX1, AX1=GX1+3.0, AZ1=3.6, AH=2.12, aw=AX1-AX0, ax=(AX0+AX1)/2, ad=AZ1-GZ0, az=(GZ0+AZ1)/2, top=0.12+AH, fr=0.06;
+  { const AX0=GX1, AX1=35.55, AZ1=3.55, AH=H-0.18, aw=AX1-AX0, ax=(AX0+AX1)/2, ad=AZ1-GZ0, az=(GZ0+AZ1)/2, top=0.12+AH, fr=0.06;
     box(AX1-GX1,0.12,ad+0.3,std(0xb9bec4,.9,0),(GX1+0.15+AX1+0.15)/2,0.06,az,G0);                       // плита (западнее — плита основного здания)
     box(aw,AH,0.12,M_pan,ax,0.12+AH/2,GZ0,G0); box(0.12,AH,ad,M_pan,AX1,0.12+AH/2,az,G0);                 // южная стена и восточный торец
     box(aw,0.28,0.13,M_panDark,ax,0.26,GZ0-0.005,G0); box(0.13,0.28,ad,M_panDark,AX1+0.005,0.26,az,G0);
@@ -7641,8 +7647,8 @@ function signPlate(text,w,h,x,y,z,rotY,bgc,fgc,px){
   cyl(0.09,0.5,std(0xd23b2c,.5,.2),2.0,0.37,GZ1+0.3,G0,12);
   cyl(0.16,0.55,M_trim,7.0,0.4,GZ1+0.6,G0,14);
   G0.add(signPlate('ЗДАНИЕ ОХРАНЫ · SECURITY · 安保',6.0,0.62,15.6,1.75,GZ1+0.075,0,'#e9ecef','#1d232b',120));
-  label('[О] ЗДАНИЕ ОХРАНЫ · h ≈ 2,3 м · 30,4 × 5,8 м + проходная',cx,3.6,cz,'#ffffff',44,0.8);
-  tag(G0,{t:'Здание охраны и бытовой блок',q:'существующее · 30,4 × 5,8 м + проходная 3,0 × 2,8 м · высота ≈ 2,3 м',
+  label('[О] ЗДАНИЕ ОХРАНЫ · h ≈ 4,0 м · 32 × 7 м по осям + проходная 3,5 × 3,5',cx,5.2,cz,'#ffffff',44,0.8);
+  tag(G0,{t:'Здание охраны и бытовой блок',q:'существующее · по SKP 32 × 7 м по осям (стены — у пилястр и колонн: 31,3 × 6,2 м) + проходная 3,5 × 3,5 м · высота ≈ 4,0 м',
     n:'Низкое здание вдоль южной стены, восточным торцом до колонны x 32,05; за торцом вдоль стены — небольшая проходная со входом с севера, через неё — внутрь здания. У западного входа — пост охраны с окном на ворота Л2 и монитором LPR; дальше комната отдыха смены с бытовкой и щитовая. Оно заняло место резерва и длинномера: длинномер уехал к южной стене третьего пролёта, резерв порожних поддонов — в юнитизацию.',
     k:'security guard cabin / пост охраны модульный / 门卫室'});
 }
@@ -7975,14 +7981,14 @@ const MAN_S=person(44.4,7.7,0.3,false,'ВОДИТЕЛЬ ПОГРУЗЧИКА');
 
 /* ---------- рампа, LPR, камеры, Wi-Fi, зеркала ---------- */
 {
-  const g=grp(-7.6,0,GATES[1].z+6.2); g.rotation.y=Math.PI/2;
+  const g=grp(-19.0,0,8.0); g.rotation.y=0;
   const w=box(3.0,0.22,8.4,M.galv,0,0.86,0,g); w.rotation.x=0.155;
   for(let s=-1;s<=1;s+=2) box(0.1,0.85,8.4,M.yellow,s*1.52,0.62,0,g).rotation.x=0.155;
   cyl(0.32,0.22,M.tyre,-1.4,0.32,-3.6,g,14).rotation.z=Math.PI/2;
   cyl(0.32,0.22,M.tyre,1.4,0.32,-3.6,g,14).rotation.z=Math.PI/2;
-  tagEq(g,2,[-7,1.5,GATES[1].z+6.2],14);
+  tagEq(g,2,[-19.0,1.5,8.0],14);
 }
-[[-6.2,GATES[1].z-5.2,0],[W+6.2,GATES[1].z+8.5,Math.PI]].forEach((p,i)=>{
+[[-9.0,GATES[1].z-12.0,0],[W+6.2,GATES[1].z+8.5,Math.PI]].forEach((p,i)=>{
   const g=grp(p[0],0,p[1],G.equip);
   cyl(0.11,4.2,M.galv,0,2.1,0,g,10);
   box(1.2,0.12,0.12,M.galv,0.6,4.15,0,g);
@@ -7990,7 +7996,7 @@ const MAN_S=person(44.4,7.7,0.3,false,'ВОДИТЕЛЬ ПОГРУЗЧИКА');
   box(0.42,0.2,0.24,M.dark,0,0,0,h);
   box(0.3,0.12,0.03,std(0x2b3a48,.2,.6),0,0,0.14,h);
   box(0.5,0.35,0.06,M.white,-0.2,-0.7,0,h);
-  if(i===0) tagEq(g,14,[-6.2,2.5,GATES[1].z-5.2],14); else tag(g,EQ[14]);
+  if(i===0) tagEq(g,14,[-9.0,2.5,GATES[1].z-12.0],14); else tag(g,EQ[14]);
 });
 [[0.7,6.4,3,0.7],[0.7,6.4,30,2.4],[47.3,6.4,3,-0.7],[47.3,6.4,30,-2.4],
  [16.45,6.2,7.05,0.5],[16.45,6.2,21.15,2.6],[31.65,6.2,14.1,-0.5],[31.65,6.2,28.2,-2.6]]
@@ -8234,6 +8240,110 @@ function flatTruck(x,z,len,dir,heavy,rotY,load){
   return g;
 }
 
+/* ---------- китайский полуприцеп-платформа с решётчатыми бортами и тягач 6×4 (15.10, по данным заказчика) ----------
+   «Open Platform Semi Trailer with Fence»: длина 17,5 м, ширина 3,0 м, решётка 2,0 м; внутри 17,45 × 2,95 × 3,0 м (≈ 140 м³,
+   реально 135); грузоподъёмность 29–29,9 т, снаряжённая масса 7,5–9,5 т, полная 40–45 т; одна секция. Пол — стальной лист Q345
+   3–5 мм на поперечинах из швеллера, лонжероны — двутавр; борта — съёмные секции решётки на стальном каркасе (стойки в карманах
+   рамы); сверху — водонепроницаемый опломбируемый тент на съёмных дугах. Загрузка сзади (распашные решётчатые ворота), сбоку
+   (снимается секция борта) и сверху краном (дуги и тент снимают). Оси модели: пол по центру, перед — в сторону dir (как у прежнего
+   бортового: места приёмки, грузчик в кузове и конвейер у Л2 остаются в тех же точках кузова).
+   o.gap=[x0,x1] — снятые секции борта со стороны +z (через проём заходит конвейер у Л2); o.tarp: 'closed' — тент закрыт и опломбирован,
+   иначе скатан к переднему борту (машину разгружают). Короба рабочей зоны (от x ≈ −3,7 к задним воротам) помечены userData.cnWork. */
+M.deckSteel=M.deckSteel||std(0x7b8187,.5,.65);
+function cnSemi(x,z,dir,rotY,o){
+  o=o||{}; dir=dir||-1; const load=o.load===undefined?1:o.load, len=17.5, FY=1.28, HW=1.5, SH=2.0, BH=3.0, PT=1.25;
+  const V=[{paint:'white',body:'green',plate:'新F·3K218'},{paint:'blue',body:'blue',plate:'新F·7A635'},{paint:'red',body:'green',plate:'新F·5C902'}][TRK.n++%3];
+  TRK.cur={paint:TRK.paints[V.paint],style:'cn',plate:V.plate,plateKind:'cn'};
+  const BP=TRK.bodyPaint[V.body], lat=std(0x5d6770,.45,.55), tarpM=std(0x2f6f4a,.85,0), tarpD=std(0x285c3e,.9,0);
+  const g=grp(x,0,z,G.trucks); g.rotation.y=rotY||0; g.userData.truck={len,dir,kind:'cn'};
+  const xf=dir*len/2, xr=-dir*len/2, at=t=>xf-dir*t;                     // at(t) — точка в t м от переднего борта
+  /* рама: два двутавра, поперечины-швеллеры, обвязка, пол — стальной лист */
+  for(const s of [-1,1]){ box(len-0.3,0.016,0.16,M.chassis,0,FY-0.16,s*0.46,g); box(len-0.3,0.4,0.012,M.chassis,0,FY-0.37,s*0.46,g);
+    box(len-0.3,0.016,0.16,M.chassis,0,FY-0.57,s*0.46,g).castShadow=false; }
+  for(let i=0;i<Math.floor(len/0.6);i++) box(0.08,0.14,HW*2-0.06,M.chassis,-len/2+0.3+i*0.6,FY-0.082,0,g).castShadow=false;
+  for(const s of [-1,1]){ box(len,0.2,0.08,BP,0,FY-0.1,s*(HW-0.04),g);
+    for(let i=0;i<Math.floor(len/0.5);i++) box(0.24,0.05,0.01,i%2?M.reflWhite:M.reflRed,-len/2+0.25+i*0.5,FY-0.1,s*(HW+0.001),g).castShadow=false;   // световозвращающая лента КНР
+    for(let i=0;i<=Math.round(len/PT);i++) box(0.12,0.12,0.03,M.steelDark,-len/2+i*PT,FY-0.1,s*(HW+0.015),g).castShadow=false; }   // карманы стоек
+  box(len,0.012,HW*2,M.deckSteel,0,FY-0.006,0,g);
+  for(let i=1;i<Math.round(len/2.5);i++) box(0.01,0.002,HW*2-0.04,M.dark,-len/2+i*2.5,FY+0.001,0,g).castShadow=false;   // швы листов
+  /* решётчатые борта: секции по 1,25 м между съёмными стойками; верхний, средний и нижний пояса, вертикальная решётка */
+  const gap=o.gap||null, inGap=(xm,s)=>gap&&s>0&&xm>gap[0]&&xm<gap[1];
+  for(const s of [-1,1]){ const zz=s*(HW-0.04);
+    for(let i=0;i<Math.round(len/PT);i++){ const x0=-len/2+i*PT, x1=x0+PT, xm=(x0+x1)/2, w=PT-0.1; if(inGap(xm,s)) continue;
+      for(const yy of [0.1,0.72,1.36,SH-0.04]) box(w,0.05,0.045,BP,xm,FY+yy,zz,g).castShadow=yy>1.9;
+      for(let k=0;k<7;k++) box(0.024,SH-0.14,0.024,lat,x0+0.12+k*(PT-0.24)/6,FY+SH/2,zz,g).castShadow=k%3===0; }
+    for(let i=0;i<=Math.round(len/PT);i++){ const xp=-len/2+i*PT; if(i===0||i===Math.round(len/PT)) continue; if(inGap(xp-0.01,s)&&inGap(xp+0.01,s)) continue;
+      box(0.08,SH+0.1,0.08,BP,xp,FY+SH/2,zz,g); } }
+  /* передний щит: лист + рёбра, лестница */
+  box(0.06,SH+0.25,HW*2,BP,xf-dir*0.03,FY+(SH+0.25)/2,0,g);
+  for(let i=0;i<5;i++) box(0.07,0.06,HW*2-0.1,BP,xf-dir*0.07,FY+0.35+i*0.42,0,g).castShadow=false;
+  for(let i=0;i<6;i++) box(0.05,0.03,0.4,M.galv,xf+dir*0.03,FY+0.2+i*0.32,0.85,g);
+  for(const s of [-1,1]) box(0.1,SH+0.25,0.1,BP,xf-dir*0.05,FY+(SH+0.25)/2,s*(HW-0.05),g);
+  /* задние решётчатые ворота — две створки на петлях у углов: rdoorSet(g,u) распахивает их к бортам (выгрузка с торца) */
+  g.userData.rdoors=[];
+  for(const s of [-1,1]){ const D=grp(xr+dir*0.02,0,s*HW,g); g.userData.rdoors.push(D); D.userData.side=s; D.userData.dir=dir;
+    for(const yy of [0.06,0.72,1.36,SH-0.04]) box(0.05,0.06,HW-0.06,BP,0,FY+yy,-s*HW/2,D);
+    box(0.06,SH,0.06,BP,0,FY+SH/2,-s*(HW-0.05),D); box(0.06,SH,0.06,BP,0,FY+SH/2,-s*0.06,D);
+    for(let k=0;k<6;k++) box(0.024,SH-0.12,0.024,lat,0,FY+SH/2,-s*(0.2+k*0.22),D).castShadow=false;
+    for(let i=0;i<4;i++) box(0.01,0.05,0.22,i%2?M.reflWhite:M.reflRed,-dir*0.035,FY+0.06,-s*(0.15+i*0.3),D).castShadow=false;
+    for(const yy of [0.2,SH-0.2]) box(0.05,0.1,0.06,M.steelDark,-dir*0.02,FY+yy,-s*0.03,D).castShadow=false;     // петли
+    box(0.03,SH*0.8,0.03,M.galv,-dir*0.04,FY+SH/2,-s*0.12,D).castShadow=false; }                                 // штанга запора (пломба)
+  /* дуги тента (съёмные) и тент */
+  const nb=Math.round(len/PT);
+  for(let i=0;i<=nb;i++){ const xb=-len/2+0.05+i*((len-0.1)/nb);
+    for(const s of [-1,1]){ box(0.04,BH-SH-0.25,0.04,M.galv,xb,FY+SH+(BH-SH-0.25)/2,s*(HW-0.06),g).castShadow=false;
+      const a=box(0.04,0.04,HW*0.62,M.galv,xb,FY+BH-0.13,s*(HW-0.06-HW*0.27),g); a.rotation.x=s*0.42; a.castShadow=false; }
+    box(0.04,0.04,HW*0.9,M.galv,xb,FY+BH,0,g).castShadow=false; }
+  for(const zz of [-0.55,0,0.55]) box(len-0.1,0.03,0.03,M.galv,0,FY+BH-(zz?0.05:0)+0.02,zz,g).castShadow=false;
+  if(o.tarp==='closed'){
+    box(len+0.04,0.025,HW*0.92,tarpM,0,FY+BH+0.035,0,g);
+    for(const s of [-1,1]){ const r=box(len+0.04,0.025,HW*0.68,tarpM,0,FY+BH-0.14,s*(HW*0.73),g); r.rotation.x=s*0.42;
+      box(len+0.04,BH-0.28,0.02,tarpM,0,FY+(BH-0.28)/2+0.02,s*(HW+0.03),g);
+      for(let i=0;i<Math.floor(len/0.6);i++) box(0.012,0.12,0.012,M.dark,-len/2+0.3+i*0.6,FY-0.0,s*(HW+0.045),g).castShadow=false; }   // петли троса
+    box(0.02,BH-0.05,HW*2+0.06,tarpD,xr-dir*0.06,FY+BH/2,0,g);                                                     // задний полог — снаружи ворот
+    for(const s of [-1,1]) box(len,0.012,0.012,M.galv,0,FY+0.06,s*(HW+0.05),g).castShadow=false;                   // таможенный трос
+  } else { const rl=cyl(0.24,HW*2+0.05,tarpM,xf-dir*0.55,FY+BH+0.2,0,g,16); rl.rotation.x=Math.PI/2;              // тент скатан к переднему борту
+    for(const s of [-1,1]) box(0.03,0.5,0.06,M.blackPl,xf-dir*0.55,FY+BH-0.05,s*(HW-0.1),g).castShadow=false; }
+  /* груз: поперечные секции по 1,24 м, в секции — стопки одного типа (до 1,7 м); от x ≈ −3,7 к задним воротам — рабочая зона */
+  if(load){ const R=LOOK.R, order=[1,2,3,0,1,3,2,0,1,2,3,0]; let x0=-len/2+0.1, oi=0, work=false;
+    while(x0<len/2-0.7){ if(!work&&x0>=-3.7) work=true;
+      const ti=order[oi++%order.length], T=CTYPE[ti], cross=T.l>0.62;
+      const dx=cross?T.w:T.l, dz=cross?T.l:T.w, nx=Math.max(1,Math.floor(1.22/dx)), nz=Math.floor((HW*2-0.16)/dz);
+      const layers=Math.min(Math.floor(1.7/T.h),2+((R()*3)|0));
+      for(let i=0;i<nx;i++) for(let j=0;j<nz;j++){ const lay=Math.max(1,layers-((R()<0.18)?1:0));
+        for(let k=0;k<lay;k++){ const m=cartonMesh(ti); m.position.set(x0+dx/2+i*dx+(R()-.5)*0.02,FY+0.02+k*T.h,-HW+0.08+dz/2+j*dz+(R()-.5)*0.02);
+          m.rotation.y=(cross?Math.PI/2:0)+(R()-.5)*0.04; if(work) m.userData.cnWork=true; g.add(m); } }
+      x0+=Math.max(nx*dx,0.6)+0.04; } }
+  /* полуприцеп: три оси сзади, опорные стойки, защита, ящики, ресиверы, задний свес */
+  const AXS=[1.4,2.71,4.02].map(t=>xr+dir*t), Rw=0.5;
+  for(const wx of AXS){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.91,Rw-0.02,0.72); }
+  const LG=at(3.15);
+  for(const s of [-1,1]){ box(0.11,FY-0.57-0.12,0.11,M.chassis,LG,0.12+(FY-0.57-0.12)/2,s*0.85,g); box(0.26,0.04,0.26,M.chassis,LG,0.1,s*0.85,g).castShadow=false;
+    const br=box(0.05,0.05,0.9,M.chassis,LG+dir*0.25,0.55,s*0.62,g); br.rotation.x=s*0.6; }
+  box(0.06,0.06,1.7,M.chassis,LG,0.45,0,g).castShadow=false; rbox(0.2,0.14,0.12,0.02,M.steelDark,LG,0.6,1.0,g);  // поперечная связь и ручка домкрата
+  for(const s of [-1,1]) for(const yy of [0.55,0.8]) box(Math.abs((AXS[2]+dir*0.7)-(LG-dir*0.4)),0.07,0.04,M.greyPl,((AXS[2]+dir*0.7)+(LG-dir*0.4))/2,yy,s*(HW-0.08),g);
+  rbox(1.0,0.45,0.5,0.06,M.greyPl,at(6.0),0.72,-(HW-0.35),g); { const sw=grp(at(8.2),0.78,0,g); sw.rotation.z=Math.PI/2; tire(sw,0,0,0,0.5,0.3,'x'); }   // ящик и запасное колесо под рамой
+  for(const s of [-1,1]){ const at2=cyl(0.14,0.9,M.chassis,at(10.5),0.8,s*0.22,g,12); at2.rotation.z=Math.PI/2; }
+  for(const s of [-1,1]) box(0.03,0.5,0.62,M.blackPl,AXS[2]+dir*0.75,0.32,s*1.12,g).castShadow=false;           // брызговики
+  for(const s of [-1,1]){ box(0.06,0.14,0.36,M.blackPl,xr-dir*0.06,0.95,s*1.1,g); box(0.02,0.1,0.3,M.lensRed,xr-dir*0.095,0.95,s*1.1,g).castShadow=false; }
+  box(0.12,0.16,2.3,M.greyPl,xr-dir*0.2,0.5,0,g);
+  for(let i=0;i<8;i++) box(0.01,0.12,0.26,i%2?M.reflWhite:M.reflRed,xr-dir*0.265,0.5,-0.98+i*0.28,g).castShadow=false;
+  for(const s of [-1,1]) box(0.09,0.42,0.09,M.chassis,xr-dir*0.16,0.72,s*0.72,g);
+  const rp=new THREE.Mesh(new THREE.PlaneGeometry(0.44,0.22),plateMat(V.plate,'cn')); rp.position.set(xr-dir*0.27,0.74,0.45); rp.rotation.y=-dir*Math.PI/2; g.add(rp);
+  for(let i=0;i<Math.round(len/2.0);i++) for(const s of [-1,1]) box(0.09,0.05,0.03,M.lensAmber,-len/2+0.6+i*2.0,FY-0.06,s*(HW+0.03),g).castShadow=false;
+  /* тягач 6×4: седло под шкворнем (1,2 м от переднего борта), ведущие оси за ним, передняя — под кабиной */
+  const KP=at(1.2), AXD=[KP-dir*(0.3-0.675),KP-dir*(0.3+0.675)], cx=AXD[0]+dir*3.3;
+  ao(Math.abs((xr-dir*0.3)-(cx+dir*1.25)),3.5,((xr-dir*0.3)+(cx+dir*1.25))/2,0,g);
+  cab(g,cx,dir,true);
+  for(const s of [-1,1]) box(Math.abs((AXD[1]-dir*0.8)-(cx+dir*0.6)),0.22,0.09,M.chassis,((AXD[1]-dir*0.8)+(cx+dir*0.6))/2,0.5,s*0.45,g);
+  for(const s of [-1,1]){ tire(g,cx,0.54,s*1.03,0.54,0.315,'z'); fender(g,cx,s*1.03,0.54,0.42); }
+  for(const wx of AXD){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.91,Rw-0.02,0.72); }
+  box(0.9,0.06,0.85,M.steelDark,KP,0.67,0,g); box(0.5,0.1,1.1,M.chassis,KP,0.59,0,g);                            // седло
+  rbox(0.62,0.5,0.55,0.06,M.greyPl,cx-dir*1.75,0.62,-1.0,g); { const tk=cyl(0.27,0.85,M.alu,cx-dir*1.75,0.62,1.0,g,18); tk.rotation.z=Math.PI/2; }   // АКБ и бак
+  for(const s of [-1,1]) box(0.03,0.5,0.62,M.blackPl,AXD[1]-dir*0.75,0.32,s*1.12,g).castShadow=false;
+  TRK.cur=null;
+  return g;
+}
 function rdoorSet(g,u){ (g.userData.rdoors||[]).forEach(D=>{ D.rotation.y=-D.userData.side*D.userData.dir*u*2.85; }); }   // u 0…1: закрыто … распахнуто к бортам
 /* ---------- казахстанский автопоезд «тандем»: грузовик + прицеп, шторные кузова ----------
    Кузов: рама с поперечинами, дощатый пол, алюминиевая обвязка с такелажными проушинами, передний борт с рёбрами,
@@ -8352,15 +8462,19 @@ function tandem(x,z,rotY,o){
    Кузов по образцу на фото заказчика: под шторой — металлический каркас борта (стойки из профильной трубы
    и горизонтальные обрешётины), дуги и прогоны крыши, тёмный задний портал с дверями, пол из ламинированной фанеры.
    В середине правого (обращённого в зал) борта каждого кузова — проём без обрешётки: через него подают груз.
-   Размеры модели: кузов 9,9 м, внутри 9,8 × 2,48 × 2,98 м ≈ 72,4 м³, два кузова ≈ 145 м³ (уточнять по паспорту ТС). */
-const KZB={FY:0.95,IH:2.98,HW:1.275,L:9.9,GAP:1.1};
+   Размеры (15.10, по таблице заказчика «145 м³ tentli, 2 seksiyali, B-double»): секция 1 внутри 7,57 × 2,61 × 3,13 м, секция 2 —
+   9,70 × 2,64 × 3,28 м (61,8 + 84,0 ≈ 145 м³, реально загружают 125–130 м³); грузоподъёмность 29–29,9 т, снаряжённая масса 16–18 т,
+   полная 45–47 т. Кузов модели длиннее внутреннего на 0,1 м (передний борт и задний портал), шире — на 0,07 м (стойки каркаса). */
+const KZB={FY:0.95,IH:2.98,HW:1.275,L:9.9,GAP:1.1,S1:{L:7.67,HW:1.34,IH:3.13},S2:{L:9.80,HW:1.355,IH:3.28}};
 M.plyFloor=std(0x716b63,.72,.04); M.frameDark=std(0x3f454c,.5,.55); M.bulkTarp=std(0xa9adb0,.85,0);
 function frameBody(g,off,len,o){
-  o=o||{}; const FY=KZB.FY, IH=KZB.IH, HW=KZB.HW, RY=FY+IH, OW=KZB.GAP;
+  o=o||{}; const FY=KZB.FY, IH=o.IH||KZB.IH, HW=o.HW||KZB.HW, RY=FY+IH, OW=KZB.GAP, nk=o.neck||0;
   const b=grp(off,0,0,g); b.userData.body={len,FY,IH,HW,gap:OW};
-  /* рама, поперечины, пол, обвязка */
-  for(const s of [-1,1]) box(len,0.2,0.09,M.chassis,0,FY-0.24,s*0.42,b);
-  for(let i=0;i<Math.round(len/0.82);i++) box(0.07,0.1,HW*2-0.1,M.chassis,-len/2+0.3+i*0.82,FY-0.09,0,b).castShadow=false;
+  /* рама, поперечины, пол, обвязка; спереди у полуприцепа — «гусь» над седлом (узкая плита и шкворень, без лонжеронов: под ним колёса тягача) */
+  for(const s of [-1,1]) box(len-nk,0.2,0.09,M.chassis,nk/2,FY-0.24,s*0.42,b);
+  for(let i=0;i<Math.round((len-nk)/0.82);i++) box(0.07,0.1,HW*2-0.1,M.chassis,-len/2+nk+0.3+i*0.82,FY-0.09,0,b).castShadow=false;
+  if(nk){ box(nk,0.1,1.0,M.chassis,-len/2+nk/2,FY-0.1,0,b); box(0.06,0.1,HW*2-0.1,M.chassis,-len/2+0.05,FY-0.09,0,b).castShadow=false;
+    cyl(0.05,0.12,M.steelDark,-len/2+o.kp,FY-0.21,0,b,12); }
   box(len,0.06,HW*2,M.plyFloor,0,FY-0.01,0,b);
   for(let i=1;i<Math.round(len/1.25);i++) box(0.012,0.002,HW*2-0.1,M.dark,-len/2+i*1.25,FY+0.021,0,b).castShadow=false;   // стыки листов фанеры
   for(const s of [-1,1]){
@@ -8419,56 +8533,67 @@ function frameBody(g,off,len,o){
 }
 function tandem145(x,z,rotY,o){
   o=o||{}; const g=grp(x,0,z,G.trucks); g.rotation.y=rotY||0; g.userData.truck={kind:'kz145'};
-  const plate=o.plate||'248 KZA 13', L=KZB.L, O1=-5.8, O2=O1+L+1.0, cx=-12.9, R1=0.42, R2=0.40;
+  const plate=o.plate||'248 KZA 13', S1=KZB.S1, S2=KZB.S2, cx=-12.9, FY=KZB.FY, Rw=0.40;
+  /* тягач 6×4: передняя ось — под кабиной, ведущие — через 3,3 и 4,65 м; седло на 3,5 м; шкворень секции 1 — в 1,2 м от её переднего борта */
+  const AXD=[cx+3.3,cx+4.65], KP=cx+3.5, f1=KP-1.2, O1=f1+S1.L/2, r1=O1+S1.L/2;
+  /* секция 1: сзади тележка из двух осей и сцепное устройство B-link; шкворень секции 2 — в 0,7 м от её переднего борта, зазор между кузовами 0,8 м */
+  const AX1=[r1-0.4,r1+0.95], f2=r1+0.8, KP2=f2+0.7, O2=f2+S2.L/2, r2=O2+S2.L/2, AX2=[O2+1.0,O2+2.31,O2+3.62];
+  g.userData.ax={kp:KP,lead:(AX1[0]+AX1[1])/2,O1,O2,kp2:KP2,rear:AX2[1]};
   TRK.cur={paint:TRK.paints.white,style:'eu',plate,plateKind:'kz'};
-  ao(31,3.6,-1.6,0,g);
-  /* грузовик */
-  const b1=frameBody(g,O1,L,{lanes:o.lanes1,tall:o.tall,open:o.open}); g.userData.b1=b1;
+  ao(r2+0.2-(cx-1.3),3.7,(r2+0.2+cx-1.3)/2,0,g);
+  /* тягач */
   cab(g,cx,-1,true);
-  for(const s of [-1,1]) box(11.6,0.22,0.09,M.chassis,cx+5.6,0.7,s*0.45,g);
+  for(const s of [-1,1]) box(AXD[1]+0.9-(cx-0.6),0.22,0.09,M.chassis,(AXD[1]+0.9+cx-0.6)/2,0.48,s*0.45,g);       // лонжероны — ниже рамы полуприцепа
   for(const s of [-1,1]) tire(g,cx,0.54,s*1.03,0.54,0.315,'z');
-  for(const wx of [O1+1.3,O1+2.55]){ wheel(g,wx,0,R1,true); for(const s of [-1,1]) fender(g,wx,s*0.95,R1,0.72); }
-  for(const s of [-1,1]) for(const yy of [0.42,0.64]) box(4.6,0.06,0.04,M.greyPl,O1-1.9,yy,s*1.2,g);          // боковая защита
-  for(const s of [-1,1]) for(const xx of [O1-3.9,O1-1.9,O1+0.1]) box(0.05,0.34,0.04,M.greyPl,xx,0.55,s*1.2,g).castShadow=false;
-  rbox(0.9,0.4,0.5,0.06,M.greyPl,O1-3.2,0.58,-0.95,g);                                     // инструментальный ящик
-  const r1=O1+L/2;
-  for(const s of [-1,1]){ box(0.08,0.14,0.42,M.blackPl,r1+0.05,0.74,s*0.95,g); box(0.02,0.1,0.34,M.lensRed,r1+0.095,0.74,s*0.95,g).castShadow=false; }
-  box(0.1,0.12,2.3,M.greyPl,r1+0.02,0.5,0,g);
-  for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,O1+3.45,0.26,s*1.12,g).castShadow=false;
-  /* сцепка: жёсткое дышло прицепа с центральными осями */
-  box(0.3,0.16,0.3,M.chassis,r1+0.1,0.6,0,g);
-  box(O2-r1-0.2,0.12,0.16,M.chassis,(r1+O2)/2+0.1,0.6,0,g);
-  /* прицеп */
-  const b2=frameBody(g,O2,L,{lanes:o.lanes2,tall:o.tall,open:o.open}); g.userData.b2=b2;
-  for(const wx of [O2-0.68,O2+0.68]){ wheel(g,wx,0,R2,true); for(const s of [-1,1]) fender(g,wx,s*0.95,R2,0.72); }
-  for(const s of [-1,1]) for(const yy of [0.42,0.64]) for(const e of [-1,1]) box(2.9,0.06,0.04,M.greyPl,O2+e*3.05,yy,s*1.2,g);
-  rbox(0.8,0.38,0.5,0.06,M.greyPl,O2-2.9,0.56,0.95,g);                                     // ящик для ремней и упоров
-  for(const s of [-1,1]){ const at=cyl(0.12,0.8,M.chassis,O2+2.6,0.6,s*0.2,g,12); at.rotation.z=Math.PI/2; }
-  for(const s of [-1,1]) for(const e of [-1,1]){ box(0.07,0.5,0.07,M.chassis,O2+e*3.9,0.42,s*0.6,g); box(0.2,0.03,0.2,M.chassis,O2+e*3.9,0.17,s*0.6,g).castShadow=false; }   // опорные стойки
-  const rx=O2+L/2+0.05;
+  for(const wx of AXD){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.95,Rw,0.72); }
+  box(0.9,0.09,0.85,M.steelDark,KP,0.745,0,g); box(0.5,0.12,1.2,M.chassis,KP,0.64,0,g);                         // седло на подставке
+  for(const s of [-1,1]) for(const yy of [0.36,0.56]) box(AXD[0]-0.65-(cx+1.25),0.06,0.04,M.greyPl,(AXD[0]-0.65+cx+1.25)/2,yy,s*1.2,g);   // боковая защита
+  rbox(0.62,0.5,0.55,0.06,M.greyPl,cx+1.75,0.62,-1.0,g); cyl(0.27,0.8,M.alu,cx+1.7,0.62,1.0,g,18).rotation.z=Math.PI/2;   // ящик АКБ и топливный бак
+  for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,AXD[1]+0.62,0.26,s*1.12,g).castShadow=false;               // брызговики
+  /* секция 1 (полуприцеп на седле) */
+  const b1=frameBody(g,O1,S1.L,{lanes:o.lanes1,tall:o.tall,open:o.open,HW:S1.HW,IH:S1.IH,neck:2.4,kp:1.2}); g.userData.b1=b1;
+  for(const wx of AX1){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.95,Rw,0.72); }
+  for(const s of [-1,1]) box(r1+1.35-(r1-1.0),0.2,0.09,M.chassis,(r1+1.35+r1-1.0)/2,0.6,s*0.42,g);               // удлинитель рамы под B-link
+  box(0.9,0.09,0.85,M.steelDark,KP2,0.745,0,g); box(0.6,0.1,1.0,M.chassis,KP2,0.66,0,g);                           // B-link: седло под шкворнем секции 2
+  for(const s of [-1,1]) for(const e of [-1,1]){ box(0.07,0.5,0.07,M.chassis,f1+2.7,0.42,s*0.6+e*0.02,g); }        // опорные стойки
+  for(const s of [-1,1]) box(0.2,0.03,0.2,M.chassis,f1+2.7,0.17,s*0.6,g).castShadow=false;
+  for(const s of [-1,1]) for(const yy of [0.42,0.64]) box(AX1[0]-0.6-(f1+3.0),0.06,0.04,M.greyPl,(AX1[0]-0.6+f1+3.0)/2,yy,s*1.25,g);
+  for(const s of [-1,1]) for(const xx of [f1+3.0,(f1+AX1[0])/2+1.2,AX1[0]-0.6]) box(0.05,0.34,0.04,M.greyPl,xx,0.55,s*1.25,g).castShadow=false;
+  rbox(0.9,0.4,0.5,0.06,M.greyPl,O1+0.3,0.58,-1.0,g);                                                             // инструментальный ящик
+  for(const s of [-1,1]){ box(0.08,0.12,0.3,M.blackPl,r1+0.02,0.86,s*1.15,g); box(0.02,0.08,0.24,M.lensAmber,r1+0.065,0.86,s*1.15,g).castShadow=false; }   // габариты на стыке
+  for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,AX1[1]+0.62,0.26,s*1.12,g).castShadow=false;
+  /* секция 2 (полуприцеп на B-link) */
+  const b2=frameBody(g,O2,S2.L,{lanes:o.lanes2,tall:o.tall,open:o.open,HW:S2.HW,IH:S2.IH,neck:1.6,kp:0.7}); g.userData.b2=b2;
+  for(const wx of AX2){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.95,Rw,0.72); }
+  for(const s of [-1,1]) for(const e of [-1,1]){ box(0.07,0.5,0.07,M.chassis,f2+2.3,0.42,s*0.6+e*0.02,g); }
+  for(const s of [-1,1]) box(0.2,0.03,0.2,M.chassis,f2+2.3,0.17,s*0.6,g).castShadow=false;
+  for(const s of [-1,1]) for(const yy of [0.42,0.64]) box(AX2[0]-0.6-(f2+2.6),0.06,0.04,M.greyPl,(AX2[0]-0.6+f2+2.6)/2,yy,s*1.25,g);
+  rbox(0.8,0.38,0.5,0.06,M.greyPl,O2-1.6,0.56,1.0,g);                                                             // ящик для ремней и упоров
+  for(const s of [-1,1]){ const at=cyl(0.12,0.8,M.chassis,O2-0.4,0.6,s*0.2,g,12); at.rotation.z=Math.PI/2; }        // ресиверы
+  const rx=r2+0.05;
   box(0.12,0.14,2.3,M.greyPl,rx+0.08,0.46,0,g);
   for(const s of [-1,1]){ box(0.08,0.14,0.42,M.blackPl,rx,0.74,s*0.95,g); box(0.02,0.1,0.34,M.lensRed,rx+0.045,0.74,s*0.95,g).castShadow=false; }
   for(let i=0;i<10;i++) box(0.01,0.1,0.2,i%2?M.reflWhite:M.reflRed,rx+0.145,0.46,-1.05+i*0.23,g).castShadow=false;
   const rp=new THREE.Mesh(new THREE.PlaneGeometry(0.52,0.12),plateMat(plate,'kz')); rp.position.set(rx+0.15,0.64,0); rp.rotation.y=Math.PI/2; g.add(rp);
-  for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,O2+1.6,0.26,s*1.12,g).castShadow=false;
+  for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,AX2[2]+0.62,0.26,s*1.12,g).castShadow=false;
   TRK.cur=null;
   return g;
 }
 
-const TRK_L2=tag(flatTruck(-6.2,GATES[1].z,11,-1,false,Math.PI/2),
-  {t:'Китайская машина у ворот Л2 · классы A, B, D',q:'приёмный пост, стоит вдоль левой стены',
-   n:'Разгрузка сбоку с земли: класс A на рольганг, класс B погрузчиком через мобильную рампу, класс D — с удлинителями вил на консольный стеллаж.',
-   k:'flatbed lattice truck / бортовая машина с решётчатыми бортами / 栏板货车'});
-const TRK_Q=tag(flatTruck(-6.2,25.5,11,-1,false,Math.PI/2),
-  {t:'Китайская машина в очереди на Л1',q:'ожидает въезда под кран',
-   n:'Машина с местом тяжелее 1 т ждёт освобождения сквозной полосы. Цель: от заезда до начала выгрузки ≤ 15 минут.',
-   k:'flatbed lattice truck / бортовая машина / 栏板货车'});
-const TRK_IN=tag(tandem145(36.0,GATES[1].z,0,{open:1,tall:1,plate:'248 KZA 13',lanes1:[-4.75,-2.6],lanes2:[-4.75,-2.6]}),
-  {t:'Казахстанский автопоезд-тандем 145 м³ на посту погрузки П2',q:'грузовик + прицеп · 2 × 9,8 × 2,48 × 2,98 м · заезд через П2 · правый борт открыт в зал, в середине каждого кузова — проём',
-   n:'Заезжает передним ходом через ворота П2 и встаёт внутри здания вдоль южной магистрали. Под шторой — металлический каркас борта: стойки и обрешётка. В середине правого борта каждого кузова оставлен проём: погрузчик подаёт в него стоечный поддон и держит его на поднятых вилах, грузчики внутри берут короба по одному и раскладывают по дорожкам — каждому типу своё место. Ячейки ряда A стоят через магистраль от борта, плечо погрузчика — несколько метров. Сначала грузится кузов грузовика, затем прицеп. Под колёсами — противооткатные упоры. Фото кузова до закрытия штор обязательно. Выезд — задним ходом через П2. Размеры кузова в модели условные, уточнять по паспорту машины.',
-   k:'drawbar truck and centre-axle trailer 145 m3 / автопоезд тандем 145 кубов / 中置轴厢式列车 145方'});
-[[32.05,1],[32.05,-1],[41.1,1],[41.1,-1]].forEach(c=>wheelChock(c[0]+c[1]*1.32,GATES[1].z+1.03,c[1]));
-{ const kzg=kzTruck({len:13.6,open:0.4,load:0.6,roof:1}); kzg.position.set(57.5,0,31.8); kzg.rotation.y=Math.PI/2; G.trucks.add(kzg); var KZ_SEMI=kzg; }
+const TRK_L2=tag(cnSemi(-6.2,GATES[1].z,-1,Math.PI/2,{gap:[-1.25,1.25]}),
+  {t:'Китайская машина у ворот Л2: тягач + полуприцеп-платформа с решёткой',q:'17,5 × 3,0 м, решётка 2,0 м · внутри 17,45 × 2,95 × 3,0 м (≈ 140 м³, реально 135) · 29–29,9 т · стоит вдоль западной стены',
+   n:'Тягач 6×4 и одна секция: пол — стальной лист Q345 3–5 мм на поперечинах из швеллера, лонжероны — двутавр; борта — съёмные секции стальной решётки 2,0 м на каркасе, сверху — водонепроницаемый опломбируемый тент на съёмных дугах (сейчас скатан к переднему борту). Снаряжённая масса 7,5–9,5 т, полная 40–45 т. Две секции борта со стороны ворот сняты: через проём в кузов заходит телескопический конвейер, грузчик в кузове кладёт короба на ленту. Можно грузить и сзади (распашные решётчатые ворота), и сверху краном.',
+   k:'open platform semi-trailer with fence / полуприцеп-платформа с решётчатыми бортами / 仓栅式半挂车'});
+const TRK_Q=tag(cnSemi(-13.0,13.5,-1,Math.PI/2,{tarp:'closed'}),
+  {t:'Китайская машина в очереди',q:'тягач + полуприцеп-платформа 17,5 × 3,0 м · тент закрыт и опломбирован',
+   n:'Ждёт, пока освободится пост у Л2 (или полоса Л1–П1). Пломбу и таможенный трос снимают только на посту выгрузки. Цель: от заезда до начала выгрузки ≤ 15 минут.',
+   k:'open platform semi-trailer with fence / полуприцеп-платформа с решёткой / 仓栅式半挂车'});
+const TRK_IN=tag(tandem145(36.0,GATES[1].z,0,{open:1,tall:1,plate:'248 KZA 13',lanes1:[-3.64,-2.6],lanes2:[-4.7,-2.6]}),
+  {t:'Казахстанский автопоезд 145 м³ (B-double) на посту погрузки П2',q:'тягач 6×4 + две тентованные секции · внутри 7,57 × 2,61 × 3,13 и 9,70 × 2,64 × 3,28 м · 29–29,9 т · заезд через П2 · правый борт открыт в зал, в середине каждой секции — проём',
+   n:'Заезжает передним ходом через ворота П2 и встаёт внутри здания вдоль южной магистрали. Под шторой — металлический каркас борта: стойки и обрешётка. В середине правого борта каждого кузова оставлен проём: погрузчик подаёт в него стоечный поддон и держит его на поднятых вилах, грузчики внутри берут короба по одному и раскладывают по дорожкам — каждому типу своё место. Ячейки ряда A стоят через магистраль от борта, плечо погрузчика — несколько метров. Сначала грузится секция 1 (на седле тягача), затем секция 2 (на сцепке B-link за секцией 1). Под колёсами — противооткатные упоры. Фото кузова до закрытия штор обязательно. Выезд — задним ходом через П2. Размеры — по паспорту заказчика: объём 145 м³ (реально 125–130), грузоподъёмность 29–29,9 т, снаряжённая масса 16–18 т, полная 45–47 т; загрузка сбоку (тент открывается), сзади (двустворчатые опломбируемые двери) и сверху краном (сдвижная тентовая крыша); вентиляция. Высота 4,3 м — проходит в ворота П2 (5,5 м).',
+   k:'B-double curtainsider 145 m3 / автопоезд B-double 145 кубов / 双节篷布半挂列车 145方'});
+[[27.075,1,1.37],[27.075,-1,1.37],[41.08,1,2.0],[41.08,-1,2.0]].forEach(c=>wheelChock(c[0]+c[1]*c[2],GATES[1].z+1.03,c[1]));   // ведущие оси тягача и тележка секции 2
+{ const kzg=kzTruck({len:13.6,open:0.4,load:0.6,roof:1}); kzg.position.set(58.5,0,50.0); kzg.rotation.y=Math.PI/2; G.trucks.add(kzg); var KZ_SEMI=kzg; }
 const TRK_TANDEM=tag(KZ_SEMI,
   {t:'Казахская фура — шторный полуприцеп на площадке',q:'тягач + полуприцеп 13,6 м · снаружи, ждёт очереди на пост П2',
    n:'Стандартная еврофура на 33 европаллеты стоит на площадке в стороне от ворот: проезд к П2 свободен для автопоезда. Заезжает на пост П2 после него. Тяжёлое — над осями и в переднюю треть, каждое место сканируется, 100 % сверка с планом.',
@@ -8547,7 +8672,7 @@ let walk=false, wYaw=0, wPitch=0, saved_pr=0, walkLbl=null, walkRoof=null, walkP
 const wPos=new THREE.Vector3(), wDir=new THREE.Vector3(), keys={};
 const padEl=document.getElementById('pad'), tipEl=document.getElementById('tip');
 const tipOrbit=tipEl.innerHTML;
-const SOLIDS=[{x0:1.2,x1:30.0,z0:0.8,z1:6.6}];                 // здание охраны — непроходимо
+const SOLIDS=[{x0:0.36,x1:31.55,z0:0.45,z1:6.57},{x0:31.55,x1:35.55,z0:0.45,z1:3.55}];                 // здание охраны — непроходимо
 const walkBtn=mkBtn('Режим обхода · WASD',true,()=>toggleWalk());
 walkBtn.title='W A S D — идти · Shift — бегом · Пробел — прыжок · C — присесть · V — вид от 3-го лица · F или ЛКМ — удар · Esc — выход';   // подсказки на экране убраны — клавиши в подсказке кнопки
 function toggleWalk(){
@@ -10020,7 +10145,7 @@ function batchStatic(){
   flowMeshes.forEach(keep); keep(CHOCKS);
   const isCartonMat=m=>LOOK.cartons.includes(m)||(Array.isArray(m)&&LOOK.ctypeM.includes(m[0]))||LOOK.ctypeM.includes(m);
   [TRK_L2,TRK_IN].forEach(t=>t.traverse(o=>{ if(o.userData.isWheel) keep(o); }));
-  TRK_L2.children.forEach(o=>{ if(o.isMesh&&isCartonMat(o.material)&&o.position.x>-2.95&&o.position.x<5.6) keep(o); });   // рабочая зона кузова: эти короба фильм и живой процесс скрывают и заменяют своими; груз в передней части остаётся (транзит)
+  TRK_L2.children.forEach(o=>{ if(o.isMesh&&isCartonMat(o.material)&&o.userData.cnWork) keep(o); });   // рабочая зона кузова (от x ≈ −3,7 к задним воротам, метка cnSemi): эти короба фильм и живой процесс скрывают и заменяют своими; груз в передней части остаётся (транзит)
   [TRK_IN.userData.b1,TRK_IN.userData.b2].forEach(b=>{ keep(b); const C=b.userData.curt; if(C){ C.strips.forEach(keep); C.posts.forEach(keep); } });
   scene.traverse(o=>{ const u=o.userData; if(u.tiers) u.tiers.forEach(keep); if(u.cab) keep(u.cab); if(u.rdoors) u.rdoors.forEach(keep); if(u.tele) u.tele.secG.forEach(keep); if(u.gs) u.gs.K.forEach(keep);
     if(u.rig){ const R=u.rig; keep(o); [R.mast,R.inner,R.carriage,R.swSpin].forEach(keep); R.wheels.forEach(keep); R.steer.forEach(keep); if(R.driver) SKIP.add(R.driver); } });
@@ -10203,7 +10328,10 @@ const EO=[12.75,11.4];                           // пустые стойки в
 const CREW=[['K1','K2'],['K3','K4']];            // бригады: грузовик и прицеп
 const BEDY=KZB.FY+0.02, RB={x:0,z:0.5};          // пол кузова; стойка на вилах стоит в проёме посередине борта (локально в кузове)
 const HOLDY=BEDY+0.10;                           // стойку держат на вилах в 10 см над полом кузова
-const XS0=-2.6, XN0=3.6;                         // откуда растут дорожки в кузове: от переднего груза к проёму и от задних дверей к проёму
+const XS0=-2.6, XN0=3.6;
+/* где бригада ждёт автопоезд (от проёма секции, вдоль z 13,2): у секции 2 — восточнее, вне проездов погрузчика к местам поддонов
+   в зоне DWS (x 38,65 и 41,05); с 15.10 секция 2 короче и проём у x 38,8 */
+const KWAIT=[[1.5,4.75],[3.6,5.2]];                         // откуда растут дорожки в кузове: от переднего груза к проёму и от задних дверей к проёму
 /* лента фильма: сборная машина везёт груз нескольких клиентов; в кадре — отправка XY (Синьюань, электроника): 5 SKU своего размера
    и веса; по каждому SKU сначала идёт образец (контролёр кладёт его в поддон образцов рядом с местом разгрузки), за ним — короба
    в стойку клиента (упаковщик): D ×4 · C ×3 · B ×4 · A ×5 · A2 ×4 = 20 коробов + 5 образцов */
@@ -10531,7 +10659,7 @@ function plan(){
   { const C=F.bod[0].userData.curt, n=C.strips.length, xo=C.x0+0.05+(n-1)*C.pitch, xc=C.x0+C.w*(n-0.5); F.cEdge=[xo,xc]; }
   const [XO,XC]=F.cEdge, byaw=F.kz0.r, yAlong=d=>byaw+(d>0?PI/2:-PI/2);
   CREW.forEach((cw,r)=>{ const [wn,ws]=cw, bx=bw[r][0];
-    const spot={[wn]:[bx+1.5,13.2],[ws]:[bx+4.75,13.2]}, xin={[wn]:0.45,[ws]:-0.45}, tci={[wn]:MK.cop1+0.7,[ws]:MK.cop1+3.4};
+    const spot={[wn]:[bx+KWAIT[r][0],13.2],[ws]:[bx+KWAIT[r][1],13.2]}, xin={[wn]:0.45,[ws]:-0.45}, tci={[wn]:MK.cop1+0.7,[ws]:MK.cop1+3.4};
     for(const w of cw){ const W=new Track(), s=spot[w]; W.key(0,s[0],s[1],PI,{}); let t=MK.kst+0.4; W.key(t,s[0],s[1],PI,{});
       if(w===ws){                                          // открывает штору: идёт от задних дверей к переднему борту, собирая полотно
         const p0=inBody(r,XC+0.35,1.68), p1=inBody(r,XO+0.35,1.68);
@@ -10659,7 +10787,7 @@ function mkCaps(){
     cap(MK.gOut+3.8,PJ.tS1+1.4,'8','Крупные — портальный DWS','платформа с весами · два сканера сверху · штрихкод — ручным сканером'),
     cap(PJ.tS1+1.8,MK.mpTag+1.4,'9','Замеренные — на второй поддон · бирка дня','габарит, вес и фото каждого SKU — в WMS и SafeLoad'),
     cap(MK.mpTag+1.8,MK.outA8+0.1,'10','Образцы — в ячейку A8','поддон замеренных уходит в отгрузку вместе с грузом своего дня'),
-    cap(MK.kin+0.4,MK.up2+0.3,'11','Автопоезд заезжает через П2','тандем 145 м³ встаёт внутри, правым бортом к ячейкам · упоры · шторы открыты, под ними каркас с проёмом'),
+    cap(MK.kin+0.4,MK.up2+0.3,'11','Автопоезд заезжает через П2','автопоезд 145 м³ (B-double) встаёт внутри, правым бортом к ячейкам · упоры · шторы открыты, под ними каркас с проёмом'),
     cap(MK.up2+0.7,MK.trn1-0.5,'12','Отбор по FIFO','первой уходит самая старая дата — ПН: ячейка A14, сначала верхняя стойка'),
     cap(MK.trn1-0.1,MK.back1+1.0,'13','Стойка — в проём кузова, на поднятых вилах','погрузчик держит стойку у пола кузова · грузчики берут по одному коробу и кладут в свою дорожку'),
     cap(MK.back1+1.4,MK.out14b+0.2,'14','Пустая стойка — к приёмке · следующая из той же ячейки','ячейка A14 освобождается целиком — FIFO без остатков'),
@@ -10677,7 +10805,7 @@ function mkCaps(){
     card(MK.gOut+0.2,MK.gOut+3.6,'GOODSCAN · '+SKUS[G1.b.si].code,mm(G1.m)+' · '+kgS(G1.m.kg)+' кг ✓','#53d16f'),
     card(PJ.tS1-0.1,PJ.tS1+3.2,'ПОРТАЛ · '+SKUS[PJ.b.si].code,mm(PJ.m)+' · '+kgS(PJ.m.kg)+' кг ✓','#53d16f'),
     card(MK.mpTag-0.3,MK.mpTag+3.6,'ОБРАЗЦЫ XY: 5 ИЗ 5','Goodscan — '+F.gsJobs.length+' · портал — '+F.ptJobs.length+' · данные в WMS','#f2b705'),
-    card(MK.kin+3.0,MK.kst+0.6,'LPR · ВЪЕЗД П2 · 10:05','248 KZA 13 · тандем 145 м³','#53d16f'),
+    card(MK.kin+3.0,MK.kst+0.6,'LPR · ВЪЕЗД П2 · 10:05','248 KZA 13 · B-double 145 м³','#53d16f'),
     card(MK.up2+1.0,MK.out14+1.0,'FIFO · ПН — САМАЯ СТАРАЯ','A14 уходит первой · скан при отборе','#e0412f'),
     card(MK.set1+1.0,MK.u1a+4.8,'КУЗОВ: ДОРОЖКИ ПО ТИПАМ','проём в каркасе борта · A · C · B · D','#f2b705'),
     card(MK.set2+0.6,MK.u2a+2.4,'ПРИЦЕП · ВТОРАЯ СТОЙКА','A14 пуста · груз не ставят на пол кузова','#e0412f'),
@@ -11128,15 +11256,15 @@ function zoneShots(){ const MK=F.MK, Z=DWSZ, G1=MK.G1, PJ=MK.PJ, a8=cellC(A8C), 
   add(MK.spIn+0.6,{fov:46,mb:1,dof:{k:0.4,tgt:'fk'},f:u=>[L3([12.9,2.4,9.1],[12.4,2.3,9.5],sst(u)),V(8.6,0.9,13.6)]});                 // погрузчик к поддону образцов
   add(MK.spOut+0.6,{fov:40,dof:{k:0.5,tgt:'sp'},hand:0.008,f:u=>[L3([11.3,1.6,10.0],[11.0,1.55,10.2],sst(u)),V(8.25,0.7,12.2)]});      // вилы — в петли, подъём
   add(MK.spZ+0.4,{fov:50,mb:0.9,f:()=>{ const p=F.fk.position; return [V(p.x-6.2,2.7,17.8),V(p.x+1.6,1.0,15.0)]; }});                // по южной магистрали на восток
-  add(MK.spSet+1.6,{fov:44,mb:1,dof:{k:0.3,tgt:'fk'},f:u=>[L3([44.6,3.1,9.6],[44.2,2.9,9.2],sst(u)),V(38.4,0.8,4.6)]});                // через пост П2 в зону DWS, поддон — на место 1
-  add(G1.tS1,{fov:42,dof:{k:0.5,tgt:'gs'},hand:0.006,f:u=>[L3([38.75,1.85,4.15],[38.55,1.8,4.3],sst(u)),V(37.3,0.9,2.2)]});         // упаковщик ставит короб на весовой стол, 3D-камера
-  add(gOut+0.6,{fov:40,dof:{k:0.5,tgt:'gsbelt'},hand:0.006,f:u=>[L3([38.9,2.55,5.0],[39.2,2.45,4.8],sst(u)),V(38.4,0.95,2.1)]});       // лента через световой занавес, вспышка (сверху — поверх упаковщика)
-  add(gOut+3.4,{fov:28,hand:0.004,f:()=>[V(37.12,1.58,3.1),V(gs0[0]-0.16,1.36,gs0[1]-0.16)]});                                       // экран Goodscan: габарит, вес, клиент
-  add(PJ.tPut-1.6,{fov:50,mb:0.8,f:u=>[L3([39.3,4.5,9.6],[38.9,4.3,9.3],sst(u)),V(39.6,0.6,3.6)]});                                   // зона сверху (ускорено)
-  add(PJ.tS1+1.4,{fov:42,dof:{k:0.4,tgt:'pt'},hand:0.006,f:u=>[L3([41.0,2.1,6.7],[41.3,2.05,6.5],sst(u)),V(Z.big[0],0.6,Z.big[1]+0.4)]});   // контролёр на портале, лучи сканеров
-  add(MK.mEnd,{fov:50,mb:0.8,f:u=>[L3([39.5,4.7,9.9],[39.0,4.4,9.6],sst(u)),V(39.3,0.6,3.7)]});                                       // остальные образцы (ускорено)
-  add(MK.mpTag+1.6,{fov:40,dof:{k:0.5,tgt:'mp'},hand:0.008,f:u=>[L3([37.9,1.75,7.1],[38.2,1.7,6.9],sst(u)),V(39.6,1.0,5.2)]});        // бирка дня на поддон замеренных
-  add(MK.mpOut+0.6,{fov:46,mb:1,dof:{k:0.3,tgt:'fk'},f:u=>[L3([44.4,3.0,9.4],[44.1,2.9,9.1],sst(u)),V(40.0,0.8,5.0)]});                 // погрузчик забирает поддон
+  add(MK.spSet+1.6,{fov:44,mb:1,dof:{k:0.3,tgt:'fk'},f:u=>[L3([45.6,3.1,9.6],[45.2,2.9,9.2],sst(u)),V(39.4,0.8,4.6)]});                // через пост П2 в зону DWS, поддон — на место 1
+  add(G1.tS1,{fov:42,dof:{k:0.5,tgt:'gs'},hand:0.006,f:u=>[L3([39.75,1.85,4.15],[39.55,1.8,4.3],sst(u)),V(38.3,0.9,2.2)]});         // упаковщик ставит короб на весовой стол, 3D-камера
+  add(gOut+0.6,{fov:40,dof:{k:0.5,tgt:'gsbelt'},hand:0.006,f:u=>[L3([39.9,2.55,5.0],[40.2,2.45,4.8],sst(u)),V(39.4,0.95,2.1)]});       // лента через световой занавес, вспышка (сверху — поверх упаковщика)
+  add(gOut+3.4,{fov:28,hand:0.004,f:()=>[V(38.12,1.58,3.1),V(gs0[0]-0.16,1.36,gs0[1]-0.16)]});                                       // экран Goodscan: габарит, вес, клиент
+  add(PJ.tPut-1.6,{fov:50,mb:0.8,f:u=>[L3([40.3,4.5,9.6],[39.9,4.3,9.3],sst(u)),V(40.6,0.6,3.6)]});                                   // зона сверху (ускорено)
+  add(PJ.tS1+1.4,{fov:42,dof:{k:0.4,tgt:'pt'},hand:0.006,f:u=>[L3([42,2.1,6.7],[42.3,2.05,6.5],sst(u)),V(Z.big[0],0.6,Z.big[1]+0.4)]});   // контролёр на портале, лучи сканеров
+  add(MK.mEnd,{fov:50,mb:0.8,f:u=>[L3([40.5,4.7,9.9],[40,4.4,9.6],sst(u)),V(40.3,0.6,3.7)]});                                       // остальные образцы (ускорено)
+  add(MK.mpTag+1.6,{fov:40,dof:{k:0.5,tgt:'mp'},hand:0.008,f:u=>[L3([38.9,1.75,7.1],[39.2,1.7,6.9],sst(u)),V(40.6,1.0,5.2)]});        // бирка дня на поддон замеренных
+  add(MK.mpOut+0.6,{fov:46,mb:1,dof:{k:0.3,tgt:'fk'},f:u=>[L3([45.4,3.0,9.4],[45.1,2.9,9.1],sst(u)),V(41,0.8,5.0)]});                 // погрузчик забирает поддон
   add(MK.a8A,{fov:50,mb:0.9,f:()=>{ const p=F.fk.position; return [V(p.x+6.3,2.7,17.6),V(p.x-1.3,1.0,15.0)]; }});                     // к ячейке A8
   add(MK.outA8+0.3,{fov:46,mb:1,f:u=>[L3([a8[0]-4.3,2.2,14.2],[a8[0]-4.0,2.15,14.5],sst(u)),V(a8[0],1.0,18.6)]});                    // A8: поддон на пол ячейки
   return out; }
@@ -11178,14 +11306,14 @@ SHOTS=[
   {T0:MK.out14+0.3,T1:MK.trn1-0.3,fov:50,mb:0.8,f:()=>{ const p=fkP(); return [V(Math.min(46.4,p.x+5.4),2.3,17.5),V(p.x-0.9,1.2,13.6)]; }},
   {T0:MK.trn1-0.3,T1:MK.set1-0.8,fov:46,mb:1,dof:{k:0.4,tgt:'fk'},f:u=>[L3([24.9,2.1,14.6],[25.3,2.0,14.2],sst(u)),V(30.3,1.4,13.3)]},
   {T0:MK.set1-0.8,T1:MK.u1a+2.6,fov:42,dof:{k:0.4,tgt:'bed'},hand:0.006,f:u=>[L3([27.5,1.75,13.1],[27.7,1.7,12.9],sst(u)),V(30.3,1.5,11.3)]},
-  {T0:MK.u1a+2.6,T1:MK.u1a+5.0,fov:64,ev:0.7,hand:0.006,f:u=>[inB(0,-3.9+0.2*sst(u),3.55,-0.7),inB(0,0.2,1.55,0.45)]},
+  {T0:MK.u1a+2.6,T1:MK.u1a+5.0,fov:64,ev:0.7,hand:0.006,f:u=>[inB(0,-F.bod[0].userData.body.len/2+0.3+0.2*sst(u),3.55,-0.7),inB(0,0.2,1.55,0.45)]},
   {T0:MK.u1a+5.0,T1:MK.u1b-0.6,fov:50,mb:0.6,f:u=>[L3([26.3,3.4,15.0],[26.6,3.3,14.7],sst(u)),V(30.2,1.6,11.7)]},
   {T0:MK.u1b-0.6,T1:MK.e1s+1.5,fov:46,dof:{k:0.3,tgt:'fk'},hand:0.006,f:u=>[L3([33.9,2.0,13.1],[34.1,2.05,13.4],sst(u)),V(30.4,1.35,12.7)]},
   /* пустая стойка — к приёмке; вторая стойка из A14 — в прицеп */
   {T0:MK.e1s+1.5,T1:MK.e1out+2.0,fov:52,mb:0.6,f:u=>[L3([9.0,5.0,8.4],[9.3,4.8,8.8],sst(u)),V(14.0,0.6,14.0)]},
   {T0:MK.e1out+2.0,T1:MK.out14b+0.5,fov:50,mb:0.5,f:()=>[V(39.6+d14,3.4,13.4),fkL(0,1.0,0.6)]},
-  {T0:MK.out14b+0.5,T1:F.carTr.up,fov:46,mb:1,dof:{k:0.3,tgt:'fk'},f:u=>[L3([45.4,2.0,16.0],[45.1,1.9,15.6],sst(u)),V(41.3,1.4,13.2)]},
-  {T0:F.carTr.up,T1:MK.u2a+2.6,fov:44,dof:{k:0.4,tgt:'bed2'},hand:0.006,f:u=>[L3([44.3,2.1,13.5],[44.1,2.05,13.2],sst(u)),V(B2X+0.2,1.55,11.5)]},
+  {T0:MK.out14b+0.5,T1:F.carTr.up,fov:46,mb:1,dof:{k:0.3,tgt:'fk'},f:u=>[L3([B2X+4.3,2.0,16.0],[B2X+4.0,1.9,15.6],sst(u)),V(B2X+0.2,1.4,13.2)]},
+  {T0:F.carTr.up,T1:MK.u2a+2.6,fov:44,dof:{k:0.4,tgt:'bed2'},hand:0.006,f:u=>[L3([B2X+3.2,2.1,13.5],[B2X+3.0,2.05,13.2],sst(u)),V(B2X+0.2,1.55,11.5)]},
   {T0:MK.u2a+2.6,T1:MK.u2b-0.6,fov:64,ev:0.7,mb:0.6,f:u=>[inB(1,-3.9+0.2*sst(u),3.55,-0.7),inB(1,0.2,1.55,0.45)]},
   {T0:MK.u2b-0.6,T1:MK.e2s+0.5,fov:48,hand:0.006,f:u=>[L3([B2X+3.4,1.9,13.5],[B2X+3.2,1.85,13.9],sst(u)),V(B2X+0.2,1.3,12.8)]},
   /* пустая стойка — по магистрали к приёмке, вторым ярусом */
@@ -11286,8 +11414,8 @@ const RCPV={
      tl:[32.48,0,32.8,0],eos:[[10.8,30.6],[12.8,30.6]],fk0:[10.0,ZN,PI/2,'ZN'],SUP:[20.4,32.5,1.6],hideP:[21.5,30.2],
      nav:[[21.68,31.72,28.92,31.72,1],[21.68,29.48,28.92,29.48,3],[21.68,29.48,21.68,31.72,1],[24.05,29.48,24.05,31.72,1],[26.55,29.48,26.55,31.72,1],[28.92,29.48,28.92,31.72,1],
           [28.92,31.72,30.9,31.72,1],[30.9,31.72,31.2,31.15,1],[31.2,31.15,33.6,31.15,1],[33.6,31.15,33.6,6.9,1]],   // южнее носа сложенного конвейера (площадка оператора x 31,42…32,31, z 31,45…32,31), 14.10
-     door:'P1',home:{x:38.52,y:0,z:32.8,r:PI},wt:{x:0.1,z:0.0,hx:1,hz:0},hideX:9,
-     blocks:[{x0:-3.6,x1:-0.95,z0:-1.2,z1:1.18}]}
+     door:'P1',home:{x:41.77,y:0,z:32.8,r:PI},wt:{x:3.35,z:0.0,hx:1,hz:0},hideX:12,             // 15.10: полуприцеп 17,5 м — задние ворота там же (x 33,02), тягач остаётся за П1
+     blocks:[{x0:-2.9,x1:2.3,z0:-1.2,z1:1.18}]}
 };
 
 /* ---------- фазы процесса: машина из Китая выгружается целиком → образцы на DWS → бригада грузит автопоезд ----------
@@ -11445,7 +11573,7 @@ function setup(){
   F.W4.root.visible=false; F.W4box.visible=false;
   S.bw=F.bod.map(b=>{ b.updateMatrixWorld(true); const p=b.localToWorld(V(RB.x,0,RB.z)); return [p.x,p.z]; });
   S.kPos={K1:[0.45,-0.8],K2:[-0.45,-0.8],K3:[0.45,-0.8],K4:[-0.45,-0.8]}; S.kIdle={K1:-0.3,K2:0.3,K3:-0.3,K4:0.3};   // ждут у дальнего борта за стойкой: на x ±1,9 стояли внутри будущих стопок (14.10)
-  CREW.forEach((cw,r)=>{ const bx=S.bw[r][0]; const spot={[cw[0]]:[bx+1.5,13.2],[cw[1]]:[bx+4.75,13.2]};
+  CREW.forEach((cw,r)=>{ const bx=S.bw[r][0]; const spot={[cw[0]]:[bx+KWAIT[r][0],13.2],[cw[1]]:[bx+KWAIT[r][1],13.2]};
     cw.forEach(w=>{ const rp=REC_SPOT[w], [ip,iy]=IDLE_AT.rec[w]; mkH(w,F.KH[w],rp[0],rp[1],iy); const h=S.hum[w]; h.tr=new Track().key(0,rp[0],rp[1],iy,ip).fin(); h.idle=ip;
       h.spot=spot[w]; h.rec=rp; h.body=r; h.state='wait'; }); });
   S.phase='unload'; S.cnDone=false; S.kzGone=false; S.crewAt='rec'; S.crewT=0;
@@ -11481,11 +11609,13 @@ function rackSlotPut(b,r,s,dt){ const q=RSLOT[s]; putSlot(b.o,r.o,q.x+b.pl.jx,r.
 function putFree(b,r,it,dt){ putSlot(b.o,r.o,it.x+b.pl.jx,it.y,it.z+b.pl.jz,(it.rot?PI/2:0)+b.pl.jy,dt,b.pl); }
 function putRackLater(b,r,slot){ r.slots[slot]=b; r.n++; b.rack=r; b.slot=slot; b.mode='rack'; r.o.attach(b.o); delete r.res[slot]; }
 function freeDone(b,r,it){ b.mode='rack'; b.rack=r; r.n++; it.placed=true; r.o.attach(b.o); }
-function laneFree(body,ti){ const L=KZLANE[ti], lanes=S.kz.lanes[body], cap=Math.floor(3.6/L.d)*L.n; return (cap-lanes.S[ti])+(cap-lanes.N[ti]); }   // дорожки растут от торцов к проёму (±1,25 м свободны)
+/* дорожки растут от торцов кузова к проёму (±1,25 м у проёма свободны); у секций разная длина (15.10: 7,57 и 9,70 м внутри) */
+const laneX0=body=>F.bod[body].userData.body.len/2-0.1, laneCap=(body,ti)=>Math.floor((laneX0(body)-1.25)/KZLANE[ti].d)*KZLANE[ti].n;
+function laneFree(body,ti){ const lanes=S.kz.lanes[body], cap=laneCap(body,ti); return (cap-lanes.S[ti])+(cap-lanes.N[ti]); }
 /* место в дорожке кузова: высота стопки — по фактическим коробам (SKU одного класса разной высоты) */
 function laneSlot2(body,side,ti,h){ const L=KZLANE[ti], lanes=S.kz.lanes[body];
-  const cap=Math.floor(3.6/L.d)*L.n; if(lanes[side][ti]>=cap) side=side==='S'?'N':'S'; if(lanes[side][ti]>=cap) return null;
-  const n=lanes[side][ti]++, st=Math.floor(n/L.n), lv=n%L.n, X0=side==='S'?-4.85:4.85, sg=side==='S'?1:-1, hy=lanes.hy[side][ti], y=lv?(hy[st]||0):0; hy[st]=y+h+0.004;
+  const cap=laneCap(body,ti); if(lanes[side][ti]>=cap) side=side==='S'?'N':'S'; if(lanes[side][ti]>=cap) return null;
+  const n=lanes[side][ti]++, st=Math.floor(n/L.n), lv=n%L.n, X0=(side==='S'?-1:1)*laneX0(body), sg=side==='S'?1:-1, hy=lanes.hy[side][ti], y=lv?(hy[st]||0):0; hy[st]=y+h+0.004;
   const xc=X0+sg*L.d*(st+0.5), xf=X0+sg*L.d*(st+1), sx=L.z>-0.61?(side==='S'?Math.min(xf+0.42,-KSTRIP):Math.max(xf-0.42,KSTRIP)):xf+sg*0.42;   // напротив стойки в проёме — не ближе полосы x ±1,03
   return {lp:V(xc,BEDY+y,L.z),stand:[sx,L.z],yaw:side==='S'?-PI/2:PI/2,y}; }
 /* по кузову — в обход стойки в проёме (x ±0,81, z −0,31…1,31): ждут у дальнего борта, работают в полосе x ±1,03 между стойкой
@@ -11958,7 +12088,7 @@ function tickTrucks(){ const T=S.T, cn=S.cn, kz=S.kz;
   /* стыковка: машина встала → (во 2-м варианте открывают задние двери) → конвейер выдвигается в кузов → выгрузка;
      кузов пуст и лента пуста → конвейер складывается → (двери закрывают) → машина уезжает */
   if(cn.state==='arrive'||cn.state==='dock'||cn.state==='in'||cn.state==='undock'){ const t0=cn.t0;
-    doorSet(cnDoor,v2?kv(T,[[t0,0],[t0+2.6,1],[t0+14.6,1],[t0+17.2,0]]):kv(T,[[t0+5.5,0],[t0+8.0,0.97]])); }
+    doorSet(cnDoor,v2?kv(T,[[t0,0],[t0+2.6,1]]):kv(T,[[t0+5.5,0],[t0+8.0,0.97]])); }                 // во 2-м варианте полуприцеп стоит в проёме П1 — ворота открыты до выезда
   if(cn.state==='arrive'&&T>=cn.tDock){ cn.state='dock'; if(v2){ cn.rd={t0:T+0.3,t1:T+2.6,open:true}; S.tele.at=T+2.8; } else S.tele.at=T+0.3; S.log.push('машина встала — конвейер выдвигается в кузов'); }
   if(cn.state==='dock'){ if(S.tele.at!==undefined&&T>=S.tele.at){ S.tele.tgt=TELE_EXT; S.tele.at=undefined; }
     if(S.tele.e>=TELE_EXT-1e-4){ cn.state='in'; F.WTr.visible=true; S.wt.free=T+1.2; } }
@@ -11969,7 +12099,7 @@ function tickTrucks(){ const T=S.T, cn=S.cn, kz=S.kz;
       cn.path=v2?mkPath([{t0:cn.t1,t1:cn.t1+12,pts:[[H.x,H.z],[H.x+16,H.z],[H.x+62,H.z]],ease:'go',u0:0.45}])
                 :mkPath([{t0:cn.t1,t1:cn.t1+10,pts:[[H.x,H.z],[H.x,H.z+16],[H.x,H.z+60]],ease:'go',u0:0.45}]);
       S.ev.push({T:cn.t1-0.2,f:()=>{ F.WTr.visible=false; }}); S.log.push('машина из Китая №'+cn.n+' уезжает'+(v2?' через П1':'')); } }
-  if(cn.state==='leave'){ const t1=cn.t1; doorSet(cnDoor,v2?kv(T,[[t1-3.4,0],[t1-0.8,1],[t1+12,1],[t1+14.5,0]]):kv(T,[[t1+1.5,0.97],[t1+4.0,0]]));
+  if(cn.state==='leave'){ const t1=cn.t1; doorSet(cnDoor,v2?kv(T,[[t1+12,1],[t1+14.5,0]]):kv(T,[[t1+1.5,0.97],[t1+4.0,0]]));
     if(T>=t1+(v2?12.5:10.5)){ cn.state='away'; S.cnDone=true; F.cnT.visible=false; F.cnT.position.set(H.x+(v2?70:0),H.y,H.z-(v2?0:70)); } }
   /* автопоезд: пока есть что грузить */
   const haveCargo=cellsCargo||S.rp.some(p=>p.r&&p.r.n>0)||cn.state!=='away'||S.inLeft>0;
@@ -12100,7 +12230,7 @@ SIM.tick=function(dt){ if(!SIM.on) return; let left=Math.min(dt,0.25)*SIM.speed;
 /* ---------- масса груза в кузовах и нагрузки на оси (оценка по рычагу) ----------
    Грузовик: передняя ось под кабиной (x −12,9), задняя тележка (x −3,9); прицеп с центральными осями — почти весь груз на его осях.
    Положение короба вдоль кузова lp.x → плечо до осей. Собственная масса не учитывается: показывается прибавка от груза. */
-const AXF=-12.9, AXR=-3.875, KZO1=-5.8;
+const AXF=-9.4, AXR=-2.655, KZO1=-6.765;                       // 15.10 B-double: секция 1 опирается на седло тягача (шкворень) и свою тележку из двух осей
 function loadReset(){ S.load=[{m:0,mx:0},{m:0,mx:0}]; }
 function loadAdd(body,kg,lx){ if(!S.load) loadReset(); const L=S.load[body]; L.m+=kg; L.mx+=kg*lx; }
 function axleInfo(){ if(!S.load) return null; const a=S.load[0], b=S.load[1];
@@ -12112,7 +12242,7 @@ function status(){ const racks=S.cells.reduce((a,c)=>a+c.tiers.filter(r=>r.n>0).
   const t=S.T, mm=Math.floor(t/60), ss=Math.floor(t%60);
   const now=S.fkTask?S.fkTask.name:'погрузчик ждёт';
   const ph=S.phase==='unload'?'ВЫГРУЗКА машины из Китая':S.phase==='dws'?'ЗАМЕР ОБРАЗЦОВ на DWS':'ПОГРУЗКА автопоезда';
-  return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')}${S.V===2?' · приёмка через П1':''} · ${ph} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded}${(()=>{ const A=axleInfo(); return A&&(A.m1+A.m2)>0?` · в кузовах ${tt(A.m1)} + ${tt(A.m2)} т (оси грузовика +${tt(A.front)} / +${tt(A.rear)} т)`:''; })()} · ${now}`; }
+  return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')}${S.V===2?' · приёмка через П1':''} · ${ph} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded}${(()=>{ const A=axleInfo(); return A&&(A.m1+A.m2)>0?` · в кузовах ${tt(A.m1)} + ${tt(A.m2)} т (седло тягача +${tt(A.front)} / оси секции 1 +${tt(A.rear)} т)`:''; })()} · ${now}`; }
 SIM.enter=function(){ if(SIM.on) return; if(F.on) exit(); prepScene(true); HUM.attn=attnFn;
   const keep=new Set([F.fk,F.CT.root,F.W3.root,F.W5.root,F.W4.root,F.tl2,F.dws,F.gs].concat(Object.values(F.KH).map(H=>H.root)));
   S.filmVis=F.grp.children.map(o=>[o,o.visible]); F.grp.children.forEach(o=>{ o.visible=keep.has(o); });

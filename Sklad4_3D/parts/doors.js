@@ -45,6 +45,6 @@ function doorSet(d,o){
   });
 }
 const DOOR={ L1:sectionalDoor(0,1,GATES[0].z,GATES[0].w,GATE_H), L2:sectionalDoor(0,1,GATES[1].z,GATES[1].w,GATE_H),
-             P1:sectionalDoor(W,-1,GATES[0].z,GATES[0].w,GATE_H), P2:sectionalDoor(W,-1,GATES[1].z,GATES[1].w,GATE_H) };
+             P1:sectionalDoor(W,-1,GATES_P[0].z,GATES_P[0].w,GATE_HP), P2:sectionalDoor(W,-1,GATES_P[1].z,GATES_P[1].w,GATE_HP) };   // П — 6,0 × 5,5 (SKP)
 const DOOR_DEF={L1:1,L2:0.96,P1:1,P2:0.96};
 for(const k in DOOR) doorSet(DOOR[k],DOOR_DEF[k]);

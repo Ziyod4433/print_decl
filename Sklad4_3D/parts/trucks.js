@@ -216,6 +216,110 @@ function flatTruck(x,z,len,dir,heavy,rotY,load){
   return g;
 }
 
+/* ---------- китайский полуприцеп-платформа с решётчатыми бортами и тягач 6×4 (15.10, по данным заказчика) ----------
+   «Open Platform Semi Trailer with Fence»: длина 17,5 м, ширина 3,0 м, решётка 2,0 м; внутри 17,45 × 2,95 × 3,0 м (≈ 140 м³,
+   реально 135); грузоподъёмность 29–29,9 т, снаряжённая масса 7,5–9,5 т, полная 40–45 т; одна секция. Пол — стальной лист Q345
+   3–5 мм на поперечинах из швеллера, лонжероны — двутавр; борта — съёмные секции решётки на стальном каркасе (стойки в карманах
+   рамы); сверху — водонепроницаемый опломбируемый тент на съёмных дугах. Загрузка сзади (распашные решётчатые ворота), сбоку
+   (снимается секция борта) и сверху краном (дуги и тент снимают). Оси модели: пол по центру, перед — в сторону dir (как у прежнего
+   бортового: места приёмки, грузчик в кузове и конвейер у Л2 остаются в тех же точках кузова).
+   o.gap=[x0,x1] — снятые секции борта со стороны +z (через проём заходит конвейер у Л2); o.tarp: 'closed' — тент закрыт и опломбирован,
+   иначе скатан к переднему борту (машину разгружают). Короба рабочей зоны (от x ≈ −3,7 к задним воротам) помечены userData.cnWork. */
+M.deckSteel=M.deckSteel||std(0x7b8187,.5,.65);
+function cnSemi(x,z,dir,rotY,o){
+  o=o||{}; dir=dir||-1; const load=o.load===undefined?1:o.load, len=17.5, FY=1.28, HW=1.5, SH=2.0, BH=3.0, PT=1.25;
+  const V=[{paint:'white',body:'green',plate:'新F·3K218'},{paint:'blue',body:'blue',plate:'新F·7A635'},{paint:'red',body:'green',plate:'新F·5C902'}][TRK.n++%3];
+  TRK.cur={paint:TRK.paints[V.paint],style:'cn',plate:V.plate,plateKind:'cn'};
+  const BP=TRK.bodyPaint[V.body], lat=std(0x5d6770,.45,.55), tarpM=std(0x2f6f4a,.85,0), tarpD=std(0x285c3e,.9,0);
+  const g=grp(x,0,z,G.trucks); g.rotation.y=rotY||0; g.userData.truck={len,dir,kind:'cn'};
+  const xf=dir*len/2, xr=-dir*len/2, at=t=>xf-dir*t;                     // at(t) — точка в t м от переднего борта
+  /* рама: два двутавра, поперечины-швеллеры, обвязка, пол — стальной лист */
+  for(const s of [-1,1]){ box(len-0.3,0.016,0.16,M.chassis,0,FY-0.16,s*0.46,g); box(len-0.3,0.4,0.012,M.chassis,0,FY-0.37,s*0.46,g);
+    box(len-0.3,0.016,0.16,M.chassis,0,FY-0.57,s*0.46,g).castShadow=false; }
+  for(let i=0;i<Math.floor(len/0.6);i++) box(0.08,0.14,HW*2-0.06,M.chassis,-len/2+0.3+i*0.6,FY-0.082,0,g).castShadow=false;
+  for(const s of [-1,1]){ box(len,0.2,0.08,BP,0,FY-0.1,s*(HW-0.04),g);
+    for(let i=0;i<Math.floor(len/0.5);i++) box(0.24,0.05,0.01,i%2?M.reflWhite:M.reflRed,-len/2+0.25+i*0.5,FY-0.1,s*(HW+0.001),g).castShadow=false;   // световозвращающая лента КНР
+    for(let i=0;i<=Math.round(len/PT);i++) box(0.12,0.12,0.03,M.steelDark,-len/2+i*PT,FY-0.1,s*(HW+0.015),g).castShadow=false; }   // карманы стоек
+  box(len,0.012,HW*2,M.deckSteel,0,FY-0.006,0,g);
+  for(let i=1;i<Math.round(len/2.5);i++) box(0.01,0.002,HW*2-0.04,M.dark,-len/2+i*2.5,FY+0.001,0,g).castShadow=false;   // швы листов
+  /* решётчатые борта: секции по 1,25 м между съёмными стойками; верхний, средний и нижний пояса, вертикальная решётка */
+  const gap=o.gap||null, inGap=(xm,s)=>gap&&s>0&&xm>gap[0]&&xm<gap[1];
+  for(const s of [-1,1]){ const zz=s*(HW-0.04);
+    for(let i=0;i<Math.round(len/PT);i++){ const x0=-len/2+i*PT, x1=x0+PT, xm=(x0+x1)/2, w=PT-0.1; if(inGap(xm,s)) continue;
+      for(const yy of [0.1,0.72,1.36,SH-0.04]) box(w,0.05,0.045,BP,xm,FY+yy,zz,g).castShadow=yy>1.9;
+      for(let k=0;k<7;k++) box(0.024,SH-0.14,0.024,lat,x0+0.12+k*(PT-0.24)/6,FY+SH/2,zz,g).castShadow=k%3===0; }
+    for(let i=0;i<=Math.round(len/PT);i++){ const xp=-len/2+i*PT; if(i===0||i===Math.round(len/PT)) continue; if(inGap(xp-0.01,s)&&inGap(xp+0.01,s)) continue;
+      box(0.08,SH+0.1,0.08,BP,xp,FY+SH/2,zz,g); } }
+  /* передний щит: лист + рёбра, лестница */
+  box(0.06,SH+0.25,HW*2,BP,xf-dir*0.03,FY+(SH+0.25)/2,0,g);
+  for(let i=0;i<5;i++) box(0.07,0.06,HW*2-0.1,BP,xf-dir*0.07,FY+0.35+i*0.42,0,g).castShadow=false;
+  for(let i=0;i<6;i++) box(0.05,0.03,0.4,M.galv,xf+dir*0.03,FY+0.2+i*0.32,0.85,g);
+  for(const s of [-1,1]) box(0.1,SH+0.25,0.1,BP,xf-dir*0.05,FY+(SH+0.25)/2,s*(HW-0.05),g);
+  /* задние решётчатые ворота — две створки на петлях у углов: rdoorSet(g,u) распахивает их к бортам (выгрузка с торца) */
+  g.userData.rdoors=[];
+  for(const s of [-1,1]){ const D=grp(xr+dir*0.02,0,s*HW,g); g.userData.rdoors.push(D); D.userData.side=s; D.userData.dir=dir;
+    for(const yy of [0.06,0.72,1.36,SH-0.04]) box(0.05,0.06,HW-0.06,BP,0,FY+yy,-s*HW/2,D);
+    box(0.06,SH,0.06,BP,0,FY+SH/2,-s*(HW-0.05),D); box(0.06,SH,0.06,BP,0,FY+SH/2,-s*0.06,D);
+    for(let k=0;k<6;k++) box(0.024,SH-0.12,0.024,lat,0,FY+SH/2,-s*(0.2+k*0.22),D).castShadow=false;
+    for(let i=0;i<4;i++) box(0.01,0.05,0.22,i%2?M.reflWhite:M.reflRed,-dir*0.035,FY+0.06,-s*(0.15+i*0.3),D).castShadow=false;
+    for(const yy of [0.2,SH-0.2]) box(0.05,0.1,0.06,M.steelDark,-dir*0.02,FY+yy,-s*0.03,D).castShadow=false;     // петли
+    box(0.03,SH*0.8,0.03,M.galv,-dir*0.04,FY+SH/2,-s*0.12,D).castShadow=false; }                                 // штанга запора (пломба)
+  /* дуги тента (съёмные) и тент */
+  const nb=Math.round(len/PT);
+  for(let i=0;i<=nb;i++){ const xb=-len/2+0.05+i*((len-0.1)/nb);
+    for(const s of [-1,1]){ box(0.04,BH-SH-0.25,0.04,M.galv,xb,FY+SH+(BH-SH-0.25)/2,s*(HW-0.06),g).castShadow=false;
+      const a=box(0.04,0.04,HW*0.62,M.galv,xb,FY+BH-0.13,s*(HW-0.06-HW*0.27),g); a.rotation.x=s*0.42; a.castShadow=false; }
+    box(0.04,0.04,HW*0.9,M.galv,xb,FY+BH,0,g).castShadow=false; }
+  for(const zz of [-0.55,0,0.55]) box(len-0.1,0.03,0.03,M.galv,0,FY+BH-(zz?0.05:0)+0.02,zz,g).castShadow=false;
+  if(o.tarp==='closed'){
+    box(len+0.04,0.025,HW*0.92,tarpM,0,FY+BH+0.035,0,g);
+    for(const s of [-1,1]){ const r=box(len+0.04,0.025,HW*0.68,tarpM,0,FY+BH-0.14,s*(HW*0.73),g); r.rotation.x=s*0.42;
+      box(len+0.04,BH-0.28,0.02,tarpM,0,FY+(BH-0.28)/2+0.02,s*(HW+0.03),g);
+      for(let i=0;i<Math.floor(len/0.6);i++) box(0.012,0.12,0.012,M.dark,-len/2+0.3+i*0.6,FY-0.0,s*(HW+0.045),g).castShadow=false; }   // петли троса
+    box(0.02,BH-0.05,HW*2+0.06,tarpD,xr-dir*0.06,FY+BH/2,0,g);                                                     // задний полог — снаружи ворот
+    for(const s of [-1,1]) box(len,0.012,0.012,M.galv,0,FY+0.06,s*(HW+0.05),g).castShadow=false;                   // таможенный трос
+  } else { const rl=cyl(0.24,HW*2+0.05,tarpM,xf-dir*0.55,FY+BH+0.2,0,g,16); rl.rotation.x=Math.PI/2;              // тент скатан к переднему борту
+    for(const s of [-1,1]) box(0.03,0.5,0.06,M.blackPl,xf-dir*0.55,FY+BH-0.05,s*(HW-0.1),g).castShadow=false; }
+  /* груз: поперечные секции по 1,24 м, в секции — стопки одного типа (до 1,7 м); от x ≈ −3,7 к задним воротам — рабочая зона */
+  if(load){ const R=LOOK.R, order=[1,2,3,0,1,3,2,0,1,2,3,0]; let x0=-len/2+0.1, oi=0, work=false;
+    while(x0<len/2-0.7){ if(!work&&x0>=-3.7) work=true;
+      const ti=order[oi++%order.length], T=CTYPE[ti], cross=T.l>0.62;
+      const dx=cross?T.w:T.l, dz=cross?T.l:T.w, nx=Math.max(1,Math.floor(1.22/dx)), nz=Math.floor((HW*2-0.16)/dz);
+      const layers=Math.min(Math.floor(1.7/T.h),2+((R()*3)|0));
+      for(let i=0;i<nx;i++) for(let j=0;j<nz;j++){ const lay=Math.max(1,layers-((R()<0.18)?1:0));
+        for(let k=0;k<lay;k++){ const m=cartonMesh(ti); m.position.set(x0+dx/2+i*dx+(R()-.5)*0.02,FY+0.02+k*T.h,-HW+0.08+dz/2+j*dz+(R()-.5)*0.02);
+          m.rotation.y=(cross?Math.PI/2:0)+(R()-.5)*0.04; if(work) m.userData.cnWork=true; g.add(m); } }
+      x0+=Math.max(nx*dx,0.6)+0.04; } }
+  /* полуприцеп: три оси сзади, опорные стойки, защита, ящики, ресиверы, задний свес */
+  const AXS=[1.4,2.71,4.02].map(t=>xr+dir*t), Rw=0.5;
+  for(const wx of AXS){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.91,Rw-0.02,0.72); }
+  const LG=at(3.15);
+  for(const s of [-1,1]){ box(0.11,FY-0.57-0.12,0.11,M.chassis,LG,0.12+(FY-0.57-0.12)/2,s*0.85,g); box(0.26,0.04,0.26,M.chassis,LG,0.1,s*0.85,g).castShadow=false;
+    const br=box(0.05,0.05,0.9,M.chassis,LG+dir*0.25,0.55,s*0.62,g); br.rotation.x=s*0.6; }
+  box(0.06,0.06,1.7,M.chassis,LG,0.45,0,g).castShadow=false; rbox(0.2,0.14,0.12,0.02,M.steelDark,LG,0.6,1.0,g);  // поперечная связь и ручка домкрата
+  for(const s of [-1,1]) for(const yy of [0.55,0.8]) box(Math.abs((AXS[2]+dir*0.7)-(LG-dir*0.4)),0.07,0.04,M.greyPl,((AXS[2]+dir*0.7)+(LG-dir*0.4))/2,yy,s*(HW-0.08),g);
+  rbox(1.0,0.45,0.5,0.06,M.greyPl,at(6.0),0.72,-(HW-0.35),g); { const sw=grp(at(8.2),0.78,0,g); sw.rotation.z=Math.PI/2; tire(sw,0,0,0,0.5,0.3,'x'); }   // ящик и запасное колесо под рамой
+  for(const s of [-1,1]){ const at2=cyl(0.14,0.9,M.chassis,at(10.5),0.8,s*0.22,g,12); at2.rotation.z=Math.PI/2; }
+  for(const s of [-1,1]) box(0.03,0.5,0.62,M.blackPl,AXS[2]+dir*0.75,0.32,s*1.12,g).castShadow=false;           // брызговики
+  for(const s of [-1,1]){ box(0.06,0.14,0.36,M.blackPl,xr-dir*0.06,0.95,s*1.1,g); box(0.02,0.1,0.3,M.lensRed,xr-dir*0.095,0.95,s*1.1,g).castShadow=false; }
+  box(0.12,0.16,2.3,M.greyPl,xr-dir*0.2,0.5,0,g);
+  for(let i=0;i<8;i++) box(0.01,0.12,0.26,i%2?M.reflWhite:M.reflRed,xr-dir*0.265,0.5,-0.98+i*0.28,g).castShadow=false;
+  for(const s of [-1,1]) box(0.09,0.42,0.09,M.chassis,xr-dir*0.16,0.72,s*0.72,g);
+  const rp=new THREE.Mesh(new THREE.PlaneGeometry(0.44,0.22),plateMat(V.plate,'cn')); rp.position.set(xr-dir*0.27,0.74,0.45); rp.rotation.y=-dir*Math.PI/2; g.add(rp);
+  for(let i=0;i<Math.round(len/2.0);i++) for(const s of [-1,1]) box(0.09,0.05,0.03,M.lensAmber,-len/2+0.6+i*2.0,FY-0.06,s*(HW+0.03),g).castShadow=false;
+  /* тягач 6×4: седло под шкворнем (1,2 м от переднего борта), ведущие оси за ним, передняя — под кабиной */
+  const KP=at(1.2), AXD=[KP-dir*(0.3-0.675),KP-dir*(0.3+0.675)], cx=AXD[0]+dir*3.3;
+  ao(Math.abs((xr-dir*0.3)-(cx+dir*1.25)),3.5,((xr-dir*0.3)+(cx+dir*1.25))/2,0,g);
+  cab(g,cx,dir,true);
+  for(const s of [-1,1]) box(Math.abs((AXD[1]-dir*0.8)-(cx+dir*0.6)),0.22,0.09,M.chassis,((AXD[1]-dir*0.8)+(cx+dir*0.6))/2,0.5,s*0.45,g);
+  for(const s of [-1,1]){ tire(g,cx,0.54,s*1.03,0.54,0.315,'z'); fender(g,cx,s*1.03,0.54,0.42); }
+  for(const wx of AXD){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.91,Rw-0.02,0.72); }
+  box(0.9,0.06,0.85,M.steelDark,KP,0.67,0,g); box(0.5,0.1,1.1,M.chassis,KP,0.59,0,g);                            // седло
+  rbox(0.62,0.5,0.55,0.06,M.greyPl,cx-dir*1.75,0.62,-1.0,g); { const tk=cyl(0.27,0.85,M.alu,cx-dir*1.75,0.62,1.0,g,18); tk.rotation.z=Math.PI/2; }   // АКБ и бак
+  for(const s of [-1,1]) box(0.03,0.5,0.62,M.blackPl,AXD[1]-dir*0.75,0.32,s*1.12,g).castShadow=false;
+  TRK.cur=null;
+  return g;
+}
 function rdoorSet(g,u){ (g.userData.rdoors||[]).forEach(D=>{ D.rotation.y=-D.userData.side*D.userData.dir*u*2.85; }); }   // u 0…1: закрыто … распахнуто к бортам
 /* ---------- казахстанский автопоезд «тандем»: грузовик + прицеп, шторные кузова ----------
    Кузов: рама с поперечинами, дощатый пол, алюминиевая обвязка с такелажными проушинами, передний борт с рёбрами,
@@ -334,15 +438,19 @@ function tandem(x,z,rotY,o){
    Кузов по образцу на фото заказчика: под шторой — металлический каркас борта (стойки из профильной трубы
    и горизонтальные обрешётины), дуги и прогоны крыши, тёмный задний портал с дверями, пол из ламинированной фанеры.
    В середине правого (обращённого в зал) борта каждого кузова — проём без обрешётки: через него подают груз.
-   Размеры модели: кузов 9,9 м, внутри 9,8 × 2,48 × 2,98 м ≈ 72,4 м³, два кузова ≈ 145 м³ (уточнять по паспорту ТС). */
-const KZB={FY:0.95,IH:2.98,HW:1.275,L:9.9,GAP:1.1};
+   Размеры (15.10, по таблице заказчика «145 м³ tentli, 2 seksiyali, B-double»): секция 1 внутри 7,57 × 2,61 × 3,13 м, секция 2 —
+   9,70 × 2,64 × 3,28 м (61,8 + 84,0 ≈ 145 м³, реально загружают 125–130 м³); грузоподъёмность 29–29,9 т, снаряжённая масса 16–18 т,
+   полная 45–47 т. Кузов модели длиннее внутреннего на 0,1 м (передний борт и задний портал), шире — на 0,07 м (стойки каркаса). */
+const KZB={FY:0.95,IH:2.98,HW:1.275,L:9.9,GAP:1.1,S1:{L:7.67,HW:1.34,IH:3.13},S2:{L:9.80,HW:1.355,IH:3.28}};
 M.plyFloor=std(0x716b63,.72,.04); M.frameDark=std(0x3f454c,.5,.55); M.bulkTarp=std(0xa9adb0,.85,0);
 function frameBody(g,off,len,o){
-  o=o||{}; const FY=KZB.FY, IH=KZB.IH, HW=KZB.HW, RY=FY+IH, OW=KZB.GAP;
+  o=o||{}; const FY=KZB.FY, IH=o.IH||KZB.IH, HW=o.HW||KZB.HW, RY=FY+IH, OW=KZB.GAP, nk=o.neck||0;
   const b=grp(off,0,0,g); b.userData.body={len,FY,IH,HW,gap:OW};
-  /* рама, поперечины, пол, обвязка */
-  for(const s of [-1,1]) box(len,0.2,0.09,M.chassis,0,FY-0.24,s*0.42,b);
-  for(let i=0;i<Math.round(len/0.82);i++) box(0.07,0.1,HW*2-0.1,M.chassis,-len/2+0.3+i*0.82,FY-0.09,0,b).castShadow=false;
+  /* рама, поперечины, пол, обвязка; спереди у полуприцепа — «гусь» над седлом (узкая плита и шкворень, без лонжеронов: под ним колёса тягача) */
+  for(const s of [-1,1]) box(len-nk,0.2,0.09,M.chassis,nk/2,FY-0.24,s*0.42,b);
+  for(let i=0;i<Math.round((len-nk)/0.82);i++) box(0.07,0.1,HW*2-0.1,M.chassis,-len/2+nk+0.3+i*0.82,FY-0.09,0,b).castShadow=false;
+  if(nk){ box(nk,0.1,1.0,M.chassis,-len/2+nk/2,FY-0.1,0,b); box(0.06,0.1,HW*2-0.1,M.chassis,-len/2+0.05,FY-0.09,0,b).castShadow=false;
+    cyl(0.05,0.12,M.steelDark,-len/2+o.kp,FY-0.21,0,b,12); }
   box(len,0.06,HW*2,M.plyFloor,0,FY-0.01,0,b);
   for(let i=1;i<Math.round(len/1.25);i++) box(0.012,0.002,HW*2-0.1,M.dark,-len/2+i*1.25,FY+0.021,0,b).castShadow=false;   // стыки листов фанеры
   for(const s of [-1,1]){
@@ -401,38 +509,49 @@ function frameBody(g,off,len,o){
 }
 function tandem145(x,z,rotY,o){
   o=o||{}; const g=grp(x,0,z,G.trucks); g.rotation.y=rotY||0; g.userData.truck={kind:'kz145'};
-  const plate=o.plate||'248 KZA 13', L=KZB.L, O1=-5.8, O2=O1+L+1.0, cx=-12.9, R1=0.42, R2=0.40;
+  const plate=o.plate||'248 KZA 13', S1=KZB.S1, S2=KZB.S2, cx=-12.9, FY=KZB.FY, Rw=0.40;
+  /* тягач 6×4: передняя ось — под кабиной, ведущие — через 3,3 и 4,65 м; седло на 3,5 м; шкворень секции 1 — в 1,2 м от её переднего борта */
+  const AXD=[cx+3.3,cx+4.65], KP=cx+3.5, f1=KP-1.2, O1=f1+S1.L/2, r1=O1+S1.L/2;
+  /* секция 1: сзади тележка из двух осей и сцепное устройство B-link; шкворень секции 2 — в 0,7 м от её переднего борта, зазор между кузовами 0,8 м */
+  const AX1=[r1-0.4,r1+0.95], f2=r1+0.8, KP2=f2+0.7, O2=f2+S2.L/2, r2=O2+S2.L/2, AX2=[O2+1.0,O2+2.31,O2+3.62];
+  g.userData.ax={kp:KP,lead:(AX1[0]+AX1[1])/2,O1,O2,kp2:KP2,rear:AX2[1]};
   TRK.cur={paint:TRK.paints.white,style:'eu',plate,plateKind:'kz'};
-  ao(31,3.6,-1.6,0,g);
-  /* грузовик */
-  const b1=frameBody(g,O1,L,{lanes:o.lanes1,tall:o.tall,open:o.open}); g.userData.b1=b1;
+  ao(r2+0.2-(cx-1.3),3.7,(r2+0.2+cx-1.3)/2,0,g);
+  /* тягач */
   cab(g,cx,-1,true);
-  for(const s of [-1,1]) box(11.6,0.22,0.09,M.chassis,cx+5.6,0.7,s*0.45,g);
+  for(const s of [-1,1]) box(AXD[1]+0.9-(cx-0.6),0.22,0.09,M.chassis,(AXD[1]+0.9+cx-0.6)/2,0.48,s*0.45,g);       // лонжероны — ниже рамы полуприцепа
   for(const s of [-1,1]) tire(g,cx,0.54,s*1.03,0.54,0.315,'z');
-  for(const wx of [O1+1.3,O1+2.55]){ wheel(g,wx,0,R1,true); for(const s of [-1,1]) fender(g,wx,s*0.95,R1,0.72); }
-  for(const s of [-1,1]) for(const yy of [0.42,0.64]) box(4.6,0.06,0.04,M.greyPl,O1-1.9,yy,s*1.2,g);          // боковая защита
-  for(const s of [-1,1]) for(const xx of [O1-3.9,O1-1.9,O1+0.1]) box(0.05,0.34,0.04,M.greyPl,xx,0.55,s*1.2,g).castShadow=false;
-  rbox(0.9,0.4,0.5,0.06,M.greyPl,O1-3.2,0.58,-0.95,g);                                     // инструментальный ящик
-  const r1=O1+L/2;
-  for(const s of [-1,1]){ box(0.08,0.14,0.42,M.blackPl,r1+0.05,0.74,s*0.95,g); box(0.02,0.1,0.34,M.lensRed,r1+0.095,0.74,s*0.95,g).castShadow=false; }
-  box(0.1,0.12,2.3,M.greyPl,r1+0.02,0.5,0,g);
-  for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,O1+3.45,0.26,s*1.12,g).castShadow=false;
-  /* сцепка: жёсткое дышло прицепа с центральными осями */
-  box(0.3,0.16,0.3,M.chassis,r1+0.1,0.6,0,g);
-  box(O2-r1-0.2,0.12,0.16,M.chassis,(r1+O2)/2+0.1,0.6,0,g);
-  /* прицеп */
-  const b2=frameBody(g,O2,L,{lanes:o.lanes2,tall:o.tall,open:o.open}); g.userData.b2=b2;
-  for(const wx of [O2-0.68,O2+0.68]){ wheel(g,wx,0,R2,true); for(const s of [-1,1]) fender(g,wx,s*0.95,R2,0.72); }
-  for(const s of [-1,1]) for(const yy of [0.42,0.64]) for(const e of [-1,1]) box(2.9,0.06,0.04,M.greyPl,O2+e*3.05,yy,s*1.2,g);
-  rbox(0.8,0.38,0.5,0.06,M.greyPl,O2-2.9,0.56,0.95,g);                                     // ящик для ремней и упоров
-  for(const s of [-1,1]){ const at=cyl(0.12,0.8,M.chassis,O2+2.6,0.6,s*0.2,g,12); at.rotation.z=Math.PI/2; }
-  for(const s of [-1,1]) for(const e of [-1,1]){ box(0.07,0.5,0.07,M.chassis,O2+e*3.9,0.42,s*0.6,g); box(0.2,0.03,0.2,M.chassis,O2+e*3.9,0.17,s*0.6,g).castShadow=false; }   // опорные стойки
-  const rx=O2+L/2+0.05;
+  for(const wx of AXD){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.95,Rw,0.72); }
+  box(0.9,0.09,0.85,M.steelDark,KP,0.745,0,g); box(0.5,0.12,1.2,M.chassis,KP,0.64,0,g);                         // седло на подставке
+  for(const s of [-1,1]) for(const yy of [0.36,0.56]) box(AXD[0]-0.65-(cx+1.25),0.06,0.04,M.greyPl,(AXD[0]-0.65+cx+1.25)/2,yy,s*1.2,g);   // боковая защита
+  rbox(0.62,0.5,0.55,0.06,M.greyPl,cx+1.75,0.62,-1.0,g); cyl(0.27,0.8,M.alu,cx+1.7,0.62,1.0,g,18).rotation.z=Math.PI/2;   // ящик АКБ и топливный бак
+  for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,AXD[1]+0.62,0.26,s*1.12,g).castShadow=false;               // брызговики
+  /* секция 1 (полуприцеп на седле) */
+  const b1=frameBody(g,O1,S1.L,{lanes:o.lanes1,tall:o.tall,open:o.open,HW:S1.HW,IH:S1.IH,neck:2.4,kp:1.2}); g.userData.b1=b1;
+  for(const wx of AX1){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.95,Rw,0.72); }
+  for(const s of [-1,1]) box(r1+1.35-(r1-1.0),0.2,0.09,M.chassis,(r1+1.35+r1-1.0)/2,0.6,s*0.42,g);               // удлинитель рамы под B-link
+  box(0.9,0.09,0.85,M.steelDark,KP2,0.745,0,g); box(0.6,0.1,1.0,M.chassis,KP2,0.66,0,g);                           // B-link: седло под шкворнем секции 2
+  for(const s of [-1,1]) for(const e of [-1,1]){ box(0.07,0.5,0.07,M.chassis,f1+2.7,0.42,s*0.6+e*0.02,g); }        // опорные стойки
+  for(const s of [-1,1]) box(0.2,0.03,0.2,M.chassis,f1+2.7,0.17,s*0.6,g).castShadow=false;
+  for(const s of [-1,1]) for(const yy of [0.42,0.64]) box(AX1[0]-0.6-(f1+3.0),0.06,0.04,M.greyPl,(AX1[0]-0.6+f1+3.0)/2,yy,s*1.25,g);
+  for(const s of [-1,1]) for(const xx of [f1+3.0,(f1+AX1[0])/2+1.2,AX1[0]-0.6]) box(0.05,0.34,0.04,M.greyPl,xx,0.55,s*1.25,g).castShadow=false;
+  rbox(0.9,0.4,0.5,0.06,M.greyPl,O1+0.3,0.58,-1.0,g);                                                             // инструментальный ящик
+  for(const s of [-1,1]){ box(0.08,0.12,0.3,M.blackPl,r1+0.02,0.86,s*1.15,g); box(0.02,0.08,0.24,M.lensAmber,r1+0.065,0.86,s*1.15,g).castShadow=false; }   // габариты на стыке
+  for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,AX1[1]+0.62,0.26,s*1.12,g).castShadow=false;
+  /* секция 2 (полуприцеп на B-link) */
+  const b2=frameBody(g,O2,S2.L,{lanes:o.lanes2,tall:o.tall,open:o.open,HW:S2.HW,IH:S2.IH,neck:1.6,kp:0.7}); g.userData.b2=b2;
+  for(const wx of AX2){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.95,Rw,0.72); }
+  for(const s of [-1,1]) for(const e of [-1,1]){ box(0.07,0.5,0.07,M.chassis,f2+2.3,0.42,s*0.6+e*0.02,g); }
+  for(const s of [-1,1]) box(0.2,0.03,0.2,M.chassis,f2+2.3,0.17,s*0.6,g).castShadow=false;
+  for(const s of [-1,1]) for(const yy of [0.42,0.64]) box(AX2[0]-0.6-(f2+2.6),0.06,0.04,M.greyPl,(AX2[0]-0.6+f2+2.6)/2,yy,s*1.25,g);
+  rbox(0.8,0.38,0.5,0.06,M.greyPl,O2-1.6,0.56,1.0,g);                                                             // ящик для ремней и упоров
+  for(const s of [-1,1]){ const at=cyl(0.12,0.8,M.chassis,O2-0.4,0.6,s*0.2,g,12); at.rotation.z=Math.PI/2; }        // ресиверы
+  const rx=r2+0.05;
   box(0.12,0.14,2.3,M.greyPl,rx+0.08,0.46,0,g);
   for(const s of [-1,1]){ box(0.08,0.14,0.42,M.blackPl,rx,0.74,s*0.95,g); box(0.02,0.1,0.34,M.lensRed,rx+0.045,0.74,s*0.95,g).castShadow=false; }
   for(let i=0;i<10;i++) box(0.01,0.1,0.2,i%2?M.reflWhite:M.reflRed,rx+0.145,0.46,-1.05+i*0.23,g).castShadow=false;
   const rp=new THREE.Mesh(new THREE.PlaneGeometry(0.52,0.12),plateMat(plate,'kz')); rp.position.set(rx+0.15,0.64,0); rp.rotation.y=Math.PI/2; g.add(rp);
-  for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,O2+1.6,0.26,s*1.12,g).castShadow=false;
+  for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,AX2[2]+0.62,0.26,s*1.12,g).castShadow=false;
   TRK.cur=null;
   return g;
 }

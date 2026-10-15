@@ -15,7 +15,7 @@
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/film_restore.js` | вход/выход из фильма возвращает сцену как была | в `diff` только `n` (число узлов: объекты фильма строятся один раз) |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/user_edits_in_film.js` | правка пользователя видна в фильме, якоря на месте | `"diff":[]`, есть `warn` по стойке на маршруте |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/pick.js` | выбор объектов мышью (подпись `sig`) | сравнивать `sig` до/после |
-| `NOBATCH=1 node tools/ev.js Sklad4_realistic_film.html tools/checks/obb.js` | пересечения коробов в фильме | нет постоянных пересечений > 7 мм |
+| `NOBATCH=1 node tools/ev.js Sklad4_realistic_film.html tools/checks/obb.js` | пересечения коробов в фильме (с 15.10 снова работает: `F.WTbox` — объект) | нет постоянных пересечений > 7 мм; краткие (1–5 кадров) при передаче короба — допустимы |
 | `bash tools/run_coll.sh` | столкновения в фильме: погрузчик, вилы, стойка, люди | пустой список |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/walk_knock.js` | обход: наезд погрузчика — падение и подъём | `hits` 1, камера опускается до ~0,23 м и через ~3,5 с встаёт |
 | `node tools/simrun.js Sklad4_realistic_film.html 30000 3` | живой процесс: два полных цикла (третий аргумент — на каком цикле остановиться, по умолчанию 2): погрузчик, вилы и стойка на вилах против препятствий (`HITS`), люди рядом с погрузчиком (`HUM`), люди против неподвижных препятствий, аппаратов DWS и стоек (`HP`, с 14.10); ~40 мин счёта | доходит до `=== НОВЫЙ ЦИКЛ 3`, `HITS` пусто, `HUM {}`, `HP []` |

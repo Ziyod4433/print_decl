@@ -160,9 +160,12 @@
     RP.mat['h'+col]=m; return m; }
   const HAIR=['#16120f','#1a1512','#0f0d0c','#2b2019','#3a2b20','#1f1a17','#5b5752'];
   function rpmMat(src,key,fn){ const k=src.uuid+key; if(RP.mat[k]) return RP.mat[k]; const m=src.clone(); fn(m); RP.mat[k]=m; return m; }
+  /* рост (15.10): макушка модели при масштабе 1 — 1,866 м; люди 1,70…1,84 м (было 1,79…1,94). Водитель погрузчика — как был:
+     его руки и ноги стоят по ИК на руле, джойстиках и педалях погрузчика, а погрузчик не меняем */
+  RP.scl=H=>{ const p=H.root.parent, fk=H.fk||(p&&p.userData&&p.userData.rig); return fk?0.96+0.08*H.var.h:0.911+0.075*H.var.h; };
   function rpmAttach(H){
     if(H.rb) return; const v=H.var, prof=H.prof||{}, guard=!!prof.guard;
-    const c=THREE.SkeletonUtils.clone(RP.src.scene); c.name='RPM'; c.scale.setScalar(0.96+0.08*v.h);
+    const c=THREE.SkeletonUtils.clone(RP.src.scene); c.name='RPM'; c.scale.setScalar(RP.scl(H));
     H.rig.add(c); H.rpm=c; H.rb={}; c.traverse(o=>{ if(o.isBone) H.rb[o.name]=o; });
     const J=guard?'#2a2e35':JACKET[(v.jacket*JACKET.length)|0], Pn=guard?'#2a2d33':PANTS[(v.pants*PANTS.length)|0];
     const sk=SKIN[(v.skin*SKIN.length)|0];

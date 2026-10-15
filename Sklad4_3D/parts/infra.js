@@ -15,7 +15,7 @@
   /* спринклерная система: три магистрали вдоль зала, ветки через 3,5 м, оросители */
   const red=std(0xb3261e,.5,.3), mains=[8.05,24.05,40.05];
   mains.forEach(x=>{ const y=roofY(x)-1.32; cyl(0.056,D-0.6,red,x,y,D/2,G.roof,12).rotation.x=Math.PI/2;
-    for(let z=3.5;z<D;z+=7.05) box(0.04,0.95,0.04,M.galv,x,y+0.5,z,G.roof); });   // подвесы
+    for(let z=3.55;z<D;z+=PITCH) box(0.04,0.95,0.04,M.galv,x,y+0.5,z,G.roof); });   // подвесы
   const br=[], hd=[];
   for(let z=1.8;z<D-1;z+=3.525) mains.forEach(x=>{ br.push([x,z]); for(const k of [-2,-1,1,2]) hd.push([x+k*1.85,z]); });
   const bI=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.024,0.024,7.6,8),red,br.length);
@@ -29,7 +29,7 @@
     for(const s of [-1,1]) box(0.012,0.12,D-0.4,M.galv,x+0.75+s*0.16,y+0.04,D/2,G.roof).castShadow=false; });
 }
 /* ---------- пожарные шкафы у колонн (красные, как на объекте) ---------- */
-[[16.05,7.57,0],[32.05,7.57,0],[16.05,20.63,Math.PI],[32.05,20.63,Math.PI]].forEach((p,i)=>{
+[[16.05,COLZ[0]+0.52,0],[32.05,COLZ[0]+0.52,0],[16.05,COLZ[2]-0.52,Math.PI],[32.05,COLZ[2]-0.52,Math.PI]].forEach((p,i)=>{
   const g=grp(p[0],0,p[1]); g.rotation.y=p[2];
   const rd=std(0xc8221c,.45,.25);
   rbox(0.7,1.5,0.26,0.03,rd,0,0.85,0,g);

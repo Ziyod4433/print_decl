@@ -8,7 +8,9 @@
 import re, sys, os, glob
 ROOT=os.path.dirname(os.path.abspath(__file__))
 SRC=os.path.join(ROOT,'base','Sklad4_realistic.html')
-OUT=sys.argv[1] if len(sys.argv)>1 else os.path.join(ROOT,'Sklad4_realistic_film.html')
+ARGS=[a for a in sys.argv[1:] if not a.startswith('--')]
+ABC='--abc' in sys.argv                                       # сборка с вариантами хранения A/B/C (abc/*.js)
+OUT=ARGS[0] if ARGS else os.path.join(ROOT,'Sklad4_variants_ABC.html' if ABC else 'Sklad4_realistic_film.html')
 P=os.path.join(ROOT,'parts')+os.sep
 s=open(SRC,encoding='utf-8').read()
 part=lambda n: open(P+n,encoding='utf-8').read()
@@ -637,6 +639,16 @@ rep("  const g=grp(-7.6,0,GATES[1].z+6.2); g.rotation.y=Math.PI/2;","  const g=g
 rep("  tagEq(g,2,[-7,1.5,GATES[1].z+6.2],14);","  tagEq(g,2,[-19.0,1.5,8.0],14);")
 rep("[[-6.2,GATES[1].z-5.2,0],[W+6.2,GATES[1].z+8.5,Math.PI]].forEach((p,i)=>{","[[-9.0,GATES[1].z-12.0,0],[W+6.2,GATES[1].z+8.5,Math.PI]].forEach((p,i)=>{")
 rep("  if(i===0) tagEq(g,14,[-6.2,2.5,GATES[1].z-5.2],14); else tag(g,EQ[14]);","  if(i===0) tagEq(g,14,[-9.0,2.5,GATES[1].z-12.0],14); else tag(g,EQ[14]);")
+
+# ---------- 27. варианты хранения A/B/C по концепции Buraq 2026 (15.10): только в сборке python3 build.py --abc ----------
+if ABC:
+    AD=os.path.join(ROOT,'abc')
+    abc_js=''.join(open(f,encoding='utf-8').read() for f in sorted(glob.glob(os.path.join(AD,'*.js'))) if not f.endswith('capture.js'))
+    rep("\nbatchStatic();\n","\n"+open(os.path.join(AD,'capture.js'),encoding='utf-8').read()+"\nbatchStatic();\n")   # текущая планировка — в свои группы до слияния
+    rep("\nedUI(); libPanel();\n\nresize();","\n"+abc_js+"\nedUI(); libPanel();\n\nresize();")
+    rep("if((frame&7)===0&&SIM.ui) SIM.ui(); }","if((frame&7)===0&&SIM.ui) SIM.ui(); }\n  if(typeof ABC!=='undefined') ABC.tick(Math.min(dtRaw,0.25));")
+    rep("const EDKEY='sklad4.edit.'+LAYOUT_VER;","const EDKEY='sklad4abc.edit.'+LAYOUT_VER;")   # своя правка: не смешивается с основной моделью
+    rep("<title>Buraq Logistics · Склад №4 блок 4-1 · Yuzhe Park Хоргос · 3D (реалистичный рендер)</title>","<title>Buraq · Склад №4 · варианты хранения A/B/C</title>")
 
 # ---------- 20. блок правки в файле и исходный текст файла для кнопки «Скачать» ----------
 i=s.index("<script>/* модель человека: Ready Player Me")

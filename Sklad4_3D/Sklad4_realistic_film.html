@@ -8505,12 +8505,13 @@ function frameBody(g,off,len,o){
   /* каркас бортов: стойки из трубы и шесть обрешётин; в середине правого борта — проём */
   const np=Math.round((len-0.3)/0.96), px=i=>-len/2+0.15+i*((len-0.3)/np), RAILS=[0.38,0.8,1.22,1.64,2.06,2.48], zl=HW-0.035;
   for(const s of [-1,1]){
-    for(let i=0;i<=np;i++){ const x=px(i); if(s>0&&Math.abs(x)<OW-0.02) continue; box(0.045,IH-0.14,0.045,M.galv,x,FY+IH/2,s*zl,b); }
+    for(let i=0;i<=np;i++){ const x=px(i); if(s>0&&(Math.abs(x)<OW-0.02||o.palletSide&&i>0&&i<np)) continue; box(0.045,IH-0.14,0.045,M.galv,x,FY+IH/2,s*zl,b); }
+    if(s>0&&o.palletSide) continue;                                       // o.palletSide: правый борт без обрешётки и средних стоек — погрузка паллет вилами по всей длине
     if(s<0) for(const y of RAILS) box(len-0.3,0.035,0.022,M.galv,0,FY+y,s*(zl-0.03),b).castShadow=false;
     else for(const y of RAILS) for(const e of [-1,1]){ const a=e<0?-len/2+0.15:OW, c=e<0?-OW:len/2-0.15;
       box(c-a,0.035,0.022,M.galv,(a+c)/2,FY+y,zl-0.03,b).castShadow=false; }
   }
-  for(const e of [-1,1]) box(0.06,IH-0.14,0.06,M.alu,e*OW,FY+IH/2,zl,b);                    // стойки проёма
+  if(!o.palletSide) for(const e of [-1,1]) box(0.06,IH-0.14,0.06,M.alu,e*OW,FY+IH/2,zl,b);    // стойки проёма
   for(const e of [-1,1]) box(0.012,0.5,0.045,M.reflYellow,e*OW,FY+0.5,zl+0.031,b).castShadow=false;   // метки на стойках проёма
   /* левая штора закрыта: полотно, ремни, пряжки */
   { const L=len-0.18; box(L,IH-0.2,0.035,M.tarp,-0.02,FY+IH/2,-(HW+0.02),b);
@@ -8551,7 +8552,7 @@ function tandem145(x,z,rotY,o){
   rbox(0.62,0.5,0.55,0.06,M.greyPl,cx+1.75,0.62,-1.0,g); cyl(0.27,0.8,M.alu,cx+1.7,0.62,1.0,g,18).rotation.z=Math.PI/2;   // ящик АКБ и топливный бак
   for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,AXD[1]+0.62,0.26,s*1.12,g).castShadow=false;               // брызговики
   /* секция 1 (полуприцеп на седле) */
-  const b1=frameBody(g,O1,S1.L,{lanes:o.lanes1,tall:o.tall,open:o.open,HW:S1.HW,IH:S1.IH,neck:2.4,kp:1.2}); g.userData.b1=b1;
+  const b1=frameBody(g,O1,S1.L,{lanes:o.lanes1,tall:o.tall,open:o.open,HW:S1.HW,IH:S1.IH,neck:2.4,kp:1.2,palletSide:o.palletSide}); g.userData.b1=b1;
   for(const wx of AX1){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.95,Rw,0.72); }
   for(const s of [-1,1]) box(r1+1.35-(r1-1.0),0.2,0.09,M.chassis,(r1+1.35+r1-1.0)/2,0.6,s*0.42,g);               // удлинитель рамы под B-link
   box(0.9,0.09,0.85,M.steelDark,KP2,0.745,0,g); box(0.6,0.1,1.0,M.chassis,KP2,0.66,0,g);                           // B-link: седло под шкворнем секции 2
@@ -8563,7 +8564,7 @@ function tandem145(x,z,rotY,o){
   for(const s of [-1,1]){ box(0.08,0.12,0.3,M.blackPl,r1+0.02,0.86,s*1.15,g); box(0.02,0.08,0.24,M.lensAmber,r1+0.065,0.86,s*1.15,g).castShadow=false; }   // габариты на стыке
   for(const s of [-1,1]) box(0.03,0.42,0.62,M.blackPl,AX1[1]+0.62,0.26,s*1.12,g).castShadow=false;
   /* секция 2 (полуприцеп на B-link) */
-  const b2=frameBody(g,O2,S2.L,{lanes:o.lanes2,tall:o.tall,open:o.open,HW:S2.HW,IH:S2.IH,neck:1.6,kp:0.7}); g.userData.b2=b2;
+  const b2=frameBody(g,O2,S2.L,{lanes:o.lanes2,tall:o.tall,open:o.open,HW:S2.HW,IH:S2.IH,neck:1.6,kp:0.7,palletSide:o.palletSide}); g.userData.b2=b2;
   for(const wx of AX2){ wheel(g,wx,0,Rw,true); for(const s of [-1,1]) fender(g,wx,s*0.95,Rw,0.72); }
   for(const s of [-1,1]) for(const e of [-1,1]){ box(0.07,0.5,0.07,M.chassis,f2+2.3,0.42,s*0.6+e*0.02,g); }
   for(const s of [-1,1]) box(0.2,0.03,0.2,M.chassis,f2+2.3,0.17,s*0.6,g).castShadow=false;

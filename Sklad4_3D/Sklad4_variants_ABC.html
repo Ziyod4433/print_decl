@@ -13022,7 +13022,7 @@ function curExtras(){                                        // объекты �
   (ZCUR.userData.inPlace||[]).forEach(o=>L.push(o));                                         // люди, подписи и адреса текущей планировки — на своих местах
   return [...new Set(L)]; }
 const origLibRemove=libRemove;
-function despawn(){ spawned.forEach(g=>{ if(g&&g.parent) origLibRemove(g); }); spawned=[]; if(ED.sel&&!ED.sel.parent) edDeselect(); }
+function despawn(){ const gone=spawned.filter(g=>g&&g.parent); gone.forEach(g=>origLibRemove(g)); spawned=[]; if(ED.sel&&!ED.sel.parent) edDeselect(); return gone; }
 function recsOf(v){ const S=ST(); if(!Array.isArray(S[v])){ S[v]=GEN[v]().recs; edSave(); } return S[v]; }
 let vN={A:0,B:0,C:0};
 function setVariant(v){
@@ -13030,7 +13030,7 @@ function setVariant(v){
   if(SIMX.on) SIMX.stop();
   if(typeof SIM!=='undefined'&&SIM.on) SIM.exit();
   if(ED.sel) edDeselect();
-  despawn(); if(fixG){ disposeTree(fixG); fixG=null; }
+  const gone=despawn(); if(fixG){ if(fixG.parent) fixG.parent.remove(fixG); gone.push(fixG); fixG=null; }
   if(v==='cur'){
     if(hiddenCur){ hiddenCur.forEach(([o,vis])=>o.visible=vis); hiddenCur=null; }
     ZCUR.visible=true; if(pickCur){ pickCur.forEach(o=>{ if(!pickables.includes(o)) pickables.push(o); }); pickCur=null; }
@@ -13043,12 +13043,23 @@ function setVariant(v){
     R.forEach(r=>{ const g=libSpawn(r.k,r.o,r.p,r.r,r.i); if(g){ g.userData.abcV=v; spawned.push(g); if(g.userData.rig&&g.userData.rig.driver&&g.userData.rig.driver.userData.H) rigSit(g.userData.rig.driver); } });
     fixG=buildFixtures(v);
   }
+  freeTrees(gone);   /* после сборки нового: общие материалы моделей остаются, текстуры и материалы прежнего варианта освобождаются */
   VCUR=v; const S=ST(); S.v=v; edSave();
   scene.updateMatrixWorld(true); renderer.shadowMap.needsUpdate=true;
   if(typeof WALKP!=='undefined'&&walk){ WALKP.build(); }
   UIX.sync();
 }
-function disposeTree(g){ if(g.parent) g.parent.remove(g); g.traverse(o=>{ if(o.geometry&&o.geometry!==UB&&o.geometry!==UC&&o.geometry!==PALGEO) o.geometry.dispose(); }); }
+/* освободить сетки, материалы и текстуры убранных объектов, которые больше нигде в сцене не используются
+   (машины у ворот, надписи, люди-водители создают свои текстуры на canvas; без этого ~70 текстур на каждую смену варианта) */
+function freeTrees(list){ list=list.filter(Boolean); if(!list.length) return; list.forEach(g=>{ if(g.parent) g.parent.remove(g); });
+  const uG=new Set([UB,UC,PALGEO]), uM=new Set(), uT=new Set([scene.environment,scene.background]);
+  const texOf=(m,f)=>{ for(const k in m){ const t=m[k]; if(t&&t.isTexture) f(t); } if(m.uniforms) for(const k in m.uniforms){ const t=m.uniforms[k]&&m.uniforms[k].value; if(t&&t.isTexture) f(t); } };
+  const mats=o=>o.material?(Array.isArray(o.material)?o.material:[o.material]):[];
+  const uS=new Set(); scene.traverse(o=>{ if(o.geometry) uG.add(o.geometry); if(o.skeleton) uS.add(o.skeleton); mats(o).forEach(m=>{ uM.add(m); texOf(m,t=>uT.add(t)); }); });
+  const own=t=>{ const im=t.image; return !!im&&(im.data||(typeof HTMLCanvasElement!=='undefined'&&im instanceof HTMLCanvasElement)||(typeof HTMLImageElement!=='undefined'&&im instanceof HTMLImageElement)||(typeof ImageBitmap!=='undefined'&&im instanceof ImageBitmap)); };
+  const dG=new Set(), dM=new Set(), dT=new Set(), dS=new Set();   /* скелет человека держит свою текстуру костей — её тоже */
+  list.forEach(g=>g.traverse(o=>{ if(o.geometry&&!uG.has(o.geometry)) dG.add(o.geometry); if(o.skeleton&&!uS.has(o.skeleton)) dS.add(o.skeleton); mats(o).forEach(m=>{ if(uM.has(m)) return; dM.add(m); texOf(m,t=>{ if(!uT.has(t)&&own(t)) dT.add(t); }); }); }));
+  dG.forEach(x=>x.dispose()); dM.forEach(x=>x.dispose()); dT.forEach(x=>x.dispose()); dS.forEach(x=>x.dispose()); }
 /* правка редактора внутри варианта: записи — в edStore.abc[V] (ID «vA12»), а не в общий список */
 const isV=id=>typeof id==='string'&&/^v[ABC]\d+$/.test(id);
 const vRec=id=>{ const L=ST()[id[1]]; return Array.isArray(L)?L.find(r=>r.i===id):null; };
@@ -13839,7 +13850,7 @@ function stop(silent){ if(!W){ S.on=false; return; }
   spawned.forEach(g=>{ const L=g.userData.loads; if(L) for(let i=0;i<L.n;i++) L.set(i,false,1); });
   [fixG&&fixG.userData.cn,fixG&&fixG.userData.cnOut].forEach(t=>{ const L=t&&t.userData.loads; if(L) for(let i=0;i<L.n;i++) L.set(i,i>=8&&t===fixG.userData.cn,1.1,OWNC[i%OWNN]); });
   if(fixG&&fixG.userData.kz) [fixG.userData.kz.userData.b1,fixG.userData.kz.userData.b2].forEach(b=>{ const L=b.userData.loads; if(L) for(let i=0;i<L.n;i++) L.set(i,false,1); });
-  W.root.traverse(o=>{}); scene.remove(W.root); pool=[];
+  freeTrees([W.root]); pool=[];
   if(res&&S.v){ const st=ST(); st.res=st.res||{}; st.res[S.v]=res; edSave(); }
   W=null; S.on=false; S.fast=false; if(!silent) UIX.sync(); }
 let lastFrame=0;

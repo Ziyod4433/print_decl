@@ -571,7 +571,7 @@ function stop(silent){ if(!W){ S.on=false; return; }
   spawned.forEach(g=>{ const L=g.userData.loads; if(L) for(let i=0;i<L.n;i++) L.set(i,false,1); });
   [fixG&&fixG.userData.cn,fixG&&fixG.userData.cnOut].forEach(t=>{ const L=t&&t.userData.loads; if(L) for(let i=0;i<L.n;i++) L.set(i,i>=8&&t===fixG.userData.cn,1.1,OWNC[i%OWNN]); });
   if(fixG&&fixG.userData.kz) [fixG.userData.kz.userData.b1,fixG.userData.kz.userData.b2].forEach(b=>{ const L=b.userData.loads; if(L) for(let i=0;i<L.n;i++) L.set(i,false,1); });
-  W.root.traverse(o=>{}); scene.remove(W.root); pool=[];
+  freeTrees([W.root]); pool=[];
   if(res&&S.v){ const st=ST(); st.res=st.res||{}; st.res[S.v]=res; edSave(); }
   W=null; S.on=false; S.fast=false; if(!silent) UIX.sync(); }
 let lastFrame=0;

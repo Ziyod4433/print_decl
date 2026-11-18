@@ -14,6 +14,21 @@ function fender(g,x,z,r,w){
   m.material.side=THREE.DoubleSide;
   m.rotation.x=Math.PI/2; m.position.set(x,r,z); m.castShadow=m.receiveShadow=true; g.add(m); return m; }
 
+/* ---------- ткань тента (18.11): поверхность по параметрам (u,v) → точка; провисы между ремнями и дугами, морщины, натяжение у кромок
+   задаёт функция точки. Нормали считаются по сетке — ткань ловит свет складками, а не плоской гранью «коробки». ---------- */
+function surf(nu,nv,fn,mat,par){ const P=[],U=[],I=[];
+  for(let j=0;j<=nv;j++) for(let i=0;i<=nu;i++){ const r=fn(i/nu,j/nv); P.push(r[0],r[1],r[2]); U.push(r[3]!==undefined?r[3]:i/nu,r[4]!==undefined?r[4]:j/nv); }
+  for(let j=0;j<nv;j++) for(let i=0;i<nu;i++){ const a=j*(nu+1)+i,b2=a+1,c=a+nu+1,d=c+1; I.push(a,b2,c,b2,d,c); }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2));
+  g.setIndex(I); g.computeVertexNormals(); const m=new THREE.Mesh(g,mat); m.castShadow=m.receiveShadow=true; if(par) par.add(m); return m; }
+const wrin=(x,y,k)=>Math.sin(x*19.7+k+Math.sin(y*2.9+k*1.3)*1.4)*Math.sin(y*2.3+x*0.8+k*0.7)+0.5*Math.sin(x*41.3-y*5.1+k*2.1)*Math.sin(y*7.7+k);
+const pmod=(a,q)=>((a%q)+q)%q;
+const dsMat=m=>m.userData.ds||(m.userData.ds=Object.assign(m.clone(),{side:THREE.DoubleSide}));
+/* верёвка (увязка тента): ломаная из точек — одна сетка */
+function rope(pts,r,mat,par){ const gs=[]; for(let i=0;i<pts.length-1;i++){ const a=new THREE.Vector3(...pts[i]), b2=new THREE.Vector3(...pts[i+1]), L=a.distanceTo(b2); if(L<1e-4) continue;
+    const c=new THREE.CylinderGeometry(r,r,L,5,1,true).toNonIndexed(); c.applyMatrix4(new THREE.Matrix4().compose(a.clone().add(b2).multiplyScalar(0.5),new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),b2.clone().sub(a).normalize()),new THREE.Vector3(1,1,1))); gs.push(c); }
+  const m=new THREE.Mesh(mergeGeos(gs),mat); m.castShadow=false; m.receiveShadow=true; par.add(m); return m; }
+
 /* ---------- кабина: локально смотрит в −x; o.style 'cn' | 'eu' ---------- */
 function cabin(g,cx,dir,o){
   o=o||{}; const c=grp(cx,0,0,g); if(dir>0) c.rotation.y=Math.PI;
@@ -96,6 +111,12 @@ function cabin(g,cx,dir,o){
     /* грязевик переднего колеса (на раме, кабина над ним качается отдельно) */
     fender(c,0.15,s*1.02,0.54,0.4).userData.chassis=true;
   }
+  /* обтекатель крыши и боковые дефлекторы за дверями (высокая кабина магистрального тягача): поток воздуха с кабины — на высокий кузов */
+  if(hi){ const sp=new THREE.Shape(); sp.moveTo(-0.25,top-0.02); sp.quadraticCurveTo(0.35,top+0.06,1.0,top+0.30); sp.lineTo(1.12,top+0.30); sp.lineTo(1.12,top-0.02); sp.lineTo(-0.25,top-0.02);
+    const sg=new THREE.ExtrudeGeometry(sp,{depth:W2*2-0.34,bevelEnabled:true,bevelThickness:0.05,bevelSize:0.05,bevelSegments:3,curveSegments:10}); sg.translate(0,0,-(W2*2-0.34)/2); mesh(sg,P,0,0,0,c);
+    for(const s of [-1,1]){ const de=new THREE.Shape(); de.moveTo(0,0); de.lineTo(0.46,0.05); de.lineTo(0.46,top-1.42); de.lineTo(0,top-1.3); de.lineTo(0,0);
+      const dg=new THREE.ExtrudeGeometry(de,{depth:0.035,bevelEnabled:true,bevelThickness:0.012,bevelSize:0.012,bevelSegments:2}); dg.translate(0,0,-0.0175);
+      const d=mesh(dg,P,1.07,1.32,s*(W2+0.02),c); d.rotation.y=-s*0.10; } }
   /* крыша: огни, сигналы, воздухозаборник или выхлоп */
   if(!eu) for(let i=-2;i<=2;i++) box(0.06,0.06,0.12,M.lensAmber,-0.9,top+0.02,i*0.36,c).castShadow=false;
   else for(const s of [-1,1]) box(0.08,0.05,0.14,M.lensAmber,-0.3,top+0.02,s*1.0,c).castShadow=false;
@@ -272,12 +293,26 @@ function cnSemi(x,z,dir,rotY,o){
     box(0.04,0.04,HW*0.9,M.galv,xb,FY+BH,0,g).castShadow=false; }
   for(const zz of [-0.55,0,0.55]) box(len-0.1,0.03,0.03,M.galv,0,FY+BH-(zz?0.05:0)+0.02,zz,g).castShadow=false;
   if(o.tarp==='closed'){
-    box(len+0.04,0.025,HW*0.92,tarpM,0,FY+BH+0.035,0,g);
-    for(const s of [-1,1]){ const r=box(len+0.04,0.025,HW*0.68,tarpM,0,FY+BH-0.14,s*(HW*0.73),g); r.rotation.x=s*0.42;
-      box(len+0.04,BH-0.28,0.02,tarpM,0,FY+(BH-0.28)/2+0.02,s*(HW+0.03),g);
-      for(let i=0;i<Math.floor(len/0.6);i++) box(0.012,0.12,0.012,M.dark,-len/2+0.3+i*0.6,FY-0.0,s*(HW+0.045),g).castShadow=false; }   // петли троса
-    box(0.02,BH-0.05,HW*2+0.06,tarpD,xr-dir*0.06,FY+BH/2,0,g);                                                     // задний полог — снаружи ворот
-    for(const s of [-1,1]) box(len,0.012,0.012,M.galv,0,FY+0.06,s*(HW+0.05),g).castShadow=false;                   // таможенный трос
+    /* тент — одно полотно по дугам: борт → скат → конёк → скат → борт; между дугами на крыше провисает, на бортах выпирает,
+       у кромок и на углах натянут; морщины. Увязка: верёвка зигзагом от крюков под настилом к люверсам подгиба, таможенный трос */
+    tarpM.bumpMap=TRK.tarpBump; tarpM.bumpScale=.005; tarpD.bumpMap=TRK.tarpBump; tarpD.bumpScale=.005;
+    const PTH=[[-(HW+0.03),FY+0.02],[-(HW+0.03),FY+BH-0.28],[-HW*0.46,FY+BH+0.035],[HW*0.46,FY+BH+0.035],[HW+0.03,FY+BH-0.28],[HW+0.03,FY+0.02]];
+    const SL=[0]; for(let i=1;i<PTH.length;i++) SL.push(SL[i-1]+Math.hypot(PTH[i][0]-PTH[i-1][0],PTH[i][1]-PTH[i-1][1])); const TL=SL[SL.length-1];
+    const pbh=(len-0.1)/nb, kk=x*0.13+z*0.07;
+    surf(Math.round(len/0.06),44,(u,v)=>{ const xx=-len/2-0.02+(len+0.04)*u, d=v*TL; let i=1; while(i<SL.length-1&&SL[i]<d) i++;
+      const A=PTH[i-1], B=PTH[i], f=(d-SL[i-1])/(SL[i]-SL[i-1]), tz=B[0]-A[0], ty=B[1]-A[1], L=Math.hypot(tz,ty), nz=-ty/L, ny=tz/L;
+      const zz=A[0]+tz*f, yy=A[1]+ty*f, side=Math.abs(nz)>0.9, ph=pmod(xx-(-len/2+0.05),pbh)/pbh;
+      const e=Math.min(1,d/0.12,(TL-d)/0.12,Math.min(...SL.slice(1,-1).map(q=>Math.abs(d-q)))/0.2);
+      const dd=e*(side?0.034*Math.sin(Math.PI*ph)*Math.min(1,(yy-FY)/0.6)+0.009*wrin(xx,yy,kk):-0.05*Math.sin(Math.PI*ph)+0.007*wrin(xx,zz,kk+1));
+      return [xx,yy+ny*dd,zz+nz*dd,xx/2.5,d/2.5]; },dsMat(tarpM),g);
+    /* задний полог — снаружи ворот, складки по вертикали */
+    surf(30,14,(u,v)=>{ const zz=(HW+0.03)*(2*u-1), yy=FY+0.02+(BH-0.07)*v, e=Math.min(1,(1-Math.abs(2*u-1))/0.06,v/0.05,(1-v)/0.05);
+      return [xr-dir*(0.06+e*(0.018*Math.abs(Math.sin(zz*7.3+0.4))+0.006*wrin(zz,yy,kk))),yy,zz,zz/2.5,yy/2.5]; },dsMat(tarpD),g);
+    const ropeM=M.ropeY||(M.ropeY=std(0xcdb47a,.9,0));
+    for(const s of [-1,1]){ const pts=[]; for(let xx=-len/2+0.12, k=0;xx<len/2-0.1;xx+=0.3,k++) pts.push(k%2?[xx,FY+0.11,s*(HW+0.055)]:[xx,FY-0.06,s*(HW+0.02)]);
+      rope(pts,0.006,ropeM,g); rope([[-len/2+0.1,FY+0.11,s*(HW+0.058)],[len/2-0.1,FY+0.11,s*(HW+0.058)]],0.005,ropeM,g);
+      for(let xx=-len/2+0.12;xx<len/2-0.1;xx+=0.6) box(0.03,0.025,0.025,M.steelDark,xx,FY-0.07,s*(HW+0.015),g).castShadow=false;   // крюки под настилом
+      box(len,0.012,0.012,M.galv,0,FY+0.06,s*(HW+0.065),g).castShadow=false; }                                      // таможенный трос
   } else { const rl=cyl(0.24,HW*2+0.05,tarpM,xf-dir*0.55,FY+BH+0.2,0,g,16); rl.rotation.x=Math.PI/2;              // тент скатан к переднему борту
     for(const s of [-1,1]) box(0.03,0.5,0.06,M.blackPl,xf-dir*0.55,FY+BH-0.05,s*(HW-0.1),g).castShadow=false; }
   /* груз: поперечные секции по 1,24 м, в секции — стопки одного типа (до 1,7 м); от x ≈ −3,7 к задним воротам — рабочая зона */
@@ -464,7 +499,9 @@ function frameBody(g,off,len,o){
   const nb=Math.round(len/0.9);
   for(let i=0;i<=nb;i++) box(0.04,0.04,HW*2,M.galv,-len/2+0.06+i*((len-0.12)/nb),RY-0.03,0,b).castShadow=false;
   for(const s of [-1,1]) box(len-0.1,0.03,0.04,M.galv,0,RY-0.065,s*0.45,b).castShadow=false;
-  box(len+0.02,0.03,HW*2+0.06,M.tarp,0,RY+0.02,0,b);
+  { const pb=(len-0.12)/nb, k1=off*0.53;                                                  // тент крыши: провис между дугами, свес по бортам
+    surf(Math.round(len/0.08),12,(u,v)=>{ const x=-len/2-0.01+(len+0.02)*u, z=(HW+0.05)*(2*v-1), ph=pmod(x-(-len/2+0.06),pb)/pb, e=Math.min(1,(1-Math.abs(2*v-1))/0.1);
+      return [x,RY+0.035-(0.022*Math.sin(Math.PI*ph)+0.003*wrin(x,z,k1))*e-(Math.abs(z)>HW+0.01?0.06:0),z,x/2.5,z/2.5]; },dsMat(M.tarp),b); }
   /* передний борт: тент на каркасе с обрешёткой */
   box(0.03,IH+0.06,HW*2+0.02,M.bulkTarp,-len/2+0.015,FY+IH/2,0,b);
   for(const zz of [-HW+0.06,-0.42,0.42,HW-0.06]) box(0.045,IH-0.06,0.045,M.galv,-len/2+0.055,FY+IH/2,zz,b).castShadow=false;
@@ -490,18 +527,27 @@ function frameBody(g,off,len,o){
   if(!o.palletSide) for(const e of [-1,1]) box(0.06,IH-0.14,0.06,M.alu,e*OW,FY+IH/2,zl,b);    // стойки проёма
   for(const e of [-1,1]) box(0.012,0.5,0.045,M.reflYellow,e*OW,FY+0.5,zl+0.031,b).castShadow=false;   // метки на стойках проёма
   /* левая штора закрыта: полотно, ремни, пряжки */
-  { const L=len-0.18; box(L,IH-0.2,0.035,M.tarp,-0.02,FY+IH/2,-(HW+0.02),b);
-    trkDecal(b,TRK.tarpLogo||(TRK.tarpLogo=decalMat([{t:'BURAQ LOGISTICS',y:70,x:512,align:'center',font:'800 120px "Barlow Condensed",sans-serif'},{t:'KHORGOS · ALMATY · ASTANA',y:176,x:512,align:'center',font:'600 52px "Barlow Condensed",sans-serif'}],null,'#1b3f8f',1024,256)),4.2,1.05,-0.02,FY+IH/2+0.25,-(HW+0.045),Math.PI);
-    for(let i=0;i<Math.floor(L/0.55);i++){ box(0.045,IH-0.3,0.012,M.blackPl,-len/2+0.36+i*0.55,FY+IH/2,-(HW+0.045),b).castShadow=false;
-      box(0.06,0.09,0.02,M.chrome,-len/2+0.36+i*0.55,FY+0.24,-(HW+0.05),b).castShadow=false; }
-    box(L,0.3,0.004,M.tarpBlue,-0.02,RY-0.35,-(HW+0.04),b).castShadow=false; }
+  { const L=len-0.18, xa=-len/2+0.07, ya=FY+0.1, Hh=IH-0.2, zc=-(HW+0.02), k0=off*0.37;
+    /* провис: между ремнями (шаг 0,55) ткань выпирает наружу, у верхнего пояса и подгиба — натянута; мелкие морщины */
+    const dz=(x,y)=>{ const v=(y-ya)/Hh, ph=pmod(x-(-len/2+0.36),0.55)/0.55, e=Math.max(0,Math.min(1,v/0.05,(1-v)/0.05));
+      return (0.003+0.026*Math.sin(Math.PI*ph)*(0.4+0.6*Math.sin(Math.PI*v))+0.004*wrin(x,y,k0))*e; };
+    const sheet=(x0,w,y0,h,extra,mat,nu,nv,uvS)=>surf(nu,nv,(u,v)=>{ const x=x0+w*(1-u), y=y0+h*v; return [x,y,zc-dz(x,y)-extra,uvS?u:x/2.5,uvS?v:y/2.5]; },mat,b);
+    sheet(xa,L,ya,Hh,0,dsMat(M.tarp),Math.round(L/0.045),14);
+    sheet(-0.02-2.1,4.2,FY+IH/2+0.25-0.525,1.05,0.004,TRK.tarpLogo||(TRK.tarpLogo=decalMat([{t:'BURAQ LOGISTICS',y:70,x:512,align:'center',font:'800 120px "Barlow Condensed",sans-serif'},{t:'KHORGOS · ALMATY · ASTANA',y:176,x:512,align:'center',font:'600 52px "Barlow Condensed",sans-serif'}],null,'#1b3f8f',1024,256)),90,6,true).castShadow=false;
+    sheet(xa,L,RY-0.5,0.3,0.003,M.tarpBlue,Math.round(L/0.045),2).castShadow=false;
+    for(let i=0;i<Math.floor(L/0.55);i++){ box(0.045,IH-0.3,0.008,M.blackPl,-len/2+0.36+i*0.55,FY+IH/2,-(HW+0.032),b).castShadow=false;
+      box(0.06,0.09,0.02,M.chrome,-len/2+0.36+i*0.55,FY+0.24,-(HW+0.04),b).castShadow=false; } }
   /* правая штора — полотнища; curtainSet(b,u) собирает её к переднему борту */
   const near=grp(0,0,0,b); b.userData.near=near;
   const x0=-len/2+0.1, n=Math.round((len-0.2)/0.275), w=(len-0.2)/n, C={strips:[],posts:[],x0,w,pitch:0.03,ang:1.462,u:0};
+  /* полотнище открываемой шторы — с прогибом наружу и морщинами (одна геометрия на все полотнища кузова) */
+  const sw=w+0.004, sh=IH-0.2, k2=off*0.71, sbz=(x,y)=>0.003+0.012*Math.cos(Math.PI*x/sw)*(0.4+0.6*Math.cos(Math.PI*y/sh))+0.003*wrin(x,y,k2);
+  const sgeo=surf(8,12,(u,v)=>{ const x=(u-0.5)*sw, y=(v-0.5)*sh; return [x,y,sbz(x,y),x/2.5,y/2.5]; },dsMat(M.tarp)).geometry;
+  const bgeo=surf(8,2,(u,v)=>{ const x=(u-0.5)*sw, y=IH/2-0.5+0.3*v; return [x,y,sbz(x,y)+0.003,u,v]; },M.tarpBlue).geometry;
   for(let i=0;i<n;i++){ const st=grp(x0+w*(i+0.5),FY+IH/2,HW+0.03,near);
-    box(w+0.004,IH-0.2,0.012,M.tarp,0,0,0,st);
-    box(w+0.004,0.3,0.004,M.tarpBlue,0,IH/2-0.35,0.009,st).castShadow=false;
-    if(i%2===0){ box(0.045,IH-0.3,0.01,M.blackPl,0,0,0.012,st).castShadow=false; box(0.06,0.09,0.02,M.chrome,0,-IH/2+0.24,0.018,st).castShadow=false; }
+    const sm=new THREE.Mesh(sgeo,dsMat(M.tarp)); sm.castShadow=sm.receiveShadow=true; st.add(sm);
+    const bm=new THREE.Mesh(bgeo,M.tarpBlue); bm.receiveShadow=true; st.add(bm);
+    if(i%2===0){ box(0.045,IH-0.3,0.01,M.blackPl,0,0,0.022,st).castShadow=false; box(0.06,0.09,0.02,M.chrome,0,-IH/2+0.24,0.028,st).castShadow=false; }
     cyl(0.018,0.03,M.steelDark,0,IH/2-0.07,-0.02,st,8).castShadow=false;
     C.strips.push(st); }
   b.userData.curt=C; curtainSet(b,o.open||0);

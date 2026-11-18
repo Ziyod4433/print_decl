@@ -676,6 +676,11 @@ if not ABC:
     rep("    if(typeof SIM!=='undefined'&&!SIM.on&&!FILM.on) SIM.enter();   // обход — по работающему складу: живой процесс включается сам",
         "    if(typeof SIM!=='undefined'&&!SIM.on&&!FILM.on&&!(typeof STOCK!=='undefined'&&STOCK.on)) SIM.enter();   // обход — по работающему складу: живой процесс включается сам (при учёте груза — нет)")
 
+# ---------- 29. рассеянный свет зала, запечённый в Blender Cycles (18.11): assets/hall_light.png → parts/hall.js ----------
+import base64, json as _json
+rep("'/*__HALL_LIGHT__*/'","'data:image/png;base64,"+base64.b64encode(open(os.path.join(ROOT,'assets','hall_light.png'),'rb').read()).decode()+"'")
+rep("/*__HALL_LIGHT_K__*/1",str(_json.load(open(os.path.join(ROOT,'assets','hall_light.json')))['scale']))
+
 # ---------- 20. блок правки в файле и исходный текст файла для кнопки «Скачать» ----------
 i=s.index("<script>/* модель человека: Ready Player Me")
 s=s[:i]+'<script id="sklad4-saved" type="application/json">{}</script>\n'+s[i:]

@@ -1,5 +1,6 @@
 // Экспорт сцены фильма в glTF (GLB) с анимацией + метаданные камеры/света для Blender/Cycles.
 // node exportgl.js <html> <outdir> <fps> [nframes]
+// STILL=1 — неподвижная сцена без фильма, с грузом на складе (режим «Учёт груза», демо-данные): для кадров и пролёта в Cycles
 const puppeteer = require('puppeteer-core'); const fs = require('fs');
 const [FILE, OUT, FPSs, NFs] = process.argv.slice(2);
 const FPS = +FPSs;
@@ -22,10 +23,13 @@ fs.mkdirSync(OUT, { recursive: true });
   await p.waitForFunction('typeof HUM!=="undefined"&&HUM.RP.ready', { timeout: 120000 });
   await p.addScriptTag({ content: exporterSrc });
   const t0 = Date.now();
-  const info = await p.evaluate(async (FPS, NFa) => {
+  const info = await p.evaluate(async (FPS, NFa, STILL) => {
     window.requestAnimationFrame = () => 0;
-    const F = FILM; F.enter({ size: [1280, 720], paused: true, t: 0 }); G.roof.visible = true;
-    const NF = NFa || Math.round(F.T * FPS);
+    const F = FILM;
+    if (STILL) { STOCK.S.today = new Date(2026, 10, 18); STOCK.loadDemo(); STOCK.enter(); G.roof.visible = true;
+      const V = STOCK.view; Object.values(V.tiles).forEach(t => t.visible = false); V.bx.material = LOOK.cartons[1];   /* в Cycles — гофрокартон, без цветной разметки ячеек */ scene.updateMatrixWorld(true); }
+    else { F.enter({ size: [1280, 720], paused: true, t: 0 }); G.roof.visible = true; }
+    const NF = STILL ? 1 : (NFa || Math.round(F.T * FPS));
     const log = (...a) => console.log('EXP', ...a);
     /* ---------- что не экспортируем ---------- */
     const UI = [G.flow, G.labels, G.roles, G.addr, G.dims, marker, edSelBox].filter(Boolean);
@@ -44,14 +48,14 @@ fs.mkdirSync(OUT, { recursive: true });
       for (let i = 0; i < im.count; i++) { im.getMatrixAt(i, m4); const m = new THREE.Mesh(im.geometry, im.material); m4.decompose(m.position, m.quaternion, m.scale); g.add(m); }
       g.visible = im.visible; im.parent.add(g); im.parent.remove(im); });
     /* ---------- экран DWS: три состояния — три копии с видимостью ---------- */
-    const scr = F.dwsScr; let scrC = null;
+    const scr = STILL ? null : F.dwsScr; let scrC = null;
     if (scr) { scrC = F.scr.map((m, i) => { if (i === 0) return scr; const c = new THREE.Mesh(scr.geometry, m); c.position.copy(scr.position); c.quaternion.copy(scr.quaternion); c.scale.copy(scr.scale); scr.parent.add(c); c.visible = false; return c; }); }
     const fixScr = () => { if (!scrC) return; const k = Math.max(0, F.scr.indexOf(scr.material)); scr.material = F.scr[0]; scrC.forEach((c, i) => c.visible = i === k); };
     /* ---------- имена материалов — подсказки для Blender ---------- */
     const mname = new Map();
     for (const k in M) { const m = M[k]; if (m && m.isMaterial && !mname.has(m)) mname.set(m, 'M_' + k); }
     LOOK.cartons.forEach(m => mname.set(m, 'CARTON'));
-    F.scr.forEach(m => mname.set(m, 'SCREEN')); mname.set(F.lm, 'LASER');
+    (F.scr || []).forEach(m => mname.set(m, 'SCREEN')); if (F.lm) mname.set(F.lm, 'LASER');
     scene.traverse(o => { if (!o.isMesh || Array.isArray(o.material)) return; const m = o.material, im = m.map && m.map.image;
       if (mname.has(m)) return;
       if (im === LOOK.concDetail && (o.geometry.type === 'PlaneGeometry' || (o.userData.batch && (() => { o.geometry.computeBoundingBox(); const b = o.geometry.boundingBox; return b.max.y - b.min.y < 0.05; })()))) mname.set(m, 'FLOOR');
@@ -85,7 +89,7 @@ fs.mkdirSync(OUT, { recursive: true });
       if (world) { o.updateWorldMatrix(true, false); o.matrixWorld.decompose(_p, _q, _s); } else { _p.copy(o.position); _q.copy(o.quaternion); _s.copy(o.scale); }
       arr[k] = _p.x; arr[k + 1] = _p.y; arr[k + 2] = _p.z; arr[k + 3] = _q.x; arr[k + 4] = _q.y; arr[k + 5] = _q.z; arr[k + 6] = _q.w;
       arr[k + 7] = _s.x; arr[k + 8] = _s.y; arr[k + 9] = _s.z; arr[k + 10] = o.visible ? 1 : 0; }
-    const at = f => { F._apply(f / FPS); fixScr(); };
+    const at = f => { if (STILL) return; F._apply(f / FPS); fixScr(); };
     at(0); for (let i = 0; i < N; i++) read(base, i, false);
     const dyn = new Uint8Array(N);
     for (let f = 1; f < NF; f++) { at(f);
@@ -96,6 +100,7 @@ fs.mkdirSync(OUT, { recursive: true });
     const rec = new Float32Array(D.length * NF * K), cam = [];
     for (let f = 0; f < NF; f++) { at(f); const t = f / FPS;
       D.forEach((i, j) => { const o = nodes[i]; const k = (j * NF + f) * K; read(cur, i, !!rep[i]); for (let a = 0; a < K; a++) rec[k + a] = cur[i * K + a]; });
+      if (STILL) continue;
       const ci = F._camInfo(t); const si = ci.si;
       const pc = new THREE.PerspectiveCamera(); const a = F._camShot(t - 0.25 / FPS, si, pc); const pa = pc.position.toArray(), qa = pc.quaternion.toArray();
       F._camShot(t + 0.25 / FPS, si, pc); const pb = pc.position.toArray(), qb = pc.quaternion.toArray();
@@ -153,7 +158,7 @@ fs.mkdirSync(OUT, { recursive: true });
     R.traverse(o => { if (o.isMesh && o.material && !Array.isArray(o.material)) { const n = o.material.name || ''; const wp = new THREE.Vector3(); o.getWorldPosition(wp);
       if (n.startsWith('LAMP#')) lamps.push(wp.toArray().map(v => +v.toFixed(3))); } });
     const sunDir = sun.position.clone().sub(sun.target.position).normalize().toArray();
-    const meta = { fps: FPS, nf: NF, T: F.T, W: F.W, H: F.H, lamps, sunDir, cam, humans: HUM.ALL.map(H => H.root.name), shots: F.shots.map(s => ({ t0: s.t0, t1: s.t1, fov: s.fov, ext: !!s.ext, mb: s.mb || 0, dof: s.dof ? s.dof.k : 0 })), names: NAMES, caps: (F.caps || []).map(c => ({ t0: c.t0, t1: c.t1, no: c.no, a: c.a, b: c.b })) };
+    const meta = { fps: FPS, nf: NF, T: F.T, W: F.W, H: F.H, lamps, sunDir, cam, humans: HUM.ALL.map(H => H.root.name), shots: (F.shots || []).map(s => ({ t0: s.t0, t1: s.t1, fov: s.fov, ext: !!s.ext, mb: s.mb || 0, dof: s.dof ? s.dof.k : 0 })), names: NAMES, caps: (F.caps || []).map(c => ({ t0: c.t0, t1: c.t1, no: c.no, a: c.a, b: c.b })) };
     /* ---------- экспорт ---------- */
     { const bad = []; const byName = new Map(nodes.map((o, i) => [o.name, i]));
       for (const t of tracks) { const nm = t.name.split('.')[0]; if (!THREE.PropertyBinding.findNode(R, nm)) { if (!bad.includes(nm)) bad.push(nm); } }
@@ -164,7 +169,7 @@ fs.mkdirSync(OUT, { recursive: true });
     const glb = await new Promise(res => new THREE.GLTFExporter().parse(R, res, { binary: true, onlyVisible: false, animations: [clip], maxTextureSize: 2048, truncateDrawRange: true, embedImages: true }));
     window.__GLB = new Uint8Array(glb); window.__META = JSON.stringify(meta);
     return { nodes: N, dyn: D.length, tracks: tracks.length, keys: nKeys, bytes: glb.byteLength, lamps: lamps.length };
-  }, FPS, NFs ? +NFs : 0);
+  }, FPS, NFs ? +NFs : 0, !!process.env.STILL);
   console.log('export', JSON.stringify(info), ((Date.now() - t0) / 1000).toFixed(0) + 's');
   const n = info.bytes, CH = 8 << 20; const fd = fs.openSync(OUT + '/scene.glb', 'w');
   for (let o = 0; o < n; o += CH) { const s = await p.evaluate((o, CH) => { const a = window.__GLB.subarray(o, o + CH); let s = ''; for (let i = 0; i < a.length; i += 32768) s += String.fromCharCode.apply(null, a.subarray(i, i + 32768)); return btoa(s); }, o, CH);

@@ -11,13 +11,22 @@ const WIND={value:0};                                           // время д
    пятна тонули в подсветке. Здесь во все материалы PBR подмешивается множитель по мировым координатам: внутри зала
    небо закрыто (≈0,36), под световыми фонарями светлее, у открытых ворот — свет с улицы. Вид без кровли — как раньше. */
 const IBL_U={value:1}, IBL_D={value:[0,1,2,3].map(()=>new THREE.Vector4())};
+/* рассеянный свет зала, запечённый в Blender Cycles (blender/bake.py → bake_post.py → assets/hall_light.png): освещённость на высоте 1 м
+   от неба через фонари, окна и ворота, от светильников и переотражений от стен, кровли, колонн и здания охраны. Подвижное и переставляемое
+   в запекании не участвует. Карта 384 × 608 на весь зал 48,05 × 76,05 м; в PNG — корень, среднее по нашей части = 1 / scale.
+   Заменяет приближённую формулу (полосы под фонарями) у пола и нижней части зала; выше 4…9 м — прежняя формула. IBL_B.on.value=0 — как было. */
+const HALL_LIGHT='/*__HALL_LIGHT__*/', HALL_LIGHT_K=/*__HALL_LIGHT_K__*/1;
+const IBL_B={map:{value:null},on:{value:0},k:{value:HALL_LIGHT_K}};
+if(HALL_LIGHT.startsWith('data:')){ const im=new Image(); im.onload=()=>{ const t=new THREE.Texture(im); t.flipY=false; t.generateMipmaps=false;
+  t.minFilter=t.magFilter=THREE.LinearFilter; t.wrapS=t.wrapT=THREE.ClampToEdgeWrapping; t.needsUpdate=true; IBL_B.map.value=t; IBL_B.on.value=1;
+  if(typeof renderer!=='undefined') renderer.shadowMap.needsUpdate=true; }; im.src=HALL_LIGHT; }
 function IBLK(sh){
   if(sh.uniforms.uHallIn||sh.fragmentShader.indexOf('#include <lights_fragment_maps>')<0||sh.vertexShader.indexOf('#include <project_vertex>')<0) return;
-  sh.uniforms.uHallIn=IBL_U; sh.uniforms.uDoor=IBL_D;
+  sh.uniforms.uHallIn=IBL_U; sh.uniforms.uDoor=IBL_D; sh.uniforms.uHallMap=IBL_B.map; sh.uniforms.uHallMapOn=IBL_B.on; sh.uniforms.uHallMapK=IBL_B.k;
   sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec3 vHallWP;')
     .replace('#include <project_vertex>','#include <project_vertex>\n{ vec4 hw=vec4(transformed,1.);\n#ifdef USE_INSTANCING\nhw=instanceMatrix*hw;\n#endif\nvHallWP=(modelMatrix*hw).xyz; }');
   sh.fragmentShader=sh.fragmentShader.replace('#include <common>',`#include <common>
-    varying vec3 vHallWP; uniform float uHallIn; uniform vec4 uDoor[4];
+    varying vec3 vHallWP; uniform float uHallIn; uniform vec4 uDoor[4]; uniform sampler2D uHallMap; uniform float uHallMapOn, uHallMapK;
     float hallK(vec3 p){
       float rf=${EAVE.toFixed(2)}+${(RIDGE-EAVE).toFixed(2)}*(1.-abs(p.x-${(W/2).toFixed(3)})/${(W/2).toFixed(3)});
       float ins=smoothstep(-.02,.12,p.x)*smoothstep(-.02,.12,${W.toFixed(2)}-p.x)*smoothstep(-.02,.12,p.z)*smoothstep(-.02,.12,${D.toFixed(2)}-p.z)*step(p.y,rf+.05);
@@ -26,7 +35,10 @@ function IBLK(sh){
       sk*=smoothstep(1.,7.,p.z)*smoothstep(1.,7.,${D.toFixed(2)}-p.z);
       float gt=0.;
       for(int i=0;i<4;i++){ vec4 d=uDoor[i]; vec2 q=vec2(p.x-d.x,p.z-d.y); gt+=d.z*exp(-dot(q,q)/(2.*4.5*4.5))*smoothstep(4.6,0.,p.y)*.9; }
-      float kin=.26+.16*min(sk,1.2)+gt;
+      float kin0=.26+.16*min(sk,1.2);
+      float bk=texture2D(uHallMap,vec2(clamp(p.x/${W.toFixed(2)},0.,1.),clamp(p.z/${D.toFixed(2)},0.,1.))).r; bk=bk*bk*uHallMapK;
+      float kb=.30*bk+.08*min(sk,1.2);
+      float kin=mix(kin0,mix(kb,kin0,smoothstep(4.,9.,p.y)),uHallMapOn)+gt;
       return mix(1.,mix(1.,min(kin,1.),uHallIn),ins); }`)
    .replace('#include <lights_fragment_maps>',`#include <lights_fragment_maps>
     { float hk=hallK(vHallWP); iblIrradiance*=hk; irradiance*=hk;

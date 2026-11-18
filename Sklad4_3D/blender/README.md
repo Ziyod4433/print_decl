@@ -21,3 +21,17 @@ python3 proj.py -- final10.blend exp10/meta.json proj.blend README_RU.txt   # п
 `enc.sh` подсвечивает (gamma 1.12) только уличные планы — диапазоны кадров `between(n,…)` взяты из
 `meta.json → shots` (планы с `ext:true`); при изменении фильма пересчитать.
 Ловушки рендера — в `docs/Склад4_фильм_и_замечания_по_расстановке.md`, раздел «Как сделан ролик».
+
+## Кадры, пролёт и запечённый свет зала (18.11)
+
+```bash
+STILL=1 node tools/exportgl.js Sklad4_realistic_film.html blender/exps 24      # неподвижная сцена с грузом (демо учёта)
+cd blender
+blender -b -P import.py -- exps bases.blend
+blender -b -P setup.py  -- exps bases.blend finals.blend
+blender -b finals.blend -P stills.py -- exps/meta.json out 48 1600 900 all     # aerial, aisle, rows, loading, plan, truck (~1–2 мин на кадр, 4 ядра)
+blender -b finals.blend -P stills.py -- exps/meta.json fly 24 1280 720 fly     # пролёт 13 с: out/f0000…f0312.jpg; продолжить — 8-й аргумент = кадр
+ffmpeg -framerate 24 -i fly/f%04d.jpg -c:v libx264 -crf 20 -pix_fmt yuv420p ../Sklad4_пролёт_Cycles.mp4
+blender -b finals.blend -P bake.py -- exps/meta.json hall.png hall.json 384 64     # свет зала → hall.png.npy
+python3 bake_post.py hall.png.npy ../assets/hall_light.png ../assets/hall_light.json   # затем python3 build.py
+```

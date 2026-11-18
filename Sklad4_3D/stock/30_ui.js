@@ -148,6 +148,8 @@ function ui(){
 function pick(o){ const rk=o&&o.userData.stk; if(!rk) return; const it=rk.items.reduce((a,b)=>b.m3>a.m3?b:a,rk.items[0]); S.sel={t:'lot',v:it.l.id}; paint(); ui();
   const e=document.querySelector('#stklist .stkrow.on'); if(e&&e.scrollIntoView) e.scrollIntoView({block:'nearest'}); }
 
+/* места, заданные в системе управления складом (Buraq_WMS.html) в этом же браузере, — сразу в 3D */
+addEventListener('storage',e=>{ if(e.key===PLACE_KEY&&S.on) refresh(); });
 restore(); compute(); ui();
 return {S,CFG,BL,enter,exit,toggle,reload,refresh,set,select,pick,hit,demo,loadText:t=>{ setData(fromText(t),{kind:'paste',url:'',id:'',gid:''}); refresh(); },
   loadDemo:()=>{ setData(demo(),{kind:'demo',url:'',id:'',gid:''}); refresh(); },loadUrl:u=>{ S.src={kind:'url',url:u,id:(parseUrl(u)||{}).id||'',gid:(parseUrl(u)||{}).gid||''}; return reload(); },

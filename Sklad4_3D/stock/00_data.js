@@ -23,6 +23,7 @@ const viewDate=()=>S.date?day0(S.date):today();
 const plural=(n,a,b,c)=>{ n=Math.abs(n)%100; const k=n%10; return n>10&&n<20?c:k===1?a:k>=2&&k<=4?b:c; };
 const daysTxt=n=>n+' '+plural(n,'день','дня','дней');
 
+/* ==== ОБЩЕЕ: разбор таблиц (берёт и система управления складом wms/, build.py --wms) — начало ==== */
 function num(v){
   if(typeof v==='number') return isFinite(v)?v:0;
   if(v==null) return 0;
@@ -162,6 +163,12 @@ function demo(){
   [[20,13],[26,22],[33,27],[41,35],[47,44],[55,46],[62,57]].forEach(p=>reys.push(mk(p[0],p[1],8+(R()*8|0),p[0]+5)));
   return {kind:'demo',name:'демо-данные',reys};
 }
+
+/* ключ груза для размещения по ячейкам (одинаковый в 3D-модели и в системе управления складом) и общее хранилище мест */
+const lotKey=l=>[l.reys,l.mark,l.cargo||'',(+l.cbm||0).toFixed(2)].join('|');
+const PLACE_KEY='buraq.wms.place.v1';
+function placeMap(){ try{ return JSON.parse(localStorage.getItem(PLACE_KEY)||'{}')||{}; }catch(e){ return {}; } }
+/* ==== ОБЩЕЕ — конец ==== */
 
 /* в браузере храним только простые поля (без вычисленных ссылок) — и не в файле модели */
 const plain=d=>({kind:d.kind,name:d.name,reys:d.reys.map(r=>({code:r.code,loaded:r.loaded,cn:r.cn,arr:r.arr,out:r.out,kz:r.kz,tash:r.tash,

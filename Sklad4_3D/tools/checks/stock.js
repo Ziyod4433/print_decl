@@ -53,6 +53,10 @@
  /* рост склада после маленького: цвета у всех коробов заданы */
  STOCK.loadDemo(); STOCK.set({mode:'mark'}); st=STOCK.st; v=STOCK.view;
  { const a=v.bx.instanceColor.array; let good=true; for(let i=0;i<v.bx.count*3;i++) if(!(a[i]>0.02&&a[i]<=1.6)) { good=false; break; } out.grow={boxes:v.bx.count,colorsOk:good}; ok(good,'цвета коробов после роста'); }
+ /* места из системы управления складом (общий ключ buraq.wms.place.v1) — груз встаёт в заданную ячейку */
+ { STOCK.set({mode:'days'}); const l=STOCK.st.here.find(x=>!x.cell); const pm={}; pm[[l.reys,l.mark,l.cargo||'',(+l.cbm).toFixed(2)].join('|')]=['B1'];
+   localStorage.setItem('buraq.wms.place.v1',JSON.stringify(pm)); STOCK.refresh(); const l2=STOCK.st.here.find(x=>x.reys===l.reys&&x.mark===l.mark&&x.cargo===l.cargo&&x.cbm===l.cbm);
+   out.wms={cells:l2.cells}; ok(l2.cells[0]==='B1','место из WMS: '+l2.cells); localStorage.removeItem('buraq.wms.place.v1'); STOCK.refresh(); }
  /* на дату: 30 дней назад — другой состав */
  STOCK.set({mode:'days',date:new Date(2026,9,26)}); out.onDate={reys:STOCK.st.k.reys,D:STOCK.st.D.getDate()}; ok(STOCK.st.D.getDate()===26,'дата просмотра'); STOCK.set({date:null});
  /* живой процесс выключает учёт; выход возвращает обычный вид */

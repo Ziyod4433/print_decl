@@ -11,6 +11,17 @@ SRC=os.path.join(ROOT,'base','Sklad4_realistic.html')
 ARGS=[a for a in sys.argv[1:] if not a.startswith('--')]
 ABC='--abc' in sys.argv                                       # сборка с вариантами хранения A/B/C (abc/*.js)
 OUT=ARGS[0] if ARGS else os.path.join(ROOT,'Sklad4_variants_ABC.html' if ABC else 'Sklad4_realistic_film.html')
+# ---------- система управления складом (18.11): отдельный лёгкий файл без 3D — python3 build.py --wms → Buraq_WMS.html ----------
+if '--wms' in sys.argv:
+    core=open(os.path.join(ROOT,'stock','00_data.js'),encoding='utf-8').read()
+    i0=core.index('/* ==== ОБЩЕЕ: разбор таблиц'); i1=core.index('/* ==== ОБЩЕЕ — конец ==== */')
+    app=open(os.path.join(ROOT,'wms','app.js'),encoding='utf-8').read()
+    assert app.count('/*__CORE__*/')==1
+    page=open(os.path.join(ROOT,'wms','index.html'),encoding='utf-8').read()
+    assert page.count('/*__APP__*/')==1
+    page=page.replace('/*__APP__*/',app.replace('/*__CORE__*/',core[i0:i1]))
+    out=ARGS[0] if ARGS else os.path.join(ROOT,'Buraq_WMS.html')
+    open(out,'w',encoding='utf-8').write(page); print('собрано',out,len(page),'байт'); sys.exit(0)
 P=os.path.join(ROOT,'parts')+os.sep
 s=open(SRC,encoding='utf-8').read()
 part=lambda n: open(P+n,encoding='utf-8').read()

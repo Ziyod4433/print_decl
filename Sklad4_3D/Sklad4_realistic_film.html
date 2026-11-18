@@ -12448,6 +12448,7 @@ const viewDate=()=>S.date?day0(S.date):today();
 const plural=(n,a,b,c)=>{ n=Math.abs(n)%100; const k=n%10; return n>10&&n<20?c:k===1?a:k>=2&&k<=4?b:c; };
 const daysTxt=n=>n+' '+plural(n,'день','дня','дней');
 
+/* ==== ОБЩЕЕ: разбор таблиц (берёт и система управления складом wms/, build.py --wms) — начало ==== */
 function num(v){
   if(typeof v==='number') return isFinite(v)?v:0;
   if(v==null) return 0;
@@ -12588,6 +12589,12 @@ function demo(){
   return {kind:'demo',name:'демо-данные',reys};
 }
 
+/* ключ груза для размещения по ячейкам (одинаковый в 3D-модели и в системе управления складом) и общее хранилище мест */
+const lotKey=l=>[l.reys,l.mark,l.cargo||'',(+l.cbm||0).toFixed(2)].join('|');
+const PLACE_KEY='buraq.wms.place.v1';
+function placeMap(){ try{ return JSON.parse(localStorage.getItem(PLACE_KEY)||'{}')||{}; }catch(e){ return {}; } }
+/* ==== ОБЩЕЕ — конец ==== */
+
 /* в браузере храним только простые поля (без вычисленных ссылок) — и не в файле модели */
 const plain=d=>({kind:d.kind,name:d.name,reys:d.reys.map(r=>({code:r.code,loaded:r.loaded,cn:r.cn,arr:r.arr,out:r.out,kz:r.kz,tash:r.tash,
   lots:r.lots.map(l=>({mark:l.mark,cargo:l.cargo,pack:l.pack,ctn:l.ctn,cbm:l.cbm,kg:l.kg,dest:l.dest,cell:l.cell,arr:l.arr0,out:l.out0,kz:l.kz0,note:l.note}))}))});
@@ -12653,7 +12660,8 @@ function compute(){
     const v=Math.min(left,CFG.rackM3-rk.used); rk.items.push({l,m3:v}); rk.used+=v; cs.m3+=v; used[cs.id]=1;
     if(!cs.lots.includes(l)) cs.lots.push(l); if(!l.cells.includes(cs.id)) l.cells.push(cs.id); return left-v; };
   const autoLots=[];
-  st.here.forEach(l=>{ const ids=cellList(l.cell); if(!ids.length){ autoLots.push(l); return; }
+  const PM=placeMap();   /* места, заданные в системе управления складом, — если в таблице ячейки нет */
+  st.here.forEach(l=>{ const ids=cellList(l.cell||(PM[lotKey(l)]||[]).join(',')); if(!ids.length){ autoLots.push(l); return; }
     /* несколько ячеек в таблице — груз делится между ними поровну (сколько в какой — таблица не говорит) */
     let left=Math.max(l.cbm,0.05);
     ids.forEach((id,i)=>{ const cs=cellOf(id); let part=left/(ids.length-i); while(part>1e-6&&!full(cs)){ const r=add(cs,l,part); left-=part-r; part=r; } });
@@ -12971,6 +12979,8 @@ function ui(){
 function pick(o){ const rk=o&&o.userData.stk; if(!rk) return; const it=rk.items.reduce((a,b)=>b.m3>a.m3?b:a,rk.items[0]); S.sel={t:'lot',v:it.l.id}; paint(); ui();
   const e=document.querySelector('#stklist .stkrow.on'); if(e&&e.scrollIntoView) e.scrollIntoView({block:'nearest'}); }
 
+/* места, заданные в системе управления складом (Buraq_WMS.html) в этом же браузере, — сразу в 3D */
+addEventListener('storage',e=>{ if(e.key===PLACE_KEY&&S.on) refresh(); });
 restore(); compute(); ui();
 return {S,CFG,BL,enter,exit,toggle,reload,refresh,set,select,pick,hit,demo,loadText:t=>{ setData(fromText(t),{kind:'paste',url:'',id:'',gid:''}); refresh(); },
   loadDemo:()=>{ setData(demo(),{kind:'demo',url:'',id:'',gid:''}); refresh(); },loadUrl:u=>{ S.src={kind:'url',url:u,id:(parseUrl(u)||{}).id||'',gid:(parseUrl(u)||{}).gid||''}; return reload(); },

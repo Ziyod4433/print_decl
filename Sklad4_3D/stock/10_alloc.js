@@ -45,7 +45,8 @@ function compute(){
     const v=Math.min(left,CFG.rackM3-rk.used); rk.items.push({l,m3:v}); rk.used+=v; cs.m3+=v; used[cs.id]=1;
     if(!cs.lots.includes(l)) cs.lots.push(l); if(!l.cells.includes(cs.id)) l.cells.push(cs.id); return left-v; };
   const autoLots=[];
-  st.here.forEach(l=>{ const ids=cellList(l.cell); if(!ids.length){ autoLots.push(l); return; }
+  const PM=placeMap();   /* места, заданные в системе управления складом, — если в таблице ячейки нет */
+  st.here.forEach(l=>{ const ids=cellList(l.cell||(PM[lotKey(l)]||[]).join(',')); if(!ids.length){ autoLots.push(l); return; }
     /* несколько ячеек в таблице — груз делится между ними поровну (сколько в какой — таблица не говорит) */
     let left=Math.max(l.cbm,0.05);
     ids.forEach((id,i)=>{ const cs=cellOf(id); let part=left/(ids.length-i); while(part>1e-6&&!full(cs)){ const r=add(cs,l,part); left-=part-r; part=r; } });

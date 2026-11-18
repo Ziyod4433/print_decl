@@ -19,14 +19,14 @@
 **Windows** (PowerShell, путь к папке — свой):
 ```powershell
 cd "$HOME\Documents\AI projects"
-git clone https://github.com/Ziyod4433/print_decl.git buraq-sklad4
+git clone -b claude/brave-ritchie-qumd28 https://github.com/Ziyod4433/print_decl.git buraq-sklad4
 cd buraq-sklad4\Sklad4_3D
 .\setup.bat
 ```
 **macOS / Linux:**
 ```bash
 cd ~/"AI projects"
-git clone https://github.com/Ziyod4433/print_decl.git buraq-sklad4
+git clone -b claude/brave-ritchie-qumd28 https://github.com/Ziyod4433/print_decl.git buraq-sklad4
 cd buraq-sklad4/Sklad4_3D && ./setup.sh
 ```
 `setup` ставит зависимости (один раз) и запускает локальный сервер — откроется браузер со стартовой страницей

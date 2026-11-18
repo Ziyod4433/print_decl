@@ -63,11 +63,11 @@ for name, (p, t, fov, noroof, ev) in VIEWS.items():
 if ONLY == 'fly':
     for o in roof: o.hide_render = False
     KEYS = [  # время, камера, цель (координаты three.js)
-        (0.0,  [38.0, 5.2, 16.8], [24.0, 0.8, 22.5]),
-        (4.0,  [30.0, 4.4, 16.2], [17.0, 1.0, 22.0]),
-        (7.5,  [18.4, 3.6, 16.6], [18.4, 1.4, 30.0]),
-        (10.5, [18.4, 2.7, 27.3], [5.0, 1.2, 22.5]),
-        (13.0, [11.0, 2.2, 28.0], [1.5, 1.2, 21.0])]
+        (0.0,  [38.0, 3.6, 15.9], [24.0, 0.8, 21.0]),   # по южной магистрали ниже подвесных табличек (их низ — 4,0 м)
+        (4.0,  [27.0, 3.4, 15.6], [16.0, 1.2, 17.5]),
+        (7.0,  [18.4, 3.0, 15.6], [18.4, 1.4, 30.0]),   # поворот в поперечный проезд x 18,4 — под табличками z 17 и 26,5
+        (10.5, [18.4, 2.6, 26.9], [5.0, 1.2, 22.5]),    # южнее ряда колонн z ≈ 27,6 (колонна x 16,4 со знаком «5»)
+        (13.0, [11.0, 2.2, 26.9], [1.5, 1.2, 21.0])]
     FPS = 24; NF = int(KEYS[-1][0] * FPS) + 1
     tg = bpy.data.objects.new('FlyTarget', None); sc.collection.objects.link(tg)
     c = co.constraints.new('TRACK_TO'); c.target = tg; c.track_axis = 'TRACK_NEGATIVE_Z'; c.up_axis = 'UP_Y'
@@ -80,6 +80,7 @@ if ONLY == 'fly':
     cd.lens = 12.0 / math.tan(math.radians(60) / 2); sc.view_settings.exposure = -0.15
     sc.frame_start, sc.frame_end = 0, NF - 1; r.fps = FPS
     START = int(a[6]) if len(a) > 6 else 0
-    for f in range(START, NF):
+    STEP = int(a[7]) if len(a) > 7 else 1
+    for f in range(START, NF, STEP):
         t0 = time.time(); sc.frame_set(f); r.filepath = f'{OUT}/f{f:04d}.jpg'; bpy.ops.render.render(write_still=True)
         print('FRAME', f, NF, round(time.time() - t0, 1), flush=True)

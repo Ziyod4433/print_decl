@@ -30,7 +30,7 @@ cd blender
 blender -b -P import.py -- exps bases.blend
 blender -b -P setup.py  -- exps bases.blend finals.blend
 blender -b finals.blend -P stills.py -- exps/meta.json out 48 1600 900 all     # aerial, aisle, rows, loading, plan, truck (~1–2 мин на кадр, 4 ядра)
-blender -b finals.blend -P stills.py -- exps/meta.json fly 24 1280 720 fly     # пролёт 13 с: out/f0000…f0312.jpg; продолжить — 8-й аргумент = кадр
+blender -b finals.blend -P stills.py -- exps/meta.json fly 24 1280 720 fly     # пролёт 13 с: f0000…f0312.jpg; дальше: [кадр начала] [шаг] (черновик: 4 320 180 fly 0 12)
 ffmpeg -framerate 24 -i fly/f%04d.jpg -c:v libx264 -crf 20 -pix_fmt yuv420p ../Sklad4_пролёт_Cycles.mp4
 blender -b finals.blend -P bake.py -- exps/meta.json hall.png hall.json 384 64     # свет зала → hall.png.npy
 python3 bake_post.py hall.png.npy ../assets/hall_light.png ../assets/hall_light.json   # затем python3 build.py

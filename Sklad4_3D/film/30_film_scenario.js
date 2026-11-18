@@ -593,6 +593,7 @@ function unprepScene(){
 }
 function enter(opts){
   if(F.on) return; opts=opts||{}; if(F.SIM&&F.SIM.on) F.SIM.exit();
+  if(typeof STOCK!=='undefined'&&STOCK.on) STOCK.exit();   /* учёт груза показывает свой груз в ячейках — в фильме его нет */
   if(walk) toggleWalk();
   prepScene(false);
   if(opts.size){ F.W=opts.size[0]; F.H=opts.size[1]; }

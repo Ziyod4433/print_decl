@@ -8688,7 +8688,7 @@ function toggleWalk(){
     tipEl.innerHTML='<b>W A S D</b> идти · <b>мышь</b> смотреть<br><b>Shift</b> бегом · <b>Пробел</b> прыжок · <b>C</b> присесть · <b>V</b> вид от 3-го лица · <b>F</b>/ЛКМ удар · <b>Esc</b> выход<br>склад работает: живой процесс идёт · сквозь стойки и технику не пройти';
     if(canvas.requestPointerLock) canvas.requestPointerLock();
     saved_pr=renderer.getPixelRatio(); renderer.setPixelRatio(Math.min(saved_pr,1)); resize();   // в обходе — без удвоенного разрешения: плавнее на слабых ПК
-    if(typeof SIM!=='undefined'&&!SIM.on&&!FILM.on) SIM.enter();   // обход — по работающему складу: живой процесс включается сам
+    if(typeof SIM!=='undefined'&&!SIM.on&&!FILM.on&&!(typeof STOCK!=='undefined'&&STOCK.on)) SIM.enter();   // обход — по работающему складу: живой процесс включается сам (при учёте груза — нет)
     walkLbl=[G.labels.visible,G.addr.visible]; G.labels.visible=false; G.addr.visible=false;   // глазами человека: без висящих в воздухе подписей
     walkPanel=!document.getElementById('app').classList.contains('max'); if(walkPanel) tglSet(true,true);   // мышь захвачена — панель прячется сама
     walkRoof=[G.roof.visible,interior.intensity]; G.roof.visible=true; interior.intensity=LIGHT.inRoof; renderer.shadowMap.needsUpdate=true;   // внутри зала — под кровлей
@@ -9192,6 +9192,7 @@ const marker=new THREE.BoxHelper(new THREE.Object3D(),0xf2b705);
 marker.material.depthTest=false; marker.material.transparent=true;
 marker.visible=false; marker.layers.set(1); scene.add(marker);
 function hitTest(cx,cy){
+  if(typeof STOCK!=='undefined'&&STOCK.on&&!ED.on){ const so=STOCK.hit(cx,cy); if(so) return so; }
   const r=canvas.getBoundingClientRect();
   ndc.x=((cx-r.left)/r.width)*2-1; ndc.y=-((cy-r.top)/r.height)*2+1;
   ray.setFromCamera(ndc,camera);
@@ -9201,14 +9202,14 @@ function hitTest(cx,cy){
   while(o&&!o.userData.info) o=o.parent;
   return (o&&o.userData.info)?o:null;
 }
-function pick(cx,cy,click){ const o=hitTest(cx,cy); if(click&&o) showInfo(o.userData.info); return o; }
+function pick(cx,cy,click){ const o=hitTest(cx,cy); if(click&&o){ showInfo(o.userData.info); if(o.userData.stk) STOCK.pick(o); } return o; }
 function updateHover(){
   if(!hoverDirty) return; hoverDirty=false;
   const o=mode?null:hitTest(hoverX,hoverY);
   if(o!==hoverObj){
     hoverObj=o;
     if(o){ marker.setFromObject(o); marker.visible=true;
-      hoverEl.style.display='block'; hoverEl.textContent=o.userData.info.t; }
+      hoverEl.style.display='block'; hoverEl.textContent=o.userData.info.h||o.userData.info.t; }
     else { marker.visible=false; hoverEl.style.display='none'; }
   }
   if(o){ const r=canvas.getBoundingClientRect();
@@ -10979,6 +10980,7 @@ function unprepScene(){
 }
 function enter(opts){
   if(F.on) return; opts=opts||{}; if(F.SIM&&F.SIM.on) F.SIM.exit();
+  if(typeof STOCK!=='undefined'&&STOCK.on) STOCK.exit();   /* учёт груза показывает свой груз в ячейках — в фильме его нет */
   if(walk) toggleWalk();
   prepScene(false);
   if(opts.size){ F.W=opts.size[0]; F.H=opts.size[1]; }
@@ -12244,7 +12246,7 @@ function status(){ const racks=S.cells.reduce((a,c)=>a+c.tiers.filter(r=>r.n>0).
   const now=S.fkTask?S.fkTask.name:'погрузчик ждёт';
   const ph=S.phase==='unload'?'ВЫГРУЗКА машины из Китая':S.phase==='dws'?'ЗАМЕР ОБРАЗЦОВ на DWS':'ПОГРУЗКА автопоезда';
   return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')}${S.V===2?' · приёмка через П1':''} · ${ph} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded}${(()=>{ const A=axleInfo(); return A&&(A.m1+A.m2)>0?` · в кузовах ${tt(A.m1)} + ${tt(A.m2)} т (седло тягача +${tt(A.front)} / оси секции 1 +${tt(A.rear)} т)`:''; })()} · ${now}`; }
-SIM.enter=function(){ if(SIM.on) return; if(F.on) exit(); prepScene(true); HUM.attn=attnFn;
+SIM.enter=function(){ if(SIM.on) return; if(F.on) exit(); if(typeof STOCK!=='undefined'&&STOCK.on) STOCK.exit(); prepScene(true); HUM.attn=attnFn;
   const keep=new Set([F.fk,F.CT.root,F.W3.root,F.W5.root,F.W4.root,F.tl2,F.dws,F.gs].concat(Object.values(F.KH).map(H=>H.root)));
   S.filmVis=F.grp.children.map(o=>[o,o.visible]); F.grp.children.forEach(o=>{ o.visible=keep.has(o); });
   setup(); SIM.on=true; SIM.T=0; applyVis(0); if(SIM.onChange) SIM.onChange(); };
@@ -12419,6 +12421,560 @@ function ui(){ if(!F.on) return; bar.querySelector('[data-a=play]').textContent=
 addEventListener('keydown',e=>{ if(!F.on) return;
   if(e.code==='Escape') exit(); else if(e.code==='Space'){ e.preventDefault(); F.play=!F.play; ui(); } });
 mkBtn('▶ Фильм: процесс склада',true,()=>enter());
+})();
+
+/* ==========================================================================
+   УЧЁТ ГРУЗА (18.11): что лежит на складе, чей груз, когда прибыл и сколько дней стоит.
+   Данные — из таблиц Google (по ссылке), из вставленной таблицы или демо. Модель их только читает.
+   Один модуль STOCK: 00_data (чтение и разбор) → 10_alloc (стойки и ячейки) → 20_view (3D) → 30_ui (панель).
+   ========================================================================== */
+const STOCK=window.STOCK=(()=>{
+const KEY='sklad4.stock.v1', DAY=86400000;
+/* настройки: норма хранения (дней), объём одной стойки (м³), штабелей в ячейке, ярусов, раскраска, автообновление (с) */
+const CFG={norm:7,rackM3:3.0,stacks:2,tiers:2,mode:'days',refresh:120,placeKg:1000};
+/* рабочие таблицы Buraq: листы и строки шапок (ищем столбцы по названиям — порядок столбцов можно менять) */
+const BL={fs:'Fura statuslari',fsRows:[6,5,7,1,2,3,4,8],of:'Ortilgan furalar',ofRows:[2,1,3]};
+const S={on:false,src:{kind:'none',url:'',id:'',gid:''},data:null,at:0,err:'',busy:false,date:null,sel:null,q:'',today:null};
+
+const pad=n=>String(n).padStart(2,'0');
+const day0=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const fmtD=d=>d?pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.'+d.getFullYear():'—';
+const fmtDs=d=>d?pad(d.getDate())+'.'+pad(d.getMonth()+1):'—';
+const fmtN=(v,k)=>(+v||0).toLocaleString('ru-RU',{maximumFractionDigits:k===undefined?1:k});
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const dDiff=(a,b)=>Math.round((day0(a)-day0(b))/DAY);
+const today=()=>day0(S.today||new Date());
+const viewDate=()=>S.date?day0(S.date):today();
+const plural=(n,a,b,c)=>{ n=Math.abs(n)%100; const k=n%10; return n>10&&n<20?c:k===1?a:k>=2&&k<=4?b:c; };
+const daysTxt=n=>n+' '+plural(n,'день','дня','дней');
+
+function num(v){
+  if(typeof v==='number') return isFinite(v)?v:0;
+  if(v==null) return 0;
+  let s=String(v).replace(/[\s  ]/g,'');
+  if(s.indexOf(',')>=0&&s.indexOf('.')>=0) s=s.replace(/\./g,'');
+  const x=parseFloat(s.replace(',','.')); return isFinite(x)?x:0;
+}
+const MON={янв:0,фев:1,мар:2,апр:3,мая:4,май:4,июн:5,июл:6,авг:7,сен:8,окт:9,ноя:10,дек:11,jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+function date(v){
+  if(v instanceof Date) return isNaN(v)?null:day0(v);
+  if(v==null||v==='') return null;
+  const s=String(v).trim(); let m;
+  if((m=s.match(/^Date\((\d+),(\d+),(\d+)/))) return new Date(+m[1],+m[2],+m[3]);
+  if((m=s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})/))){ let y=+m[3]; if(y<100) y+=2000; const d=new Date(y,+m[2]-1,+m[1]); return isNaN(d)?null:d; }
+  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return new Date(+m[1],+m[2]-1,+m[3]);
+  if((m=s.match(/^(\d{1,2})[\s.-]*([a-zа-яё]{3})/i))){ const mo=MON[m[2].toLowerCase()]; if(mo===undefined) return null;
+    const r=today(); let d=new Date(r.getFullYear(),mo,+m[1]); if(d-r>60*DAY) d=new Date(r.getFullYear()-1,mo,+m[1]); return d; }
+  return null;
+}
+
+/* ---------------------------------------------------------------- чтение таблицы Google: JSONP (работает и из файла на диске) */
+let seq=0;
+function gviz(id,params){
+  return new Promise((res,rej)=>{
+    const cb='__stk'+(++seq)+'_'+Date.now(), s=document.createElement('script'); let done=false;
+    const fin=(f,v)=>{ if(done) return; done=true; clearTimeout(tm); window[cb]=()=>{}; s.remove(); f(v); };
+    window[cb]=r=>{ if(r&&r.status==='ok'&&r.table) fin(res,r.table);
+      else fin(rej,new Error((r&&r.errors&&r.errors[0]&&(r.errors[0].detailed_message||r.errors[0].message))||'таблица ответила ошибкой')); };
+    const tm=setTimeout(()=>fin(rej,new Error('таблица не ответила — проверьте интернет и доступ по ссылке')),20000);
+    s.onerror=()=>fin(rej,new Error('таблица недоступна: нет сети или доступ «всем, у кого есть ссылка» закрыт'));
+    const q=Object.assign({tqx:'out:json;responseHandler:'+cb},params);
+    s.src='https://docs.google.com/spreadsheets/d/'+id+'/gviz/tq?'+Object.keys(q).map(k=>k+'='+encodeURIComponent(q[k])).join('&');
+    document.head.appendChild(s);
+  });
+}
+const cellV=c=>c==null?null:(c.v!=null?c.v:(c.f!=null?c.f:null));
+const cellS=c=>c==null?'':String(c.f!=null?c.f:(c.v!=null?c.v:'')).trim();
+function parseUrl(u){
+  u=String(u||'').trim(); const m=u.match(/\/spreadsheets\/d\/([A-Za-z0-9_-]{20,})/); if(!m) return /^[A-Za-z0-9_-]{30,}$/.test(u)?{id:u,gid:''}:null;
+  const g=u.match(/[#?&]gid=(\d+)/); return {id:m[1],gid:g?g[1]:''};
+}
+/* шапка листа: строка row целиком как текст → {название: буква столбца} */
+async function headerRow(id,sheet,row){
+  const t=await gviz(id,{sheet,range:'A'+row+':AZ'+row,headers:0}); const out=[];
+  if(t.rows&&t.rows[0]) t.rows[0].c.forEach((c,i)=>{ const s=cellS(c).replace(/\s+/g,' '); if(s) out.push({id:t.cols[i].id,label:s}); });
+  return out;
+}
+async function findCols(id,sheet,rows,want,need){
+  let best=null;
+  for(const r of rows){
+    let hs; try{ hs=await headerRow(id,sheet,r); }catch(e){ if(r===rows[0]) throw e; continue; }
+    const got={}; for(const k in want){ const h=hs.find(h=>want[k].test(h.label)&&!Object.values(got).includes(h.id)); if(h) got[k]=h.id; }
+    if(need.every(k=>got[k])) return {row:r,cols:got};
+    if(!best||Object.keys(got).length>Object.keys(best.cols).length) best={row:r,cols:got};
+  }
+  const miss=need.filter(k=>!(best&&best.cols[k]));
+  throw new Error('в листе «'+sheet+'» не нашёл столбцы: '+miss.join(', '));
+}
+const FS_WANT={reys:/^REYS NOMERI$/i,loaded:/^ORTILGAN SANA$/i,cn:/FURA RAQAMI HITOY/i,arr:/^HORGOS SANA$/i,out:/^QOZOQ FURA SANA$/i,kz:/FURA RAQAMI QOZOQ/i,tash:/^TOSHKENT SANA$/i};
+const OF_WANT={mark:/SHIPPING MARK$/i,cargo:/YUK NOMI$/i,pack:/PACKING TYPE$/i,ctn:/(^|\s)CTN$/i,cbm:/(^|\s)CBM$/i,kg:/G\.?W\.?$/i,dest:/PUNKT NAZNACHENIYA$/i,reys:/REYS RAQAMI$/i};
+
+/* рабочие таблицы Buraq: рейсы с датами (Fura statuslari) + состав рейсов (Ortilgan furalar). Берём только нужные столбцы. */
+async function loadBL(id){
+  const fs=await findCols(id,BL.fs,BL.fsRows,FS_WANT,['reys','arr','out']);
+  const fk=Object.keys(fs.cols), ft=await gviz(id,{sheet:BL.fs,range:'A'+fs.row+':AZ6000',headers:1,tq:'select '+fk.map(k=>fs.cols[k]).join(',')+' where '+fs.cols.reys+' is not null'});
+  const reys=[];
+  ft.rows.forEach(r=>{ const o={}; fk.forEach((k,i)=>o[k]=r.c[i]); const code=cellS(o.reys); if(!/\d{4}/.test(code)) return;
+    reys.push({code,loaded:date(cellV(o.loaded)),cn:cellS(o.cn).replace(/^-$/,''),arr:date(cellV(o.arr)),out:date(cellV(o.out)),kz:cellS(o.kz),tash:date(cellV(o.tash)),lots:[]}); });
+  /* состав: только рейсы последних 150 дней и те, что ещё не уехали из Хоргоса */
+  const t0=today(), need=reys.filter(r=>(r.arr&&dDiff(t0,r.arr)<=150)||(!r.out&&((r.loaded&&dDiff(t0,r.loaded)<=60)||r.arr)));
+  const of=await findCols(id,BL.of,BL.ofRows,OF_WANT,['mark','cbm','reys']);
+  const ok=Object.keys(of.cols), byCode={}; need.forEach(r=>byCode[r.code]=r);
+  for(let i=0;i<need.length;i+=30){
+    const part=need.slice(i,i+30), where=part.map(r=>of.cols.reys+" = '"+r.code.replace(/'/g,'')+"'").join(' or ');
+    const ot=await gviz(id,{sheet:BL.of,headers:of.row,tq:'select '+ok.map(k=>of.cols[k]).join(',')+' where '+where});
+    ot.rows.forEach(r=>{ const o={}; ok.forEach((k,j)=>o[k]=r.c[j]); const g=byCode[cellS(o.reys)]; if(!g) return;
+      const cbm=num(cellV(o.cbm)), mark=cellS(o.mark); if(!mark&&!cbm) return;
+      g.lots.push({mark:mark||'без метки',cargo:cellS(o.cargo),pack:cellS(o.pack),ctn:num(cellV(o.ctn)),cbm,kg:num(cellV(o.kg)),dest:cellS(o.dest),cell:''}); });
+  }
+  return {kind:'bl',name:'рабочие таблицы Buraq',reys:reys.filter(r=>r.lots.length||!r.out||(r.arr&&dDiff(t0,r.arr)<=150))};
+}
+
+/* простая таблица (шаблон): одна строка — один груз; столбцы находим по названиям на русском, английском или узбекском */
+const ALIAS=[['cell',/ЯЧЕЙК|CELL|YACHEYKA|^АДРЕС/i],['mark',/SHIPPING\s*MARK|МАРК|КЛИЕНТ|MIJOZ|BELGI/i],['cargo',/CARGO\s*NAME|YUK NOMI|^ГРУЗ|НАИМЕН|ТОВАР/i],
+  ['pack',/PACK|УПАК|ТАРА/i],['ctn',/CTN|件|МЕСТ|КОЛ-?ВО|QUANTITY|SONI/i],['cbm',/CBM|М3|М³|ОБЪ[ЕЁ]М|HAJM/i],
+  ['kg',/^(T\/)?KG$|G\.?W\.?$|^ВЕС|^КГ|OG.?IRLIK/i],['out',/ОТГРУЖ|ДАТА ОТГ|УШ[ЁЕ]Л|ВЫБЫЛ|QOZOQ FURA SANA|JO.?NA/i],
+  ['arr',/DATE OF ARRIV|ПРИБЫ|ПРИХОД|ДАТА ПРИ|HORGOS SANA|KELGAN/i],['reys',/PARTIYA|РЕЙС|REYS|ПАРТИЯ/i],
+  ['dest',/НАЗНАЧ|PUNKT|^КУДА|MANZIL/i],['kz',/ФУРА|TRUCK|МАШИН/i],['note',/ПРИМЕЧ|NOTE|IZOH/i]];
+function mapCols(labels){
+  const got={}; ALIAS.forEach(([k,re])=>{ const i=labels.findIndex((l,i)=>l&&re.test(l)&&!/IN 1 CBM/i.test(l)&&!Object.values(got).includes(i)); if(i>=0) got[k]=i; });
+  return got;
+}
+function fromRows(labels,rows,name){
+  const c=mapCols(labels.map(l=>String(l||'').replace(/\s+/g,' ').trim()));
+  if(c.mark===undefined||(c.cbm===undefined&&c.ctn===undefined)) throw new Error('в таблице нужны хотя бы столбцы SHIPPING MARK (клиент) и CBM (объём) — их названия не найдены в первой строке');
+  const g=new Map(), get=(r,k)=>c[k]===undefined?null:r[c[k]];
+  rows.forEach(r=>{ const mark=String(get(r,'mark')==null?'':get(r,'mark')).trim(), cbm=num(get(r,'cbm')), ctn=num(get(r,'ctn')); if(!mark||(!cbm&&!ctn)) return;
+    const arr=date(get(r,'arr')), out=date(get(r,'out')), code=String(get(r,'reys')==null?'':get(r,'reys')).trim()||(arr?'приход '+fmtD(arr):'без даты');
+    if(!g.has(code)) g.set(code,{code,loaded:null,cn:'',arr:null,out:null,kz:'',tash:null,lots:[],own:true});
+    const G=g.get(code), s=k=>String(get(r,k)==null?'':get(r,k)).trim();
+    G.lots.push({mark,cargo:s('cargo'),pack:s('pack'),ctn,cbm,kg:num(get(r,'kg')),dest:s('dest'),cell:s('cell').toUpperCase(),arr,out,kz:s('kz'),note:s('note')}); });
+  g.forEach(G=>{ const a=G.lots.map(l=>l.arr).filter(Boolean); if(a.length) G.arr=new Date(Math.min.apply(null,a));
+    if(G.lots.length&&G.lots.every(l=>l.out)) G.out=new Date(Math.max.apply(null,G.lots.map(l=>l.out))); G.kz=(G.lots.find(l=>l.kz)||{}).kz||''; });
+  return {kind:'simple',name:name||'таблица',reys:[...g.values()]};
+}
+async function loadSimple(id,gid){
+  const p={headers:1}; if(gid) p.gid=gid;
+  const t=await gviz(id,p);
+  return fromRows(t.cols.map(c=>c.label),t.rows.map(r=>r.c.map(cellV)),'таблица Google');
+}
+function fromText(txt){
+  const lines=String(txt||'').replace(/\r/g,'').split('\n').filter(l=>l.trim());
+  if(lines.length<2) throw new Error('вставьте таблицу вместе со строкой заголовков');
+  const sep=lines[0].indexOf('\t')>=0?'\t':(lines[0].split(';').length>lines[0].split(',').length?';':',');
+  const split=l=>{ if(sep==='\t') return l.split('\t'); const o=[]; let cur='',q=false;
+    for(const ch of l){ if(ch==='"') q=!q; else if(ch===sep&&!q){ o.push(cur); cur=''; } else cur+=ch; } o.push(cur); return o; };
+  return fromRows(split(lines[0]),lines.slice(1).map(split),'вставленная таблица');
+}
+/* ссылка: сначала пробуем рабочие таблицы Buraq (два листа), иначе — простая таблица */
+async function loadUrl(url){
+  const p=parseUrl(url); if(!p) throw new Error('это не ссылка на таблицу Google');
+  let bl=false; try{ const h=await headerRow(p.id,BL.fs,BL.fsRows[0]); bl=h.some(x=>FS_WANT.reys.test(x.label)); }catch(e){ if(/недоступна|не ответила/.test(e.message)) throw e; }
+  return bl?loadBL(p.id):loadSimple(p.id,p.gid);
+}
+
+/* демо-данные: три рейса на складе, один в пути, несколько уехавших — чтобы посмотреть, как это выглядит */
+function demo(){
+  let q=20261118; const R=()=>{ q=(q*1664525+1013904223)>>>0; return q/4294967296; };
+  const t=today(), ago=n=>new Date(t.getTime()-n*DAY), code=d=>'DEMO'+pad(d.getDate())+pad(d.getMonth()+1);
+  const cargo=['Светильники','Люстры','Прожекторы','Кабель','Посуда','Игрушки','Текстиль','Инструмент','Автозапчасти','Мебель разборная','Электроника','Обувь'];
+  const mk=(arrAgo,outAgo,n,loadAgo)=>{ const arr=arrAgo==null?null:ago(arrAgo), g={code:code(ago(loadAgo)),loaded:ago(loadAgo),cn:'CN'+(1000+(R()*8999|0)),arr,out:outAgo==null?null:ago(outAgo),
+      kz:outAgo==null&&R()<0.5?'':(100+(R()*899|0))+'KZA'+pad(1+(R()*18|0)),tash:null,lots:[]};
+    for(let i=0;i<n;i++){ const big=R()<0.2, cbm=big?12+R()*22:0.3+R()*7, ctn=Math.max(1,Math.round(cbm*(6+R()*30)));
+      g.lots.push({mark:'DEMO-'+(10+(R()*60|0)),cargo:cargo[R()*cargo.length|0],pack:R()<0.85?'KOROBKA':(R()<0.5?'YASHIK':'PALLET'),ctn,cbm:+cbm.toFixed(2),kg:Math.round(cbm*(90+R()*220)),dest:R()<0.7?'Ташкент':'Самарканд',cell:''}); }
+    return g; };
+  const reys=[mk(11,null,9,17),mk(5,null,14,10),mk(1,null,12,6),mk(null,null,13,3)];
+  [[20,13],[26,22],[33,27],[41,35],[47,44],[55,46],[62,57]].forEach(p=>reys.push(mk(p[0],p[1],8+(R()*8|0),p[0]+5)));
+  return {kind:'demo',name:'демо-данные',reys};
+}
+
+/* в браузере храним только простые поля (без вычисленных ссылок) — и не в файле модели */
+const plain=d=>({kind:d.kind,name:d.name,reys:d.reys.map(r=>({code:r.code,loaded:r.loaded,cn:r.cn,arr:r.arr,out:r.out,kz:r.kz,tash:r.tash,
+  lots:r.lots.map(l=>({mark:l.mark,cargo:l.cargo,pack:l.pack,ctn:l.ctn,cbm:l.cbm,kg:l.kg,dest:l.dest,cell:l.cell,arr:l.arr0,out:l.out0,kz:l.kz0,note:l.note}))}))});
+function store(){ try{ localStorage.setItem(KEY,JSON.stringify({cfg:CFG,src:S.src,at:S.at,data:S.data?plain(S.data):null})); }catch(e){} }
+function prep(d){
+  d.reys.forEach(r=>{ r.cbm=0; r.kg=0; r.ctn=0; r.lots.forEach((l,i)=>{ l.reys=r.code; l.id=r.code+'#'+i;
+    if(!('arr0' in l)){ l.arr0=l.arr||null; l.out0=l.out||null; l.kz0=l.kz||''; }
+    l.arr=l.arr0||r.arr; l.out=l.out0||r.out; l.kz=l.kz0||r.kz; r.cbm+=l.cbm; r.kg+=l.kg; r.ctn+=l.ctn; }); });
+  return d;
+}
+function restore(){
+  try{ const o=JSON.parse(localStorage.getItem(KEY)||'null'); if(!o) return;
+    Object.assign(CFG,o.cfg||{}); if(o.src) S.src=o.src; S.at=o.at||0;
+    if(o.data&&o.data.reys){ const rd=v=>v?new Date(v):null;
+      o.data.reys.forEach(r=>{ ['loaded','arr','out','tash'].forEach(k=>r[k]=rd(r[k])); r.lots.forEach(l=>{ l.arr=rd(l.arr); l.out=rd(l.out); }); }); S.data=prep(o.data); }
+  }catch(e){}
+}
+function setData(d,src){ S.data=prep(d); S.at=Date.now(); S.err=''; if(src) S.src=src; S.sel=null; store(); }
+/* ---------------------------------------------------------------- состояние склада на дату и расстановка по ячейкам */
+/* порядок ячеек: от поста погрузки П2 (восток) к приёмке (запад), парами A–B: самый старый груз — ближе к отгрузке */
+const CELL_ORDER=(()=>{ const o=[]; for(let n=15;n>=1;n--){ o.push('A'+n); o.push('B'+n); } return o; })();
+const cellById=id=>CELLS.find(c=>c.id===id);
+function cellList(s){
+  /* «A6», «A6, A7», «A6-A9» → список ячеек */
+  const out=[]; String(s||'').toUpperCase().replace(/А/g,'A').replace(/В/g,'B').split(/[\s,;+]+/).forEach(p=>{ if(!p) return;
+    const m=p.match(/^([AB])(\d{1,2})(?:[-–—]([AB])?(\d{1,2}))?$/); if(!m) return;
+    const a=+m[2], b=m[4]?+m[4]:a; for(let n=Math.min(a,b);n<=Math.max(a,b);n++){ const id=m[1]+n; if(cellById(id)&&!out.includes(id)) out.push(id); } });
+  return out;
+}
+/* место стойки в ячейке: штабель k (0 — в глубине ячейки), ярус t */
+function rackPos(c,k,t){
+  const cx=(c.x0+c.x1)/2, z=c.row==='A'?c.z1-1.05-k*1.62:c.z0+1.05+k*1.62;
+  return {x:cx,y:t*RACK.PITCH,z,rot:c.row==='A'?Math.PI:0};
+}
+let ST=null;
+function compute(){
+  const D=viewDate(), d=S.data, st={D,here:[],groups:[],coming:[],gone:[],racks:[],cells:{},over:[],warn:[],auto:false,k:{}};
+  ST=st; if(!d) return st;
+  d.reys.forEach(r=>{
+    const lots=r.lots.filter(l=>l.arr&&l.arr<=D&&(!l.out||l.out>=D));
+    if(lots.length){ const arr=new Date(Math.min.apply(null,lots.map(l=>l.arr)));
+      st.groups.push({r,lots,arr,days:dDiff(D,arr),cbm:lots.reduce((a,l)=>a+l.cbm,0),kg:lots.reduce((a,l)=>a+l.kg,0),ctn:lots.reduce((a,l)=>a+l.ctn,0),
+        outToday:!!(r.out&&dDiff(r.out,D)===0),out:r.out,cells:[]}); }
+    else if(r.arr&&r.out&&r.out<D) st.gone.push({r,days:dDiff(r.out,r.arr)});
+    else if((r.loaded&&r.loaded<=D&&(!r.arr||r.arr>D))||(!r.loaded&&r.arr&&r.arr>D)) st.coming.push({r});
+  });
+  st.groups.sort((a,b)=>a.arr-b.arr||(a.r.code<b.r.code?-1:1));
+  st.gone.sort((a,b)=>a.r.out-b.r.out);
+  st.groups.forEach(g=>g.lots.forEach(l=>{ l.days=dDiff(D,l.arr); l.g=g; l.cells=[]; st.here.push(l); }));
+  /* средняя дорога Китай → Хоргос по последним рейсам — для прогноза прибытия */
+  const tr=d.reys.filter(r=>r.loaded&&r.arr&&r.arr<=D).slice(-12).map(r=>dDiff(r.arr,r.loaded)).filter(x=>x>=0&&x<40);
+  st.transit=tr.length?Math.round(tr.reduce((a,b)=>a+b,0)/tr.length):6;
+  st.coming.forEach(c=>{ c.eta=c.r.arr||(c.r.loaded?new Date(c.r.loaded.getTime()+st.transit*DAY):null); c.plan=!c.r.arr; c.in=c.eta?dDiff(c.eta,D):null; });
+  st.coming.sort((a,b)=>(a.eta||0)-(b.eta||0));
+
+  /* --- расстановка: сначала грузы с ячейкой из таблицы, потом остальные — по рейсам в свободные ячейки --- */
+  const cap=CFG.stacks*CFG.tiers, used={};
+  const cellOf=id=>st.cells[id]||(st.cells[id]={id,c:cellById(id),racks:[],lots:[],m3:0,auto:false});
+  const newRack=cs=>{ if(cs.racks.length>=cap) return null; const i=cs.racks.length, k=Math.floor(i/CFG.tiers), t=i%CFG.tiers, p=rackPos(cs.c,k,t);
+    const rk={cell:cs.id,k,t,x:p.x,y:p.y,z:p.z,rot:p.rot,items:[],used:0,i:st.racks.length}; cs.racks.push(rk); st.racks.push(rk); return rk; };
+  const full=cs=>cs.racks.length>=cap&&cs.racks[cs.racks.length-1].used>=CFG.rackM3-1e-6;
+  const add=(cs,l,left)=>{ let rk=cs.racks[cs.racks.length-1]; if(!rk||rk.used>=CFG.rackM3-1e-6) rk=newRack(cs);
+    const v=Math.min(left,CFG.rackM3-rk.used); rk.items.push({l,m3:v}); rk.used+=v; cs.m3+=v; used[cs.id]=1;
+    if(!cs.lots.includes(l)) cs.lots.push(l); if(!l.cells.includes(cs.id)) l.cells.push(cs.id); return left-v; };
+  const autoLots=[];
+  st.here.forEach(l=>{ const ids=cellList(l.cell); if(!ids.length){ autoLots.push(l); return; }
+    /* несколько ячеек в таблице — груз делится между ними поровну (сколько в какой — таблица не говорит) */
+    let left=Math.max(l.cbm,0.05);
+    ids.forEach((id,i)=>{ const cs=cellOf(id); let part=left/(ids.length-i); while(part>1e-6&&!full(cs)){ const r=add(cs,l,part); left-=part-r; part=r; } });
+    for(const id of ids){ const cs=cellOf(id); while(left>1e-6&&!full(cs)) left=add(cs,l,left); }
+    if(left>0.05) st.warn.push('В ячейк'+(ids.length>1?'ах ':'е ')+ids.join(', ')+' записано больше, чем помещается: «'+l.mark+'» — не вошло '+fmtN(left)+' м³'); });
+  if(autoLots.length){ st.auto=true; const free=CELL_ORDER.filter(id=>!used[id]);
+    st.groups.forEach(g=>{ const ls=autoLots.filter(l=>l.g===g).sort((a,b)=>a.mark<b.mark?-1:a.mark>b.mark?1:b.cbm-a.cbm); if(!ls.length) return;
+      /* одна ячейка — одна отправка: каждый рейс начинает с новой ячейки */
+      let cs=null;
+      ls.forEach(l=>{ let left=Math.max(l.cbm,0.05);
+        while(left>1e-6){ if(!cs||full(cs)){ if(!free.length) break; cs=cellOf(free.shift()); cs.auto=true; } left=add(cs,l,left); }
+        if(left>0.05) st.over.push({l,m3:left}); }); }); }
+  st.groups.forEach(g=>{ const ids=[]; g.lots.forEach(l=>l.cells.forEach(id=>{ if(!ids.includes(id)) ids.push(id); })); g.cells=ids; });
+  /* тяжёлые места: стойка рассчитана на 1000 кг, место тяжелее — под вилы на пол, не в стойку */
+  st.here.forEach(l=>{ l.heavy=l.ctn>0&&l.kg/l.ctn>CFG.placeKg; });
+
+  /* --- показатели --- */
+  const K=st.k, sum=(a,f)=>a.reduce((x,y)=>x+f(y),0);
+  K.reys=st.groups.length; K.lots=st.here.length; K.ctn=sum(st.here,l=>l.ctn); K.cbm=sum(st.here,l=>l.cbm); K.kg=sum(st.here,l=>l.kg);
+  K.marks=new Set(st.here.map(l=>l.mark)).size;
+  K.cells=Object.keys(st.cells).length; K.racks=st.racks.length; K.capRacks=CELLS.length*cap; K.capM3=K.capRacks*CFG.rackM3;
+  K.maxDays=st.here.length?Math.max.apply(null,st.here.map(l=>l.days)):0;
+  K.lateLots=st.here.filter(l=>l.days>CFG.norm); K.lateM3=sum(K.lateLots,l=>l.cbm);
+  K.overM3=sum(st.over,o=>o.m3); K.heavy=st.here.filter(l=>l.heavy);
+  const last=st.gone.slice(-10); K.avgDwell=last.length?sum(last,g=>g.days)/last.length:null; K.maxDwell=last.length?Math.max.apply(null,last.map(g=>g.days)):null;
+  K.lateShare=last.length?last.filter(g=>g.days>CFG.norm).length/last.length:null;
+  if(K.overM3>0.05) st.warn.unshift('Не поместилось в ячейки: '+fmtN(K.overM3)+' м³ — буфер из 30 ячеек (стойки в '+CFG.tiers+' яруса, '+CFG.stacks+' штабеля в ячейке) вмещает '+fmtN(K.capM3,0)+' м³');
+  if(K.heavy.length) st.warn.push('Тяжёлые места (больше '+fmtN(CFG.placeKg,0)+' кг на одно место, не для стойки): '+K.heavy.slice(0,6).map(l=>l.mark).join(', ')+(K.heavy.length>6?' и ещё '+(K.heavy.length-6):''));
+  const nd=d.reys.reduce((a,r)=>a+r.lots.filter(l=>!l.arr&&!r.loaded).length,0);
+  if(nd) st.warn.push('Строк без даты прибытия: '+nd+' — в учёт простоя не попали');
+  return st;
+}
+const dayColor=d=>d>CFG.norm?0xe5484d:(d>CFG.norm/2?0xf2b705:0x3fae5a);
+const PAL=[0x4c9be8,0xf2b705,0x3fae5a,0xe5484d,0xb07ce8,0x2ec4b6,0xff8c42,0xd65db1,0x8ac926,0x5c7cfa,0xe07a5f,0x00a8cc];
+const hashC=s=>{ let h=0; for(const ch of String(s)) h=(h*31+ch.charCodeAt(0))>>>0; return PAL[h%PAL.length]; };
+const lotColor=l=>CFG.mode==='mark'?hashC(l.mark):(CFG.mode==='reys'?PAL[Math.max(0,ST.groups.indexOf(l.g))%PAL.length]:dayColor(l.days));
+const hex=c=>'#'+('00000'+c.toString(16)).slice(-6);
+/* ---------------------------------------------------------------- 3D: стойки и короба (инстансы), плитки ячеек, подписи рейсов, выделение */
+let V=null;
+function buildView(){
+  if(V) return V;
+  const root=new THREE.Group(); root.name='stock'; scene.add(root);
+  /* запас инстансов: до 3 штабелей × 3 ярусов в каждой ячейке */
+  const max=CELLS.length*9, I=THREE.InstancedMesh;
+  const fr=new I(RACKGEO.or,M.rackOr,max), gv=new I(RACKGEO.gv,M.rackGalv,max);
+  const bg=new THREE.BoxGeometry(1,1,1); bg.translate(0,0.5,0);
+  /* светлый «нейтральный» короб: цвет задаёт раскраска (простой, клиент, рейс), текстура — только лента, кромки и этикетка */
+  const tc=cnv(256,256), tx=tc.getContext('2d'); tx.fillStyle='#efece4'; tx.fillRect(0,0,256,256);
+  let rq=7; const rr=()=>{ rq=(rq*1664525+1013904223)>>>0; return rq/4294967296; };
+  for(let i=0;i<500;i++){ tx.fillStyle='rgba(120,100,70,'+(0.02+rr()*0.05)+')'; tx.fillRect(rr()*256,rr()*256,2+rr()*10,1+rr()*2); }
+  tx.fillStyle='rgba(205,190,160,.75)'; tx.fillRect(108,0,40,256); tx.fillStyle='rgba(255,255,255,.25)'; tx.fillRect(108,0,9,256);
+  const eg0=tx.createLinearGradient(0,0,256,0); eg0.addColorStop(0,'rgba(40,30,20,.34)'); eg0.addColorStop(.07,'rgba(40,30,20,0)'); eg0.addColorStop(.93,'rgba(40,30,20,0)'); eg0.addColorStop(1,'rgba(40,30,20,.34)');
+  tx.fillStyle=eg0; tx.fillRect(0,0,256,256);
+  const eg1=tx.createLinearGradient(0,0,0,256); eg1.addColorStop(0,'rgba(40,30,20,.30)'); eg1.addColorStop(.07,'rgba(40,30,20,0)'); eg1.addColorStop(.93,'rgba(40,30,20,0)'); eg1.addColorStop(1,'rgba(40,30,20,.36)');
+  tx.fillStyle=eg1; tx.fillRect(0,0,256,256);
+  tx.fillStyle='rgba(250,250,246,.96)'; tx.fillRect(160,150,76,58); tx.fillStyle='#16181c'; for(let x=166;x<230;x+=2+(rr()*3|0)) tx.fillRect(x,172,1+(rr()*2|0),28); tx.fillRect(166,158,40,5);
+  const bt=new THREE.CanvasTexture(tc); bt.encoding=THREE.sRGBEncoding; bt.anisotropy=ANISO;
+  const bm=new THREE.MeshStandardMaterial({map:bt,roughness:.86,metalness:0,envMapIntensity:.4});
+  const bx=new I(bg,bm,max*RSLOT.length);
+  /* цвета — сразу на весь запас: иначе three создаёт буфер по текущему числу коробов, и при росте склада новым не хватает места */
+  bx.instanceColor=new THREE.BufferAttribute(new Float32Array(max*RSLOT.length*3).fill(1),3);
+  [fr,gv,bx].forEach(m=>{ m.castShadow=m.receiveShadow=true; m.frustumCulled=false; m.count=0; root.add(m); });
+  const tiles={}, tg=new THREE.Group(); root.add(tg);
+  CELLS.forEach(c=>{ const m=new THREE.Mesh(new THREE.PlaneGeometry(c.x1-c.x0-0.12,c.z1-c.z0-0.12),
+      new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.34,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,toneMapped:false}));
+    m.rotation.x=-Math.PI/2; m.position.set((c.x0+c.x1)/2,0.021,(c.z0+c.z1)/2); m.visible=false; tg.add(m); tiles[c.id]=m; });
+  const prox=new THREE.Group(); root.add(prox);
+  const pg=new THREE.BoxGeometry(1.5,RACK.H,1.5); pg.translate(0,RACK.H/2,0);
+  const lab=new THREE.Group(); G.labels.add(lab);
+  const selG=new THREE.Group(); root.add(selG);
+  const eg=new THREE.EdgesGeometry(new THREE.BoxGeometry(1.58,RACK.H+0.06,1.58)); eg.translate(0,RACK.H/2,0);
+  V={root,fr,gv,bx,tiles,prox,pg,pm:new THREE.MeshBasicMaterial(),lab,labels:{},pool:[],selG,eg,em:new THREE.LineBasicMaterial({color:0x35e0ff,depthTest:false,transparent:true}),ray:new THREE.Raycaster()};
+  return V;
+}
+const _m=new THREE.Matrix4(), _q=new THREE.Quaternion(), _p=new THREE.Vector3(), _s=new THREE.Vector3(), _c=new THREE.Color(), _w=new THREE.Color(0xffffff), UP=new THREE.Vector3(0,1,0);
+const selHas=l=>{ const s=S.sel; return !s||(s.t==='lot'?l.id===s.v:s.t==='reys'?l.reys===s.v:l.mark===s.v); };
+const qHas=l=>{ const q=S.q.trim().toLowerCase(); return !q||(l.mark+' '+l.cargo+' '+l.reys+' '+l.cells.join(' ')+' '+l.dest).toLowerCase().includes(q); };
+const shown=l=>selHas(l)&&qHas(l);
+
+function rackInfo(rk){
+  const cs=ST.cells[rk.cell], l0=rk.items[0].l, g=l0.g, addr=rk.cell+' · штабель '+(rk.k+1)+' · ярус '+(rk.t+1);
+  const ln=rk.items.map(it=>it.l.mark+(it.l.cargo?' · '+it.l.cargo:'')+' — '+fmtN(it.m3)+' м³');
+  const h=addr+(cs.auto?' (место условное)':'')+'\nрейс '+l0.reys+' · прибыл '+fmtD(l0.arr)+' · на складе '+daysTxt(l0.days)+'\n'+ln.slice(0,6).join('\n')+(ln.length>6?'\n… ещё '+(ln.length-6):'');
+  const rows=rk.items.map(it=>{ const l=it.l; return '<tr><td><b>'+esc(l.mark)+'</b><br>'+esc(l.cargo||'—')+'</td><td>'+fmtN(it.m3)+' из '+fmtN(l.cbm)+' м³<br>'+fmtN(l.ctn,0)+' мест · '+fmtN(l.kg,0)+' кг</td></tr>'; }).join('');
+  const out=g.r.out?('отгрузка '+fmtD(g.r.out)+(g.r.kz?' · фура '+esc(g.r.kz):'')):(g.r.kz?'фура '+esc(g.r.kz):'фура ещё не назначена');
+  return {t:'Стойка '+addr+' — рейс '+l0.reys, h,
+    q:'прибыл '+fmtD(l0.arr)+' · на складе '+daysTxt(l0.days)+(l0.days>CFG.norm?' — дольше нормы ('+CFG.norm+')':'')+' · '+out,
+    n:'<table class="stkt">'+rows+'</table>'+(cs.auto?'<div class="stkn">Место в ячейке условное: в таблице адресов нет, модель расставила рейсы сама — старый груз ближе к посту погрузки.</div>':''),
+    kt:'Рейс целиком', k:esc(l0.reys)+': '+g.lots.length+' поз. · '+fmtN(g.cbm)+' м³ · '+fmtN(g.kg/1000)+' т · ячейки '+esc(g.cells.join(', '))};
+}
+function render3d(){
+  const v=buildView(), st=ST; let nb=0;
+  st.racks.forEach((rk,i)=>{
+    _q.setFromAxisAngle(UP,rk.rot); _p.set(rk.x,rk.y,rk.z); _s.set(1,1,1); _m.compose(_p,_q,_s); v.fr.setMatrixAt(i,_m); v.gv.setMatrixAt(i,_m);
+    let px=v.pool[i]; if(!px){ px=new THREE.Mesh(v.pg,v.pm); px.visible=false; v.pool[i]=px; }
+    if(px.parent!==v.prox) v.prox.add(px);
+    px.position.set(rk.x,rk.y,rk.z); px.rotation.y=rk.rot; px.userData.stk=rk; px.userData.info=rackInfo(rk); px.updateMatrixWorld(true);
+    /* коробов в стойке — по занятому объёму; чей короб — по долям грузов в стойке */
+    const n=Math.max(1,Math.min(RSLOT.length,Math.round(RSLOT.length*rk.used/CFG.rackM3))), cs=Math.cos(rk.rot), sn=Math.sin(rk.rot);
+    let acc=0, ii=0; const cum=rk.items.map(it=>(acc+=it.m3)/rk.used); rk.b0=nb; rk.n=n; rk.own=[];
+    for(let b=0;b<n;b++){ const f=(b+0.5)/n; while(ii<cum.length-1&&f>cum[ii]) ii++;
+      const q=RSLOT[b], T=CTYPE[q.ti];
+      _p.set(rk.x+q.x*cs+q.z*sn,rk.y+q.y,rk.z-q.x*sn+q.z*cs); _s.set(T.l,T.h,T.w); _m.compose(_p,_q,_s); v.bx.setMatrixAt(nb,_m); rk.own[b]=rk.items[ii].l; nb++; }
+  });
+  for(let i=st.racks.length;i<v.pool.length;i++) if(v.pool[i].parent) v.prox.remove(v.pool[i]);
+  v.fr.count=v.gv.count=st.racks.length; v.bx.count=nb;
+  v.fr.instanceMatrix.needsUpdate=v.gv.instanceMatrix.needsUpdate=v.bx.instanceMatrix.needsUpdate=true;
+  paint();
+  if(typeof walk!=='undefined'&&walk&&typeof WALKP!=='undefined') WALKP.build();
+}
+function paint(){
+  const v=V, st=ST; if(!v||!st) return;
+  const dim=!!S.sel||!!S.q.trim();
+  st.racks.forEach(rk=>{ for(let b=0;b<rk.n;b++){ const l=rk.own[b];
+    if(dim&&!shown(l)) _c.setHex(0x9aa0a8); else { _c.setHex(lotColor(l)); _c.lerp(_w,0.12); }
+    v.bx.setColorAt(rk.b0+b,_c); } });
+  if(v.bx.instanceColor) v.bx.instanceColor.needsUpdate=true;
+  CELLS.forEach(c=>{ const cs=st.cells[c.id], t=v.tiles[c.id]; if(!cs){ t.visible=false; return; }
+    const l=cs.lots.reduce((a,b)=>b.days>a.days?b:a,cs.lots[0]); t.material.color.setHex(lotColor(l)); t.material.opacity=dim&&!cs.lots.some(shown)?0.07:0.34; t.visible=true; });
+  /* подпись — одна на рейс, над серединой его ячеек */
+  const seen={};
+  st.groups.forEach((g,gi)=>{ const rs=st.racks.filter(r=>r.items.some(it=>it.l.g===g)); if(!rs.length) return;
+    const x=rs.reduce((a,r)=>a+r.x,0)/rs.length, z=rs.reduce((a,r)=>a+r.z,0)/rs.length;
+    const txt=g.r.code+' · '+(g.days>0?daysTxt(g.days):'прибыл сегодня')+(g.outToday?' · отгрузка сегодня':''), col=hex(CFG.mode==='reys'?PAL[gi%PAL.length]:dayColor(g.days));
+    let s=v.labels[g.r.code];
+    if(!s){ s=makeLabel(txt,col,44,0.78); v.lab.add(s); v.labels[g.r.code]=s; }
+    else if(s.userData.lp.text!==txt||s.userData.lp.color!==col){ s.userData.lp.text=txt; s.userData.lp.color=col; paintLabel(s); }
+    s.position.set(x,CFG.tiers*RACK.PITCH+1.9+(gi%2)*0.9,z); s.visible=!dim||g.lots.some(shown); seen[g.r.code]=1; });
+  for(const k in v.labels) if(!seen[k]){ const s=v.labels[k]; v.lab.remove(s); if(s.material.map) s.material.map.dispose(); s.material.dispose();
+    const i=allLabels.indexOf(s); if(i>=0) allLabels.splice(i,1); delete v.labels[k]; }
+  /* рамки вокруг стоек выбранного груза */
+  const pick=S.sel?st.racks.filter(rk=>rk.items.some(it=>selHas(it.l))):[];
+  while(v.selG.children.length>pick.length) v.selG.remove(v.selG.children[v.selG.children.length-1]);
+  pick.forEach((rk,i)=>{ let e=v.selG.children[i]; if(!e){ e=new THREE.LineSegments(v.eg,v.em); e.renderOrder=998; v.selG.add(e); } e.position.set(rk.x,rk.y,rk.z); e.rotation.y=rk.rot; });
+  renderer.shadowMap.needsUpdate=true;
+}
+/* наведение и клик: невидимая коробка на каждой стойке; base hitTest спрашивает нас первым */
+const _n=new THREE.Vector2();
+function hit(cx,cy){
+  if(!S.on||!V||!ST||!ST.racks.length) return null;
+  const r=canvas.getBoundingClientRect(); _n.set(((cx-r.left)/r.width)*2-1,-((cy-r.top)/r.height)*2+1);
+  V.ray.setFromCamera(_n,camera); const hs=V.ray.intersectObjects(V.prox.children,false);
+  return hs.length?hs[0].object:null;
+}
+/* что прячем на время учёта: демонстрационные стойки и всё выбираемое оборудование, стоящее внутри ячеек */
+let hid=null, pickHid=null, addrY=null;
+const inCell=o=>{ const p=o.position; return CELLS.some(c=>p.x>c.x0-0.15&&p.x<c.x1+0.15&&p.z>c.z0-0.15&&p.z<c.z1+0.15); };
+function show3d(on){
+  if(on){
+    if(hid) return;
+    const list=[]; Object.values(CELLSTACK).forEach(o=>{ if(o&&!list.includes(o)) list.push(o); });
+    G.equip.children.forEach(o=>{ if(!list.includes(o)&&pickables.includes(o)&&inCell(o)) list.push(o); });
+    hid=list.map(o=>[o,o.visible]); list.forEach(o=>o.visible=false);
+    pickHid=[]; for(let i=pickables.length-1;i>=0;i--) if(list.includes(pickables[i])){ pickHid.push(pickables[i]); pickables.splice(i,1); }
+    buildView().root.visible=true; V.lab.visible=true;
+    /* адреса ячеек висят на 1,75 м — на время учёта поднимаем над стойками */
+    addrY=[]; G.addr.children.forEach(o=>{ if(inCell(o)){ addrY.push([o,o.position.y]); o.position.y=CFG.tiers*RACK.PITCH+0.75; } });
+  } else {
+    if(hid){ hid.forEach(([o,vis])=>o.visible=vis); hid=null; }
+    if(pickHid){ pickHid.forEach(o=>{ if(!pickables.includes(o)) pickables.push(o); }); pickHid=null; }
+    if(V){ V.root.visible=false; V.lab.visible=false; }
+    if(addrY){ addrY.forEach(([o,y])=>o.position.y=y); addrY=null; }
+    if(typeof marker!=='undefined') marker.visible=false;
+    if(typeof walk!=='undefined'&&walk&&typeof WALKP!=='undefined') WALKP.build();
+  }
+  scene.updateMatrixWorld(true); renderer.shadowMap.needsUpdate=true;
+}
+/* ---------------------------------------------------------------- панель «Учёт груза», плашка на сцене, загрузка данных */
+const css=document.createElement('style'); css.textContent=`
+  #stkq{left:14px;top:12px;display:flex;gap:5px;align-items:center;padding:5px 7px;z-index:11} #stkq button{padding:5px 9px;font-size:13px}
+  #stkq .m{display:none} #app.stock #stkq .m{display:inline-block} #stkq i{font-style:normal;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 2px 0 6px;display:none} #app.stock #stkq i{display:inline}
+  #stkhud{left:14px;top:58px;display:none;line-height:1.6;max-width:560px} #app.stock #stkhud{display:block} #stkhud b{color:var(--ink);font-weight:500} #stkhud u{text-decoration:none;color:var(--yellow);cursor:pointer;pointer-events:auto}
+  #app.film #stkq,#app.film #stkhud{display:none!important}
+  #app.stock #hover{white-space:pre-line;max-width:380px;line-height:1.45;text-align:left;font-size:12px}
+  @media (max-width:640px){ #stkq button{padding:4px 6px;font-size:11px} #stkhud{max-width:92%;font-size:10.5px} }
+  #stksec input[type=text],#stksec input[type=date],#stksec textarea{width:100%;box-sizing:border-box;background:var(--panel2);border:1px solid var(--line);color:var(--ink);font:inherit;font-size:12px;padding:6px 8px;border-radius:2px;margin-top:6px}
+  #stksec textarea{height:88px;resize:vertical} #stksec input[type=date]{width:auto;margin:0}
+  .stknote{font-size:10.5px;line-height:1.5;color:var(--muted);margin-top:7px} .stknote b{color:var(--ink);font-weight:500} .stkerr{color:#ff8a8a}
+  .stkk{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:9px} .stkk div{background:var(--panel2);border:1px solid var(--line);padding:6px 7px;border-radius:2px}
+  .stkk b{display:block;font-family:var(--disp);font-size:19px;font-weight:700;line-height:1.1} .stkk span{font-size:9.5px;color:var(--muted);letter-spacing:.04em} .stkk .bad b{color:#ff6b6b} .stkk .ok b{color:#5fd07a}
+  .stkh{color:#9aa4ae;font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;margin:13px 0 5px;border-top:1px dashed var(--line);padding-top:8px}
+  .stkrow{display:grid;grid-template-columns:1fr auto;gap:1px 8px;padding:6px 7px;border:1px solid var(--line);border-radius:2px;margin-top:4px;cursor:pointer;font-size:11.5px;line-height:1.4}
+  .stkrow:hover{border-color:#4a5562} .stkrow.on{border-color:#35e0ff;background:rgba(53,224,255,.07)} .stkrow b{font-weight:600} .stkrow small{color:var(--muted);font-size:10.5px;grid-column:span 2}
+  .stkd{display:inline-block;min-width:38px;text-align:center;padding:1px 6px;border-radius:9px;font-size:10.5px;font-weight:600;color:#10151a}
+  .stkset{display:grid;grid-template-columns:1fr auto;gap:6px 8px;align-items:center;font-size:11px;margin-top:9px;color:var(--muted)} .stkset input[type=range]{grid-column:span 2;width:100%;accent-color:#f5c518;margin:0}
+  .stkset b{color:var(--ink);font-weight:500} #stkmode{display:flex;gap:4px;margin-top:8px} #stkmode button{flex:1;padding:6px 2px;font-size:12px}
+  .stkbars{display:flex;align-items:flex-end;gap:2px;height:46px;margin-top:6px;border-bottom:1px solid var(--line)} .stkbars i{flex:1;min-width:3px;background:#3fae5a;display:block} .stkbars i.l{background:#e5484d} .stkbars i.m{background:#f2b705}
+  table.stkt{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px} .stkt td{padding:4px 5px;border-bottom:1px solid var(--line);vertical-align:top} .stkt td:last-child{text-align:right;color:#c3c9d0;white-space:nowrap}
+  .stkn{font-size:10.5px;color:var(--muted);margin-top:7px;line-height:1.5}`;
+document.head.appendChild(css);
+const $=id=>document.getElementById(id), view=$('view'), app=$('app');
+const sec=document.createElement('section'); sec.id='stksec';
+sec.innerHTML=`<h2>Учёт груза <span>— что лежит, когда прибыло, сколько дней стоит</span></h2>
+  <div class="grid2" id="stkbtn"></div><div id="stksrc"></div><div id="stkkpi"></div><div id="stkmode"></div><div class="stkset" id="stkset"></div>
+  <div id="stkqueue"></div><div id="stklist"></div><div id="stkwarn"></div>`;
+{ const sc=document.querySelector('#panel .scroll'); sc.insertBefore(sec,sc.firstChild); }
+const hud=document.createElement('div'); hud.className='bar'; hud.id='stkhud'; view.appendChild(hud);
+const qb=document.createElement('div'); qb.className='bar'; qb.id='stkq'; view.appendChild(qb);
+const mkb=(par,t,fn,cls)=>{ const b=document.createElement('button'); b.textContent=t; if(cls) b.className=cls; b.onclick=()=>fn(b); par.appendChild(b); return b; };
+const MODES=[['days','Простой'],['mark','Клиент'],['reys','Рейс']];
+const qOn=mkb(qb,'📦 Учёт груза',()=>toggle()); { const i=document.createElement('i'); i.textContent='цвет'; qb.appendChild(i); }
+const qM={}; MODES.forEach(([k,t])=>{ qM[k]=mkb(qb,t,()=>set({mode:k}),'m'); });
+const bOn=mkb($('stkbtn'),'▶ Показать груз на складе',()=>toggle(),'wide'), bRe=mkb($('stkbtn'),'Обновить',()=>reload()), bDemo=mkb($('stkbtn'),'Демо-данные',()=>{ setData(demo(),{kind:'demo',url:'',id:'',gid:''}); if(!S.on) enter(); else refresh(); });
+const pM={}; MODES.forEach(([k,t])=>{ pM[k]=mkb($('stkmode'),t==='Простой'?'Цвет: простой':t,()=>set({mode:k})); });
+/* источник */
+$('stksrc').innerHTML=`<div class="stknote" id="stkstat"></div>
+  <input type="text" id="stkurl" placeholder="ссылка на таблицу Google (доступ: все, у кого есть ссылка — читатель)">
+  <div class="grid2" style="margin-top:6px"><button id="stkgo">Подключить таблицу</button><button id="stkpaste">Вставить таблицу</button></div>
+  <div id="stkpbox" style="display:none"><textarea id="stktxt" placeholder="Скопируйте строки из Google Sheets или Excel вместе с заголовками (SHIPPING MARK, CARGO NAME, CTN, CBM, KG, DATE OF ARRIVE, ЯЧЕЙКА…) и вставьте сюда"></textarea>
+    <button id="stkload" class="wide" style="margin-top:6px;width:100%">Загрузить вставленное</button></div>
+  <div class="stknote">Ссылка и загруженные данные хранятся только в этом браузере, в файл модели не записываются. Модель таблицу только читает.</div>`;
+$('stkgo').onclick=()=>{ const u=$('stkurl').value.trim(); if(!parseUrl(u)){ S.err='это не ссылка на таблицу Google'; ui(); return; } S.src={kind:'url',url:u,id:parseUrl(u).id,gid:parseUrl(u).gid}; store(); reload().then(()=>{ if(!S.on&&S.data) enter(); }); };
+$('stkpaste').onclick=()=>{ const b=$('stkpbox'); b.style.display=b.style.display==='none'?'block':'none'; };
+$('stkload').onclick=()=>{ try{ setData(fromText($('stktxt').value),{kind:'paste',url:'',id:'',gid:''}); $('stkpbox').style.display='none'; if(!S.on) enter(); else refresh(); }catch(e){ S.err=e.message; ui(); } };
+/* настройки */
+$('stkset').innerHTML=`<span>Норма хранения, дней — дольше считается простоем</span><b id="stknv"></b><input type="range" id="stknorm" min="1" max="30" step="1">
+  <span style="grid-column:span 2;margin-top:4px">Показать склад на дату: <input type="date" id="stkdate"> <button id="stktoday" style="padding:4px 8px;font-size:11px">Сегодня</button></span>`;
+$('stknorm').oninput=e=>set({norm:+e.target.value});
+$('stkdate').onchange=e=>{ const v=e.target.value; set({date:v?new Date(v+'T00:00:00'):null}); };
+$('stktoday').onclick=()=>set({date:null});
+
+function reload(silent){
+  if(S.src.kind!=='url'||!S.src.url){ if(!silent){ S.err='сначала подключите таблицу: вставьте ссылку и нажмите «Подключить таблицу»'; ui(); } return Promise.resolve(false); }
+  if(S.busy) return Promise.resolve(false);
+  S.busy=true; ui();
+  return loadUrl(S.src.url).then(d=>{ S.busy=false; setData(d,S.src); refresh(); return true; })
+    .catch(e=>{ S.busy=false; S.err=e.message||String(e); ui(); return false; });
+}
+function refresh(){ compute(); if(S.on) render3d(); ui(); }
+function set(o){
+  if(o.mode) CFG.mode=o.mode; if(o.norm) CFG.norm=Math.max(1,Math.round(o.norm)); if('date' in o) S.date=o.date; if('q' in o) S.q=o.q||''; if('sel' in o) S.sel=o.sel;
+  ['rackM3','stacks','tiers'].forEach(k=>{ if(o[k]) CFG[k]=o[k]; });
+  store(); if(Object.keys(o).every(k=>k==='mode'||k==='q'||k==='sel')){ if(S.on) paint(); ui(); } else refresh();
+}
+function select(sel,fly){
+  S.sel=sel&&S.sel&&S.sel.t===sel.t&&S.sel.v===sel.v?null:sel; if(S.on) paint(); ui();
+  if(fly&&S.sel&&S.on&&ST){ const rs=ST.racks.filter(rk=>rk.items.some(it=>selHas(it.l))); if(rs.length){ const x=rs.reduce((a,r)=>a+r.x,0)/rs.length, z=rs.reduce((a,r)=>a+r.z,0)/rs.length;
+    flyTo({t:[x,1.6,z],r:Math.max(13,Math.min(30,8+rs.length*0.9)),phi:Math.min(desired.phi,1.05),th:desired.th}); } }
+}
+function enter(){
+  if(S.on) return;
+  if(typeof FILM!=='undefined'&&FILM.on&&FILM.exit) FILM.exit();
+  if(typeof SIM!=='undefined'&&SIM.on) SIM.exit();
+  if(!S.data){ if(S.src.kind==='url'&&S.src.url) reload(true); else setData(demo(),{kind:'demo',url:'',id:'',gid:''}); }
+  S.on=true; app.classList.add('stock'); show3d(true); refresh();
+  if(S.src.kind==='url'&&Date.now()-S.at>CFG.refresh*1000) reload(true);
+}
+function exit(){ if(!S.on) return; S.on=false; app.classList.remove('stock'); show3d(false); ui(); }
+function toggle(){ if(S.on) exit(); else { enter(); if(typeof tglSet==='function'&&app.classList.contains('max')&&innerWidth>900) tglSet(false,true); } }
+setInterval(()=>{ if(S.on&&S.src.kind==='url'&&!S.busy&&!document.hidden&&!S.date) reload(true); },CFG.refresh*1000);
+
+const selName=()=>{ const s=S.sel; if(!s) return ''; if(s.t!=='lot') return s.v; const l=ST&&ST.here.find(l=>l.id===s.v); return l?l.mark+(l.cargo?' · '+l.cargo:''):s.v; };
+const chip=(d,txt)=>'<span class="stkd" style="background:'+hex(dayColor(d))+'">'+(txt||d+' дн.')+'</span>';
+function ui(){
+  const st=ST, K=st?st.k:null, on=S.on;
+  qOn.classList.toggle('on',on); qOn.textContent=on?'■ Учёт груза':'📦 Учёт груза';
+  bOn.classList.toggle('on',on); bOn.textContent=on?'■ Скрыть груз, вернуть обычный вид':'▶ Показать груз на складе';
+  MODES.forEach(([k])=>{ qM[k].classList.toggle('on',CFG.mode===k); pM[k].classList.toggle('on',CFG.mode===k); });
+  bRe.disabled=S.busy||S.src.kind!=='url'; bRe.style.opacity=bRe.disabled?0.45:1; bRe.textContent=S.busy?'Читаю…':'Обновить';
+  if(document.activeElement!==$('stkurl')) $('stkurl').value=S.src.url||'';
+  $('stknorm').value=CFG.norm; $('stknv').textContent=CFG.norm; $('stkdate').value=S.date?S.date.getFullYear()+'-'+pad(S.date.getMonth()+1)+'-'+pad(S.date.getDate()):'';
+  const when=S.at?new Date(S.at):null, src=S.data?S.data.name:'нет данных';
+  $('stkstat').innerHTML=(S.busy?'Читаю таблицу… ':'')+'Источник: <b>'+esc(src)+'</b>'+(when?' · прочитано '+fmtDs(when)+' '+pad(when.getHours())+':'+pad(when.getMinutes()):'')
+    +(S.data&&S.data.kind==='demo'?' — это пример, не ваш груз':'')+(S.src.kind==='url'?' · обновляется каждые '+Math.round(CFG.refresh/60)+' мин':'')
+    +(S.err?'<br><span class="stkerr">Не получилось: '+esc(S.err)+'</span>':'');
+  if(!st||!S.data||!K||K.reys===undefined){ ['stkkpi','stkqueue','stklist','stkwarn'].forEach(id=>$(id).innerHTML=''); hud.innerHTML=''; return; }
+  /* показатели */
+  const fill=K.capM3?Math.round(100*K.racks/K.capRacks):0;
+  $('stkkpi').innerHTML='<div class="stkk">'
+    +'<div><b>'+K.reys+'</b><span>'+plural(K.reys,'рейс','рейса','рейсов')+' на складе</span></div>'
+    +'<div><b>'+fmtN(K.cbm,0)+' м³</b><span>'+K.lots+' поз. · '+fmtN(K.ctn,0)+' мест</span></div>'
+    +'<div><b>'+fmtN(K.kg/1000)+' т</b><span>'+K.marks+' '+plural(K.marks,'клиент','клиента','клиентов')+'</span></div>'
+    +'<div class="'+(K.maxDays>CFG.norm?'bad':'ok')+'"><b>'+K.maxDays+' дн.</b><span>самый долгий простой</span></div>'
+    +'<div class="'+(K.lateLots.length?'bad':'ok')+'"><b>'+fmtN(K.lateM3,0)+' м³</b><span>дольше нормы · '+K.lateLots.length+' поз.</span></div>'
+    +'<div class="'+(fill>90?'bad':'')+'"><b>'+fill+' %</b><span>стоек занято · '+K.cells+' из '+CELLS.length+' ячеек</span></div></div>'
+    +(K.avgDwell!=null?'<div class="stknote">Уехавшие рейсы (последние '+Math.min(10,st.gone.length)+'): в среднем стояли <b>'+fmtN(K.avgDwell)+' дн.</b>, дольше всего — <b>'+K.maxDwell+' дн.</b>'
+      +(K.lateShare?'; дольше нормы — <b>'+Math.round(K.lateShare*100)+' %</b> рейсов':'')+'.</div>':'');
+  /* очередь на отгрузку, в пути, история */
+  let h='<div class="stkh">Очередь на отгрузку — первым уезжает самый старый (FIFO)</div>';
+  if(!st.groups.length) h+='<div class="stknote">На эту дату склад пуст.</div>';
+  st.groups.forEach((g,i)=>{ const sel=S.sel&&S.sel.t==='reys'&&S.sel.v===g.r.code;
+    h+='<div class="stkrow'+(sel?' on':'')+'" data-reys="'+esc(g.r.code)+'"><span><b>'+(i+1)+'. '+esc(g.r.code)+'</b> · прибыл '+fmtDs(g.arr)+'</span>'+chip(g.days)
+      +'<small>'+g.lots.length+' поз. · '+fmtN(g.cbm)+' м³ · '+fmtN(g.kg/1000)+' т · '+(g.r.out?(g.outToday?'<b style="color:#35e0ff">отгрузка сегодня</b>':'отгрузка '+fmtDs(g.r.out)):'дата отгрузки не назначена')
+      +(g.r.kz?' · фура '+esc(g.r.kz):'')+(g.cells.length?' · ячейки '+esc(g.cells[0])+(g.cells.length>1?'…'+esc(g.cells[g.cells.length-1]):''):'')+'</small></div>'; });
+  if(st.coming.length){ h+='<div class="stkh">В пути в Хоргос</div>';
+    st.coming.slice(0,6).forEach(c=>{ h+='<div class="stkrow" style="cursor:default"><span><b>'+esc(c.r.code)+'</b>'+(c.r.loaded?' · выехал '+fmtDs(c.r.loaded):'')+'</span><span>'+(c.eta?(c.in<0?'ждали '+fmtDs(c.eta):c.in===0?'сегодня':'через '+c.in+' дн.'):'—')+'</span>'
+      +'<small>'+(c.r.lots.length?c.r.lots.length+' поз. · '+fmtN(c.r.cbm)+' м³ · '+fmtN(c.r.kg/1000)+' т · ':'')+(c.eta?'ожидается '+fmtDs(c.eta)+(c.plan?' — по средней дороге '+st.transit+' дн.':''):'')+'</small></div>'; }); }
+  if(st.gone.length){ const gs=st.gone.slice(-24), mx=Math.max(CFG.norm,Math.max.apply(null,gs.map(g=>g.days)));
+    h+='<div class="stkh">Сколько дней стояли уехавшие рейсы</div><div class="stkbars">'+gs.map(g=>'<i class="'+(g.days>CFG.norm?'l':g.days>CFG.norm/2?'m':'')+'" style="height:'+Math.max(4,Math.round(100*g.days/mx))+'%" title="'+esc(g.r.code)+': '+daysTxt(g.days)+' ('+fmtDs(g.r.arr)+'–'+fmtDs(g.r.out)+')"></i>').join('')+'</div>'
+      +'<div class="stknote">Слева старые, справа последние. Красные — дольше нормы.</div>'; }
+  $('stkqueue').innerHTML=h;
+  $('stkqueue').querySelectorAll('[data-reys]').forEach(e=>e.onclick=()=>select({t:'reys',v:e.dataset.reys},true));
+  /* список грузов */
+  const qv=S.q, lots=st.here.filter(qHas).sort((a,b)=>b.days-a.days||b.cbm-a.cbm);
+  let hl='<div class="stkh">Грузы на складе — '+lots.length+(qv?' из '+st.here.length:'')+'</div><input type="text" id="stkq2" placeholder="поиск: клиент, груз, рейс, ячейка" value="'+esc(qv)+'">';
+  lots.slice(0,250).forEach(l=>{ const sel=S.sel&&S.sel.t==='lot'&&S.sel.v===l.id;
+    hl+='<div class="stkrow'+(sel?' on':'')+'" data-lot="'+esc(l.id)+'"><span><b>'+esc(l.mark)+'</b>'+(l.cargo?' · '+esc(l.cargo):'')+'</span>'+chip(l.days)
+      +'<small>прибыл '+fmtD(l.arr)+' · '+fmtN(l.ctn,0)+' мест · '+fmtN(l.cbm)+' м³ · '+fmtN(l.kg,0)+' кг'+(l.pack?' · '+esc(l.pack):'')+(l.heavy?' · <b style="color:#ff8a8a">тяжёлые места</b>':'')
+      +'<br>рейс '+esc(l.reys)+(l.dest?' → '+esc(l.dest):'')+' · '+(l.cells.length?'ячейк'+(l.cells.length>1?'и ':'а ')+esc(l.cells.join(', ')):'<span class="stkerr">не поместился</span>')+'</small></div>'; });
+  if(lots.length>250) hl+='<div class="stknote">Показаны первые 250 — уточните поиск.</div>';
+  const had=document.activeElement&&document.activeElement.id==='stkq2', pos=had?document.activeElement.selectionStart:0;
+  $('stklist').innerHTML=hl;
+  const q2=$('stkq2'); q2.oninput=e=>set({q:e.target.value}); if(had){ q2.focus(); try{ q2.setSelectionRange(pos,pos); }catch(e){} }
+  $('stklist').querySelectorAll('[data-lot]').forEach(e=>e.onclick=()=>select({t:'lot',v:e.dataset.lot},true));
+  $('stkwarn').innerHTML=(st.warn.length?'<div class="warn" style="margin-top:10px">'+st.warn.map(esc).join('<br>')+'</div>':'')
+    +(st.auto?'<div class="stknote"><b>Ячейки условные.</b> В таблице нет адресов, поэтому модель расставила рейсы сама: самый старый — у поста погрузки, каждый рейс в своих ячейках. Простой, даты, объёмы и клиенты — настоящие. Чтобы видеть настоящие места, нужен столбец «ЯЧЕЙКА» (A1…B15).</div>':'')
+    +'<div class="stknote">Одна стойка — до '+fmtN(CFG.rackM3)+' м³, в ячейке '+CFG.stacks+' штабеля по '+CFG.tiers+' яруса: всего '+fmtN(K.capM3,0)+' м³ на 30 ячеек.</div>';
+  /* строка на сцене */
+  hud.innerHTML=(S.date?'На '+fmtD(st.D)+': ':'Сейчас на складе: ')+'<b>'+K.reys+' '+plural(K.reys,'рейс','рейса','рейсов')+'</b> · '+K.lots+' поз. · <b>'+fmtN(K.cbm,0)+' м³</b> · '+fmtN(K.kg/1000)+' т'
+    +' · дольше нормы ('+CFG.norm+' дн.): <b style="color:'+(K.lateLots.length?'#ff6b6b':'#5fd07a')+'">'+(K.lateLots.length?fmtN(K.lateM3,0)+' м³':'нет')+'</b>'
+    +'<br>'+esc(src)+(S.data.kind==='demo'?' (пример)':'')+(st.auto?' · ячейки условные':'')+(S.sel?' · выбрано: <b>'+esc(selName())+'</b> <u id="stkx">× снять</u>':'')+(S.err?' · <span class="stkerr">таблица не прочиталась</span>':'');
+  const x=$('stkx'); if(x) x.onclick=()=>select(null);
+}
+/* клик по стойке в 3D: выделить груз, которого в ней больше всего */
+function pick(o){ const rk=o&&o.userData.stk; if(!rk) return; const it=rk.items.reduce((a,b)=>b.m3>a.m3?b:a,rk.items[0]); S.sel={t:'lot',v:it.l.id}; paint(); ui();
+  const e=document.querySelector('#stklist .stkrow.on'); if(e&&e.scrollIntoView) e.scrollIntoView({block:'nearest'}); }
+
+restore(); compute(); ui();
+return {S,CFG,BL,enter,exit,toggle,reload,refresh,set,select,pick,hit,demo,loadText:t=>{ setData(fromText(t),{kind:'paste',url:'',id:'',gid:''}); refresh(); },
+  loadDemo:()=>{ setData(demo(),{kind:'demo',url:'',id:'',gid:''}); refresh(); },loadUrl:u=>{ S.src={kind:'url',url:u,id:(parseUrl(u)||{}).id||'',gid:(parseUrl(u)||{}).gid||''}; return reload(); },
+  get on(){ return S.on; },get st(){ return ST; },get view(){ return V; },_:{num,date,fromText,cellList,parseUrl,compute}};
 })();
 
 edUI(); libPanel();

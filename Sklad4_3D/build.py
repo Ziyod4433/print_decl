@@ -650,6 +650,21 @@ if ABC:
     rep("const EDKEY='sklad4.edit.'+LAYOUT_VER;","const EDKEY='sklad4abc.edit.'+LAYOUT_VER;")   # своя правка: не смешивается с основной моделью
     rep("<title>Buraq Logistics · Склад №4 блок 4-1 · Yuzhe Park Хоргос · 3D (реалистичный рендер)</title>","<title>Buraq · Склад №4 · варианты хранения A/B/C</title>")
 
+# ---------- 28. учёт груза (18.11): что лежит, когда прибыло, сколько дней стоит — данные из таблиц Google; только в основной сборке ----------
+if not ABC:
+    SD=os.path.join(ROOT,'stock')
+    stock_js=''.join(open(f,encoding='utf-8').read() for f in sorted(glob.glob(os.path.join(SD,'*.js'))))
+    rep("\nedUI(); libPanel();\n\nresize();","\n"+stock_js+"\nedUI(); libPanel();\n\nresize();")
+    # наведение и клик по стойке с грузом: сначала спрашиваем учёт; подсказка — в несколько строк
+    rep("function hitTest(cx,cy){\n  const r=canvas.getBoundingClientRect();",
+        "function hitTest(cx,cy){\n  if(typeof STOCK!=='undefined'&&STOCK.on&&!ED.on){ const so=STOCK.hit(cx,cy); if(so) return so; }\n  const r=canvas.getBoundingClientRect();")
+    rep("function pick(cx,cy,click){ const o=hitTest(cx,cy); if(click&&o) showInfo(o.userData.info); return o; }",
+        "function pick(cx,cy,click){ const o=hitTest(cx,cy); if(click&&o){ showInfo(o.userData.info); if(o.userData.stk) STOCK.pick(o); } return o; }")
+    rep("hoverEl.style.display='block'; hoverEl.textContent=o.userData.info.t; }","hoverEl.style.display='block'; hoverEl.textContent=o.userData.info.h||o.userData.info.t; }")
+    # обход при включённом учёте — по складу с настоящим грузом: живой процесс сам не запускается
+    rep("    if(typeof SIM!=='undefined'&&!SIM.on&&!FILM.on) SIM.enter();   // обход — по работающему складу: живой процесс включается сам",
+        "    if(typeof SIM!=='undefined'&&!SIM.on&&!FILM.on&&!(typeof STOCK!=='undefined'&&STOCK.on)) SIM.enter();   // обход — по работающему складу: живой процесс включается сам (при учёте груза — нет)")
+
 # ---------- 20. блок правки в файле и исходный текст файла для кнопки «Скачать» ----------
 i=s.index("<script>/* модель человека: Ready Player Me")
 s=s[:i]+'<script id="sklad4-saved" type="application/json">{}</script>\n'+s[i:]

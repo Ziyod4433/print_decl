@@ -872,7 +872,7 @@ function status(){ const racks=S.cells.reduce((a,c)=>a+c.tiers.filter(r=>r.n>0).
   const now=S.fkTask?S.fkTask.name:'погрузчик ждёт';
   const ph=S.phase==='unload'?'ВЫГРУЗКА машины из Китая':S.phase==='dws'?'ЗАМЕР ОБРАЗЦОВ на DWS':'ПОГРУЗКА автопоезда';
   return `цикл ${S.cycle} · ${mm}:${String(ss).padStart(2,'0')}${S.V===2?' · приёмка через П1':''} · ${ph} · в ячейках ${racks} стоек / ${boxes} коробов · машин из Китая осталось ${S.inLeft+(S.cn.state!=='away'?1:0)} · автопоездов загружено ${S.outN} · погружено ${S.loaded}${(()=>{ const A=axleInfo(); return A&&(A.m1+A.m2)>0?` · в кузовах ${tt(A.m1)} + ${tt(A.m2)} т (седло тягача +${tt(A.front)} / оси секции 1 +${tt(A.rear)} т)`:''; })()} · ${now}`; }
-SIM.enter=function(){ if(SIM.on) return; if(F.on) exit(); prepScene(true); HUM.attn=attnFn;
+SIM.enter=function(){ if(SIM.on) return; if(F.on) exit(); if(typeof STOCK!=='undefined'&&STOCK.on) STOCK.exit(); prepScene(true); HUM.attn=attnFn;
   const keep=new Set([F.fk,F.CT.root,F.W3.root,F.W5.root,F.W4.root,F.tl2,F.dws,F.gs].concat(Object.values(F.KH).map(H=>H.root)));
   S.filmVis=F.grp.children.map(o=>[o,o.visible]); F.grp.children.forEach(o=>{ o.visible=keep.has(o); });
   setup(); SIM.on=true; SIM.T=0; applyVis(0); if(SIM.onChange) SIM.onChange(); };

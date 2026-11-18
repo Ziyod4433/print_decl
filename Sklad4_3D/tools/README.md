@@ -38,5 +38,6 @@
 | `node tools/exportgl.js`, `node tools/overlay.js` | экспорт фильма для Blender | см. `blender/README.md` |
 | `python3 build.py --abc` | сборка с вариантами хранения A/B/C → `Sklad4_variants_ABC.html` | «собрано … байт» |
 | `node tools/evasync.js <html> <скрипт.js> [W H outdir]` | выполнить в странице код, который может вернуть Promise; кадры `{imgs:[…]}` — в `outdir` | — |
+| `node tools/ev.js Sklad4_realistic_film.html tools/checks/stock.js` | учёт груза (`STOCK`): разбор чисел и дат, вставленная таблица со своими ячейками, шаблон CSV, расстановка, наведение, выход из режима — без сети | `bad []` |
 | `node tools/evasync.js Sklad4_variants_ABC.html tools/checks/abc_sim.js` (строкой перед скриптом: `window.__V='B'; window.__HRS=2;`) | симуляция варианта без кадров: задания, циклы, буферы, загрузка техники, зазор между машинами (`minD`), вынужденные разъезды (`ghost`) | нормы — в шапке файла |
 | `node tools/uishot.js <html> steps.json outdir` | снимки всего окна (панель + 3D) по шагам `[{name, js, wait}]` | смотреть глазами |

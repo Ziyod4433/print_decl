@@ -37,7 +37,10 @@ for o in list(bpy.data.objects):
     if o.type != 'MESH' or NAMES.get(o.name.split('.')[0], [None, ''])[1] != 'roof': continue
     bb = [o.matrix_world @ _V(c) for c in o.bound_box]; ys = [v.y for v in bb]; zs = [v.z for v in bb]; xs = [v.x for v in bb]
     if max(ys) - min(ys) < 0.3 and -36.0 < min(ys) < -35.0 and max(zs) - min(zs) > 2 and max(xs) - min(xs) > 20:
-        o.data.materials.clear(); o.data.materials.append(cm); print('curtain', o.name, flush=True)
+        # нормали из экспорта нулевые (их считал шейдер) — Cycles даёт чёрное; сетку пересобираем без своих нормалей
+        md = o.data; me = bpy.data.meshes.new('CurtainMesh')
+        me.from_pydata([v.co.copy() for v in md.vertices], [], [tuple(p.vertices) for p in md.polygons]); me.update()
+        me.materials.append(cm); o.data = me; print('curtain', o.name, flush=True)
 cd = bpy.data.cameras.new('Still'); co = bpy.data.objects.new('Still', cd); sc.collection.objects.link(co); sc.camera = co
 cd.sensor_fit = 'VERTICAL'; cd.sensor_height = 24.0; cd.clip_start = 0.05; cd.clip_end = 3000; cd.dof.use_dof = False
 if sc.animation_data: sc.animation_data_clear()

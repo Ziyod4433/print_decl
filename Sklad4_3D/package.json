@@ -1,18 +1,29 @@
 {
   "name": "sklad4-3d",
-  "version": "2026.10.10",
+  "version": "2026.11.18",
   "private": true,
-  "description": "Склад №4, блок 4-1 (Buraq Logistics, Хоргос): 3D-модель в одном HTML, фильм процесса, живой процесс склада",
+  "description": "Buraq Logistics, склад №4 (Хоргос): 3D-модель склада, система управления складом (WMS), варианты хранения A/B/C, визуализация в Blender Cycles",
   "scripts": {
-    "build": "python3 build.py",
+    "start": "node tools/serve.js",
+    "build": "node tools/build_all.js",
+    "build:model": "node tools/build_all.js model",
+    "build:abc": "node tools/build_all.js abc",
+    "build:wms": "node tools/build_all.js wms",
+    "test": "node tools/check.js",
     "check:film": "node tools/ev.js Sklad4_realistic_film.html tools/checks/forklift_jumps.js",
     "check:edits": "node tools/ev.js Sklad4_realistic_film.html tools/checks/user_edits_in_film.js",
+    "check:stock": "node tools/ev.js Sklad4_realistic_film.html tools/checks/stock.js",
+    "check:wms": "node tools/wms_ev.js Buraq_WMS.html tools/checks/wms.js",
     "check:save": "node tools/test_save.js",
     "check:walk": "node tools/walktest.js",
-    "check:sim": "node tools/simrun.js Sklad4_realistic_film.html 12000"
+    "check:sim": "node tools/simrun.js Sklad4_realistic_film.html 30000 3",
+    "lint:comments": "python3 tools/comment_scan.py"
   },
   "dependencies": {
     "puppeteer-core": "23.11.1",
     "three": "0.128.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

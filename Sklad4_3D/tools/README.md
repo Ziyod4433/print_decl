@@ -39,6 +39,9 @@
 | `python3 build.py --abc` | сборка с вариантами хранения A/B/C → `Sklad4_variants_ABC.html` | «собрано … байт» |
 | `node tools/evasync.js <html> <скрипт.js> [W H outdir]` | выполнить в странице код, который может вернуть Promise; кадры `{imgs:[…]}` — в `outdir` | — |
 | `node tools/ev.js Sklad4_realistic_film.html tools/checks/stock.js` | учёт груза (`STOCK`): разбор чисел и дат, вставленная таблица со своими ячейками, шаблон CSV, расстановка, наведение, выход из режима — без сети | `bad []` |
+| `npm start` (`tools/serve.js`) | локальный сервер проекта на 127.0.0.1:8080, открывает `index.html`; `.git` и `node_modules` не отдаёт, видео — с перемоткой (Range) | страница открылась |
+| `npm run build` (`tools/build_all.js`) | все три сборки; Python ищется как `python3`, `python` или `py -3` | три строки ✓ |
+| `npm test` (`tools/check.js`) | быстрый набор: `forklift_jumps`, `user_edits_in_film`, `film_shots`, `stock`, `wms`, `walktest` | «Все быстрые проверки прошли» |
 | `node tools/wms_ev.js Buraq_WMS.html tools/checks/wms.js` | система управления складом (`python3 build.py --wms`): данные, состояние на дату, размещение, все разделы, общий ключ мест с 3D-моделью | `bad []`, нет PAGEERROR |
 | `STILL=1 node tools/exportgl.js Sklad4_realistic_film.html <out> 24` | неподвижная сцена с грузом для кадров Cycles и запекания света | см. `blender/README.md` |
 | `node tools/evasync.js Sklad4_variants_ABC.html tools/checks/abc_sim.js` (строкой перед скриптом: `window.__V='B'; window.__HRS=2;`) | симуляция варианта без кадров: задания, циклы, буферы, загрузка техники, зазор между машинами (`minD`), вынужденные разъезды (`ghost`) | нормы — в шапке файла |

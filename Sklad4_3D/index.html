@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Buraq · Склад №4</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#14171c;--mute:#5d6672;--line:#e3e6ea;--acc:#f5b400;--acc-ink:#1b1400;--tag:#eef1f4}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1216;--card:#171b21;--ink:#e9edf2;--mute:#9aa4b0;--line:#262c34;--acc:#f5b400;--acc-ink:#1b1400;--tag:#20262e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 16px 48px}
+header{display:flex;align-items:center;gap:14px;margin-bottom:28px}
+.logo{width:44px;height:44px;border-radius:12px;background:var(--acc);color:var(--acc-ink);display:grid;place-items:center;font-weight:800;font-size:22px}
+h1{font-size:22px;margin:0}
+.sub{color:var(--mute);font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+a.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;color:inherit;text-decoration:none;transition:transform .15s,box-shadow .15s}
+a.card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.thumb{aspect-ratio:16/9;background:var(--tag) center/cover no-repeat}
+.body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:6px;flex:1}
+.body b{font-size:16px}
+.body span{color:var(--mute);font-size:14px}
+.tag{align-self:flex-start;margin-top:auto;background:var(--tag);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--mute)}
+h2{font-size:15px;margin:32px 0 12px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+ul.links{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8px}
+ul.links a{display:block;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:10px;color:inherit;text-decoration:none}
+ul.links a:hover{border-color:var(--acc)}
+footer{margin-top:36px;color:var(--mute);font-size:13px}
+code{background:var(--tag);padding:1px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="logo">B</div>
+  <div><h1>Buraq Logistics · Склад №4, блок 4-1</h1><div class="sub">Хоргос · 3D-модель, управление складом, визуализация</div></div>
+</header>
+
+<div class="grid">
+  <a class="card" href="Buraq_WMS.html">
+    <div class="thumb" style="background-image:url('docs/снимки_18.11_WMS_Blender_фуры/WMS_02_plan.jpg')"></div>
+    <div class="body"><b>Управление складом (WMS)</b><span>Сводка, схема ячеек с размещением груза, грузы, рейсы, клиенты, аналитика. Данные — из Google Sheets.</span><em class="tag">Buraq_WMS.html</em></div>
+  </a>
+  <a class="card" href="Sklad4_realistic_film.html">
+    <div class="thumb" style="background-image:url('docs/снимки_18.11_WMS_Blender_фуры/Cycles_aisle.jpg')"></div>
+    <div class="body"><b>3D-модель склада</b><span>Фильм процесса, живой процесс, обход, редактор оборудования, учёт груза в 3D.</span><em class="tag">Sklad4_realistic_film.html</em></div>
+  </a>
+  <a class="card" href="Sklad4_variants_ABC.html">
+    <div class="thumb" style="background-image:url('docs/снимки_18.11_WMS_Blender_фуры/Cycles_aerial.jpg')"></div>
+    <div class="body"><b>Варианты хранения A / B / C</b><span>Планировки по концепции Buraq 2026 с оборудованием и симуляцией.</span><em class="tag">Sklad4_variants_ABC.html</em></div>
+  </a>
+</div>
+
+<h2>Визуализация</h2>
+<ul class="links">
+  <li><a href="docs/снимки_18.11_WMS_Blender_фуры/Пролёт_Cycles_13с.mp4">Пролёт по складу — Blender Cycles (13 с)</a></li>
+  <li><a href="docs/снимки_18.11_WMS_Blender_фуры/Cycles_loading.jpg">Кадр: погрузка у П2</a></li>
+  <li><a href="docs/снимки_18.11_WMS_Blender_фуры/Cycles_truck.jpg">Кадр: фура с тентом</a></li>
+  <li><a href="docs/снимки_18.11_WMS_Blender_фуры/Cycles_plan.jpg">Кадр: план сверху</a></li>
+</ul>
+
+<h2>Документы</h2>
+<ul class="links">
+  <li><a href="docs/Склад4_фильм_и_замечания_по_расстановке.md">Замечания по расстановке и процессу</a></li>
+  <li><a href="docs/шаблон_учёт_груза.csv">Шаблон таблицы учёта груза (CSV)</a></li>
+  <li><a href="README.md">README — как запустить и собрать</a></li>
+  <li><a href="CLAUDE.md">CLAUDE.md — устройство проекта</a></li>
+</ul>
+
+<footer>Запуск: <code>npm start</code> (сервер на http://localhost:8080) или просто откройте этот файл. Сборка: <code>npm run build</code>.</footer>
+</div>
+</body>
+</html>

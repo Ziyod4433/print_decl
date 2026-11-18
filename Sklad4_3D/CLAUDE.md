@@ -45,6 +45,10 @@
 
 ## 3. Быстрый старт
 
+Проект целиком (с 18.11): `index.html` — стартовая страница; `npm start` — локальный сервер `tools/serve.js` (127.0.0.1:8080);
+`npm run build` — все три файла (`tools/build_all.js` сам находит python3/python/py); `npm test` — быстрые проверки (`tools/check.js`);
+`setup.bat` / `setup.sh` — установка и запуск у пользователя (README: как развернуть в папке «AI projects»).
+
 ```bash
 python3 build.py                 # → Sklad4_realistic_film.html (Python 3.8+, без зависимостей)
 python3 build.py --abc           # → Sklad4_variants_ABC.html: та же модель + варианты хранения A/B/C и симуляция (§18)
@@ -783,7 +787,7 @@ Blender пользователя подключён к его компьютер
 Старые копии кузова в `curtainBody`/тандеме не используются — правки делать только в `frameBody()`/`cnSemi()`.
 
 **Проверки (18.11).** `forklift_jumps`, `user_edits_in_film`, `stock`, `film_shots` (и на `--abc`), `variant_static`, `people_body`,
-`walktest`, `wms` — норма; `simrun` два цикла в обоих вариантах приёмки — см. ниже. Снимки — `docs/снимки_18.11_WMS_Blender_фуры/`.
+`walktest`, `wms` — норма; `simrun` два цикла в обоих вариантах приёмки — `HITS` пусто, `HUM {}`, `HP []`. Снимки — `docs/снимки_18.11_WMS_Blender_фуры/`.
 
 **Ловушки 18.11 (вторая часть).**
 1. В `trucks.js` код кузова автопоезда продублирован (`curtainBody` и `frameBody`): замена по тексту находит два места — менять только
